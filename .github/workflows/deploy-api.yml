@@ -1,0 +1,154 @@
+name: Deploy API
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-api.yml"
+
+jobs:
+  # Pre-deployment: Check migrations and validate
+  pre-deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      pending_migrations: ${{ steps.check.outputs.pending }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Prisma CLI
+        working-directory: backend
+        run: npm install prisma @prisma/client
+
+      - name: Check pending migrations
+        id: check
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "🔍 Checking migration status..."
+          npx prisma migrate status > migration_status.txt 2>&1 || true
+          cat migration_status.txt
+          
+          if grep -q "Following migration" migration_status.txt; then
+            echo "pending=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Pending migrations detected"
+          else
+            echo "pending=false" >> $GITHUB_OUTPUT
+            echo "✅ No pending migrations"
+          fi
+
+      - name: Validate schema
+        working-directory: backend
+        run: |
+          echo "🔍 Validating Prisma schema..."
+          npx prisma validate
+          echo "✅ Schema is valid"
+
+  # Run migrations safely before deployment
+  migrate:
+    needs: pre-deploy
+    if: needs.pre-deploy.outputs.pending_migrations == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Run migrations on server
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+            cd ${{ secrets.API_DIR }}/backend
+            
+            echo "📋 Recording migration state before deployment..."
+            DATABASE_URL="${{ secrets.DATABASE_URL }}" npx prisma migrate status > /tmp/migration_before.log 2>&1 || true
+            cat /tmp/migration_before.log
+            
+            echo ""
+            echo "🔄 Pulling latest migration files..."
+            cd ${{ secrets.API_DIR }}
+            git pull origin main
+            cd backend
+            
+            echo ""
+            echo "📦 Installing dependencies for migration..."
+            npm ci --production=false
+            
+            echo ""
+            echo "🗄️ Generating Prisma client..."
+            npx prisma generate
+            
+            echo ""
+            echo "🚀 Running database migrations..."
+            echo "   (Only pending migrations will be applied)"
+            DATABASE_URL="${{ secrets.DATABASE_URL }}" npx prisma migrate deploy
+            
+            echo ""
+            echo "📋 Recording migration state after deployment..."
+            DATABASE_URL="${{ secrets.DATABASE_URL }}" npx prisma migrate status > /tmp/migration_after.log 2>&1 || true
+            cat /tmp/migration_after.log
+            
+            echo ""
+            echo "✅ Migrations completed successfully!"
+          ENDSSH
+
+  # Deploy application after migrations
+  deploy:
+    needs: [pre-deploy, migrate]
+    if: always() && needs.pre-deploy.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+            cd ${{ secrets.API_DIR }}
+            
+            echo "📥 Pulling latest code..."
+            git pull origin main
+            
+            echo "📦 Installing dependencies..."
+            cd backend
+            npm ci --production=false
+            
+            echo "🗄️ Generating Prisma client..."
+            npx prisma generate
+            
+            echo "🔨 Building application..."
+            npm run build
+            
+            echo "🚀 Restarting application..."
+            pm2 restart kenels-api || pm2 start dist/main.js --name kenels-api
+            
+            echo "✅ API deployment complete!"
+          ENDSSH

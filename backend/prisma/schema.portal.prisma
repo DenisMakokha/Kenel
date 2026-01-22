@@ -1,0 +1,37 @@
+// Portal-related models (split for clarity; you can merge into schema.prisma later)
+
+model ClientPortalUser {
+  id            String   @id @default(uuid()) @db.Uuid
+  clientId      String   @map("client_id") @db.Uuid
+  email         String   @unique
+  phone         String?  @db.VarChar(50)
+  passwordHash  String  @map("password_hash")
+  status        String   @default("active")
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  client        Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  auditEvents   ClientPortalAudit[]
+
+  @@index([clientId])
+  @@map("client_portal_users")
+}
+
+model ClientPortalAudit {
+  id                  String   @id @default(uuid()) @db.Uuid
+  clientPortalUserId  String   @map("client_portal_user_id") @db.Uuid
+  eventType           String   @map("event_type")
+  ipAddress           String?  @map("ip_address")
+  userAgent           String?  @map("user_agent")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user                ClientPortalUser @relation(fields: [clientPortalUserId], references: [id], onDelete: Cascade)
+
+  @@index([clientPortalUserId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("client_portal_audit")
+}

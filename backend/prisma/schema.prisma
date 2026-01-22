@@ -1,0 +1,915 @@
+// Kenels Bureau LMS - Database Schema
+// PostgreSQL with UUID primary keys
+// Generated: November 2024
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  ADMIN
+  CREDIT_OFFICER
+  FINANCE_OFFICER
+  CLIENT
+}
+
+enum LoanApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum LoanStatus {
+  PENDING_DISBURSEMENT
+  ACTIVE
+  DUE
+  IN_ARREARS
+  CLOSED
+  WRITTEN_OFF
+  RESTRUCTURED
+}
+
+enum RepaymentChannel {
+  CASH
+  BANK_TRANSFER
+  MOBILE_MONEY
+  CHEQUE
+}
+
+enum RepaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVERSED
+}
+
+enum DocumentType {
+  ID_FRONT
+  ID_BACK
+  PASSPORT_PHOTO
+  NATIONAL_ID
+  PASSPORT
+  PAYSLIP
+  BANK_STATEMENT
+  EMPLOYMENT_LETTER
+  CONTRACT
+  PROOF_OF_RESIDENCE
+  OTHER
+}
+
+enum DocumentReviewStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum KycStatus {
+  UNVERIFIED
+  PENDING_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+enum IdType {
+  NATIONAL_ID
+  PASSPORT
+  ALIEN_CARD
+}
+
+enum RiskRating {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum CreatedChannel {
+  BRANCH
+  AGENT
+  ONLINE
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  APPROVE
+  REJECT
+  DISBURSE
+  REVERSE
+}
+
+enum InterestMethod {
+  FLAT_RATE
+  DECLINING_BALANCE
+  REDUCING_BALANCE
+}
+
+enum ProductType {
+  SALARY_ADVANCE
+  TERM_LOAN
+  BUSINESS_LOAN
+  CUSTOM
+}
+
+enum ProductVersionStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+}
+
+enum RepaymentFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum InterestCalculationMethod {
+  FLAT
+  DECLINING_BALANCE
+}
+
+enum FeeType {
+  FIXED
+  PERCENTAGE
+}
+
+enum PenaltyType {
+  FLAT
+  PERCENTAGE_OF_OVERDUE
+}
+
+enum PenaltyFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum LoanApplicationChecklistStatus {
+  PENDING
+  COMPLETED
+  NOT_APPLICABLE
+}
+
+// ============================================
+// USERS & AUTHENTICATION
+// ============================================
+
+model User {
+  id                String   @id @default(uuid()) @db.Uuid
+  email             String   @unique
+  password          String
+  firstName         String   @map("first_name")
+  lastName          String   @map("last_name")
+  phone             String?
+  role              UserRole @default(CLIENT)
+  isActive          Boolean  @default(true) @map("is_active")
+  emailVerified     Boolean  @default(false) @map("email_verified")
+  lastLogin         DateTime? @map("last_login")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  refreshTokens     RefreshToken[]
+  notificationStates NotificationUserState[]
+  client            Client?
+  postedRepayments  Repayment[]
+  auditLogs         AuditLog[]
+  createdApplications LoanApplication[] @relation("ApplicationCreator")
+  createdProductVersions LoanProductVersion[]
+  productAuditLogs  LoanProductAuditLog[]
+  completedChecklistItems LoanApplicationChecklistItem[] @relation("ChecklistCompletedBy")
+  loanApplicationEvents   LoanApplicationEvent[]        @relation("ApplicationEventActor")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid()) @db.Uuid
+  token       String   @unique
+  userId      String   @map("user_id") @db.Uuid
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  revokedAt   DateTime? @map("revoked_at")
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model NotificationUserState {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  notificationKey String    @map("notification_key")
+  readAt          DateTime? @map("read_at")
+  deletedAt       DateTime? @map("deleted_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationKey])
+  @@index([userId])
+  @@index([notificationKey])
+  @@map("notification_user_state")
+}
+
+// ============================================
+// CLIENTS MODULE
+// ============================================
+
+model Client {
+  id                  String         @id @default(uuid()) @db.Uuid
+  clientCode          String         @unique @map("client_code")
+  userId              String         @unique @map("user_id") @db.Uuid
+  
+  // Personal Information
+  firstName           String         @map("first_name")
+  lastName            String         @map("last_name")
+  otherNames          String?        @map("other_names")
+  idType              IdType         @map("id_type")
+  idNumber            String         @unique @map("id_number")
+  dateOfBirth         DateTime       @map("date_of_birth")
+  gender              String?
+  maritalStatus       String?        @map("marital_status")
+  
+  // Contact Information
+  phonePrimary        String         @map("phone_primary")
+  phoneSecondary      String?        @map("phone_secondary")
+  email               String?
+  residentialAddress  String?        @map("residential_address")
+  
+  // Employment Information
+  employerName        String?        @map("employer_name")
+  employerAddress     String?        @map("employer_address")
+  employerPhone       String?        @map("employer_phone")
+  occupation          String?
+  monthlyIncome       Decimal?       @map("monthly_income") @db.Decimal(15, 2)
+  
+  // KYC & Risk
+  createdChannel      CreatedChannel @default(BRANCH) @map("created_channel")
+  kycStatus           KycStatus      @default(UNVERIFIED) @map("kyc_status")
+  kycLevel            String?        @map("kyc_level") // "basic" | "enhanced"
+  kycVerifiedAt       DateTime?      @map("kyc_verified_at")
+  kycVerifiedBy       String?        @map("kyc_verified_by") @db.Uuid
+  allowProfileEditsAfterKyc Boolean   @default(false) @map("allow_profile_edits_after_kyc")
+  riskRating          RiskRating?    @map("risk_rating")
+  
+  // Notes & Metadata
+  notes               String?
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+  deletedAt           DateTime?      @map("deleted_at")
+
+  // Relations
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nextOfKin           ClientNextOfKin[]
+  referees            ClientReferee[]
+  portalUser          ClientPortalUser?
+  documents           ClientDocument[]
+  kycEvents           ClientKycEvent[]
+  applications        LoanApplication[]
+  loans               Loan[]
+
+  @@index([idNumber])
+  @@index([phonePrimary])
+  @@index([kycStatus])
+  @@index([clientCode])
+  @@map("clients")
+}
+
+model ClientNextOfKin {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @map("client_id") @db.Uuid
+  fullName    String   @map("full_name")
+  relation    String
+  phone       String
+  email       String?
+  address     String?
+  isPrimary   Boolean  @default(true) @map("is_primary")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@map("client_next_of_kin")
+}
+
+model ClientReferee {
+  id            String   @id @default(uuid()) @db.Uuid
+  clientId      String   @map("client_id") @db.Uuid
+  fullName      String   @map("full_name")
+  relation      String?
+  phone         String
+  idNumber      String?  @map("id_number")
+  employerName  String?  @map("employer_name")
+  address       String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@map("client_referees")
+}
+
+model ClientDocument {
+  id                String       @id @default(uuid()) @db.Uuid
+  clientId          String       @map("client_id") @db.Uuid
+  documentType      DocumentType @map("document_type")
+  category          String?      @map("category")
+  fileName          String       @map("file_name")
+  filePath          String       @map("file_path")
+  mimeType          String       @map("mime_type")
+  sizeBytes         Int          @map("size_bytes")
+  uploadedBy        String       @map("uploaded_by") @db.Uuid
+  uploadedAt        DateTime     @default(now()) @map("uploaded_at")
+  isDeleted         Boolean      @default(false) @map("is_deleted")
+  virusScanStatus   String?      @default("pending") @map("virus_scan_status") // "pending" | "clean" | "infected"
+  reviewStatus      DocumentReviewStatus @default(PENDING) @map("review_status")
+  reviewNotes       String?      @map("review_notes")
+  reviewedAt        DateTime?    @map("reviewed_at")
+  reviewedBy        String?      @map("reviewed_by") @db.Uuid
+
+  // Relations
+  client            Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([documentType])
+  @@map("client_documents")
+}
+
+model ClientKycEvent {
+  id            String    @id @default(uuid()) @db.Uuid
+  clientId      String    @map("client_id") @db.Uuid
+  fromStatus    KycStatus @map("from_status")
+  toStatus      KycStatus @map("to_status")
+  reason        String?
+  notes         String?
+  performedBy   String    @map("performed_by") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  client        Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([createdAt])
+  @@map("client_kyc_events")
+}
+
+// ============================================
+// LOAN PRODUCTS MODULE
+// ============================================
+
+model LoanProduct {
+  id              String                @id @default(uuid()) @db.Uuid
+  code            String                @unique
+  name            String
+  description     String?
+  productType     ProductType           @map("product_type")
+  currencyCode    String                @default("KES") @map("currency_code")
+  isActive        Boolean               @default(true) @map("is_active")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+  deletedAt       DateTime?             @map("deleted_at")
+
+  // Relations
+  versions        LoanProductVersion[]
+  auditLogs       LoanProductAuditLog[]
+
+  @@index([code])
+  @@index([productType])
+  @@index([isActive])
+  @@map("loan_products")
+}
+
+model LoanProductVersion {
+  id                String                @id @default(uuid()) @db.Uuid
+  loanProductId     String                @map("loan_product_id") @db.Uuid
+  versionNumber     Int                   @map("version_number")
+  status            ProductVersionStatus  @default(DRAFT)
+  effectiveFrom     DateTime?             @map("effective_from") @db.Date
+  effectiveTo       DateTime?             @map("effective_to") @db.Date
+  rules             Json                  // LoanProductRules JSONB
+  createdByUserId   String                @map("created_by_user_id") @db.Uuid
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  // Relations
+  loanProduct       LoanProduct           @relation(fields: [loanProductId], references: [id], onDelete: Cascade)
+  createdBy         User                  @relation(fields: [createdByUserId], references: [id])
+  applications      LoanApplication[]     @relation("VersionApplications")
+  auditLogs         LoanProductAuditLog[]
+
+  @@unique([loanProductId, versionNumber])
+  @@index([loanProductId])
+  @@index([status])
+  @@index([effectiveFrom])
+  @@map("loan_product_versions")
+}
+
+model LoanProductAuditLog {
+  id                  String              @id @default(uuid()) @db.Uuid
+  loanProductId       String              @map("loan_product_id") @db.Uuid
+  productVersionId    String?             @map("product_version_id") @db.Uuid
+  action              String              // "create_version" | "update_draft" | "publish" | "retire"
+  performedBy         String              @map("performed_by") @db.Uuid
+  payloadSnapshot     Json?               @map("payload_snapshot")
+  createdAt           DateTime            @default(now()) @map("created_at")
+
+  // Relations
+  loanProduct         LoanProduct         @relation(fields: [loanProductId], references: [id])
+  productVersion      LoanProductVersion? @relation(fields: [productVersionId], references: [id])
+  user                User                @relation(fields: [performedBy], references: [id])
+
+  @@index([loanProductId])
+  @@index([productVersionId])
+  @@index([performedBy])
+  @@index([createdAt])
+  @@map("loan_product_audit_logs")
+}
+
+// ============================================
+// LOAN APPLICATIONS MODULE
+// ============================================
+
+model LoanApplication {
+  id                  String                  @id @default(uuid()) @db.Uuid
+  applicationNumber   String                  @unique @map("application_number")
+  clientId            String                  @map("client_id") @db.Uuid
+  productVersionId    String                  @map("product_version_id") @db.Uuid
+  createdBy           String?                 @map("created_by") @db.Uuid
+  
+  // Snapshots & channel
+  channel             CreatedChannel?         @map("channel")
+  kycStatusSnapshot   KycStatus?              @map("kyc_status_snapshot")
+  riskRatingSnapshot  RiskRating?             @map("risk_rating_snapshot")
+  
+  // Requested Terms
+  requestedAmount     Decimal                 @map("requested_amount") @db.Decimal(15, 2)
+  requestedTermMonths Int                     @map("requested_term_months")
+  requestedRepaymentFrequency RepaymentFrequency? @map("requested_repayment_frequency")
+  purpose             String?
+  
+  // Status
+  status              LoanApplicationStatus   @default(DRAFT)
+  
+  // Workflow
+  submittedAt         DateTime?               @map("submitted_at")
+  reviewedAt          DateTime?               @map("reviewed_at")
+  reviewedBy          String?                 @map("reviewed_by")
+  approvedAt          DateTime?               @map("approved_at")
+  approvedBy          String?                 @map("approved_by")
+  rejectedAt          DateTime?               @map("rejected_at")
+  rejectedBy          String?                 @map("rejected_by")
+  rejectionReason     String?                 @map("rejection_reason")
+  
+  // Approved terms snapshot
+  approvedPrincipal    Decimal?               @map("approved_principal") @db.Decimal(15, 2)
+  approvedTermMonths   Int?                   @map("approved_term_months")
+  approvedInterestRate Decimal?               @map("approved_interest_rate") @db.Decimal(5, 2)
+  
+  // Metadata
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+
+  // Relations
+  client              Client                  @relation(fields: [clientId], references: [id])
+  productVersion      LoanProductVersion      @relation("VersionApplications", fields: [productVersionId], references: [id])
+  creator             User?                   @relation("ApplicationCreator", fields: [createdBy], references: [id])
+  documents           ApplicationDocument[]
+  creditScore         CreditScore?
+  loan                Loan?
+  checklistItems      LoanApplicationChecklistItem[]
+  events              LoanApplicationEvent[]
+
+  @@index([clientId])
+  @@index([status])
+  @@index([applicationNumber])
+  @@map("loan_applications")
+}
+
+model ApplicationDocument {
+  id              String          @id @default(uuid()) @db.Uuid
+  applicationId   String          @map("application_id") @db.Uuid
+  documentType    DocumentType    @map("document_type")
+  category        String?         @map("category")
+  fileName        String          @map("file_name")
+  filePath        String          @map("file_path")
+  fileSize        Int             @map("file_size")
+  mimeType        String          @map("mime_type")
+  uploadedBy      String?         @map("uploaded_by") @db.Uuid
+  uploadedAt      DateTime        @default(now()) @map("uploaded_at")
+  isDeleted       Boolean         @default(false) @map("is_deleted")
+  reviewStatus    DocumentReviewStatus @default(PENDING) @map("review_status")
+  reviewNotes     String?         @map("review_notes")
+  reviewedAt      DateTime?       @map("reviewed_at")
+  reviewedBy      String?         @map("reviewed_by") @db.Uuid
+
+  // Relations
+  application     LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("application_documents")
+}
+
+model LoanApplicationChecklistItem {
+  id                String                         @id @default(uuid()) @db.Uuid
+  loanApplicationId String                         @map("loan_application_id") @db.Uuid
+  itemKey           String
+  itemLabel         String
+  status            LoanApplicationChecklistStatus @default(PENDING)
+  completedBy       String?                        @map("completed_by") @db.Uuid
+  completedAt       DateTime?                      @map("completed_at")
+  notes             String?
+
+  // Relations
+  loanApplication   LoanApplication                @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+  completedByUser   User?                          @relation("ChecklistCompletedBy", fields: [completedBy], references: [id])
+
+  @@index([loanApplicationId])
+  @@map("loan_application_checklist_items")
+}
+
+model LoanApplicationEvent {
+  id                String                  @id @default(uuid()) @db.Uuid
+  loanApplicationId String                  @map("loan_application_id") @db.Uuid
+  eventType         String                  @map("event_type")
+  fromStatus        LoanApplicationStatus?  @map("from_status")
+  toStatus          LoanApplicationStatus?  @map("to_status")
+  payload           Json?                   @map("payload")
+  performedBy       String                  @map("performed_by") @db.Uuid
+  createdAt         DateTime                @default(now()) @map("created_at")
+
+  // Relations
+  loanApplication   LoanApplication         @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+  user              User                    @relation("ApplicationEventActor", fields: [performedBy], references: [id])
+
+  @@index([loanApplicationId])
+  @@index([createdAt])
+  @@map("loan_application_events")
+}
+
+// ============================================
+// CREDIT SCORING MODULE
+// ============================================
+
+model CreditScore {
+  id                    String          @id @default(uuid()) @db.Uuid
+  applicationId         String          @unique @map("application_id") @db.Uuid
+  
+  // Score Components
+  repaymentHistoryScore Int             @map("repayment_history_score")
+  stabilityScore        Int             @map("stability_score")
+  incomeScore           Int             @map("income_score")
+  obligationScore       Int             @map("obligation_score")
+  
+  // Total
+  totalScore            Int             @map("total_score")
+  grade                 String          // A, B, C, D, E
+  
+  // Officer Assessment
+  officerComments       String?         @map("officer_comments")
+  recommendation        String?         // APPROVE, REJECT, CONDITIONAL
+  
+  // Maker-Checker
+  assessedBy            String          @map("assessed_by")
+  assessedAt            DateTime        @default(now()) @map("assessed_at")
+  approvedBy            String?         @map("approved_by")
+  approvedAt            DateTime?       @map("approved_at")
+
+  // Relations
+  application           LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("credit_scores")
+}
+
+// ============================================
+// LOANS MODULE
+// ============================================
+
+model Loan {
+  id                    String      @id @default(uuid()) @db.Uuid
+  loanNumber            String      @unique @map("loan_number")
+  clientId              String      @map("client_id") @db.Uuid
+  applicationId         String      @unique @map("application_id") @db.Uuid
+  
+  // Terms
+  principalAmount       Decimal     @map("principal_amount") @db.Decimal(15, 2)
+  interestRate          Decimal     @map("interest_rate") @db.Decimal(5, 2)
+  interestMethod        InterestMethod @map("interest_method")
+  penaltyRate           Decimal     @map("penalty_rate") @db.Decimal(5, 2)
+  termMonths            Int         @map("term_months")
+  
+  // Amounts
+  totalInterest         Decimal     @map("total_interest") @db.Decimal(15, 2)
+  totalAmount           Decimal     @map("total_amount") @db.Decimal(15, 2)
+  outstandingPrincipal  Decimal     @map("outstanding_principal") @db.Decimal(15, 2)
+  outstandingInterest   Decimal     @map("outstanding_interest") @db.Decimal(15, 2)
+  outstandingFees       Decimal     @default(0) @map("outstanding_fees") @db.Decimal(15, 2)
+  outstandingPenalties  Decimal     @default(0) @map("outstanding_penalties") @db.Decimal(15, 2)
+  totalRepaid           Decimal     @default(0) @map("total_repaid") @db.Decimal(15, 2)
+  
+  // Status
+  status                LoanStatus  @default(PENDING_DISBURSEMENT)
+  
+  // Dates
+  disbursedAt           DateTime?   @map("disbursed_at")
+  lastPaymentDate       DateTime?   @map("last_payment_date")
+  firstDueDate          DateTime?   @map("first_due_date")
+  maturityDate          DateTime?   @map("maturity_date")
+  closedAt              DateTime?   @map("closed_at")
+  
+  // Metadata
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  client                Client      @relation(fields: [clientId], references: [id])
+  application           LoanApplication @relation(fields: [applicationId], references: [id])
+  schedules             LoanSchedule[]
+  repayments            Repayment[]
+  documents             LoanDocument[]
+
+  @@index([clientId])
+  @@index([loanNumber])
+  @@index([status])
+  @@map("loans")
+}
+
+model LoanSchedule {
+  id                String    @id @default(uuid()) @db.Uuid
+  loanId            String    @map("loan_id") @db.Uuid
+  installmentNumber Int       @map("installment_number")
+  
+  // Due Amounts
+  dueDate           DateTime  @map("due_date")
+  principalDue      Decimal   @map("principal_due") @db.Decimal(15, 2)
+  interestDue       Decimal   @map("interest_due") @db.Decimal(15, 2)
+  feesDue           Decimal   @default(0) @map("fees_due") @db.Decimal(15, 2)
+  totalDue          Decimal   @map("total_due") @db.Decimal(15, 2)
+  
+  // Paid Amounts
+  principalPaid     Decimal   @default(0) @map("principal_paid") @db.Decimal(15, 2)
+  interestPaid      Decimal   @default(0) @map("interest_paid") @db.Decimal(15, 2)
+  feesPaid          Decimal   @default(0) @map("fees_paid") @db.Decimal(15, 2)
+  penaltiesPaid     Decimal   @default(0) @map("penalties_paid") @db.Decimal(15, 2)
+  totalPaid         Decimal   @default(0) @map("total_paid") @db.Decimal(15, 2)
+  
+  // Balance
+  balance           Decimal   @map("balance") @db.Decimal(15, 2)
+  
+  // Status
+  isPaid            Boolean   @default(false) @map("is_paid")
+  paidAt            DateTime? @map("paid_at")
+  isOverdue         Boolean   @default(false) @map("is_overdue")
+  daysPastDue       Int       @default(0) @map("days_past_due")
+  
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  loan              Loan      @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@unique([loanId, installmentNumber])
+  @@index([loanId])
+  @@index([dueDate])
+  @@map("loan_schedules")
+}
+
+model LoanDocument {
+  id            String       @id @default(uuid()) @db.Uuid
+  loanId        String       @map("loan_id") @db.Uuid
+  documentType  DocumentType @map("document_type")
+  fileName      String       @map("file_name")
+  filePath      String       @map("file_path")
+  fileSize      Int          @map("file_size")
+  mimeType      String       @map("mime_type")
+  uploadedAt    DateTime     @default(now()) @map("uploaded_at")
+
+  // Relations
+  loan          Loan         @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@index([loanId])
+  @@map("loan_documents")
+}
+
+// ============================================
+// REPAYMENTS MODULE
+// ============================================
+
+model Repayment {
+  id              String           @id @default(uuid()) @db.Uuid
+  loanId          String           @map("loan_id") @db.Uuid
+  receiptNumber   String           @unique @map("receipt_number")
+  
+  // Payment Details
+  amount          Decimal          @map("amount") @db.Decimal(15, 2)
+  channel         RepaymentChannel
+  reference       String?
+  transactionDate DateTime         @map("transaction_date")
+  
+  // Status
+  status          RepaymentStatus  @default(PENDING)
+  
+  // Maker-Checker
+  postedBy        String           @map("posted_by") @db.Uuid
+  postedAt        DateTime         @default(now()) @map("posted_at")
+  approvedBy      String?          @map("approved_by")
+  approvedAt      DateTime?        @map("approved_at")
+  reversedBy      String?          @map("reversed_by")
+  reversedAt      DateTime?        @map("reversed_at")
+  reversalReason  String?          @map("reversal_reason")
+  
+  // Metadata
+  notes           String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  loan            Loan             @relation(fields: [loanId], references: [id])
+  poster          User             @relation(fields: [postedBy], references: [id])
+  allocation      RepaymentAllocation?
+
+  @@index([loanId])
+  @@index([receiptNumber])
+  @@index([status])
+  @@map("repayments")
+}
+
+model RepaymentAllocation {
+  id              String    @id @default(uuid()) @db.Uuid
+  repaymentId     String    @unique @map("repayment_id") @db.Uuid
+  
+  // Allocation Breakdown
+  principalAmount Decimal   @map("principal_amount") @db.Decimal(15, 2)
+  interestAmount  Decimal   @map("interest_amount") @db.Decimal(15, 2)
+  feesAmount      Decimal   @default(0) @map("fees_amount") @db.Decimal(15, 2)
+  penaltiesAmount Decimal   @default(0) @map("penalties_amount") @db.Decimal(15, 2)
+  totalAllocated  Decimal   @map("total_allocated") @db.Decimal(15, 2)
+  
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  repayment       Repayment @relation(fields: [repaymentId], references: [id], onDelete: Cascade)
+
+  @@map("repayment_allocations")
+}
+
+// ============================================
+// AUDIT LOG MODULE
+// ============================================
+
+model AuditLog {
+  id            String      @id @default(uuid()) @db.Uuid
+  entity        String      // TABLE_NAME
+  entityId      String      @map("entity_id") @db.Uuid
+  action        AuditAction
+  performedBy   String      @map("performed_by") @db.Uuid
+  oldValue      Json?       @map("old_value")
+  newValue      Json?       @map("new_value")
+  ipAddress     String?     @map("ip_address")
+  userAgent     String?     @map("user_agent")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  user          User        @relation(fields: [performedBy], references: [id])
+
+  @@index([entity, entityId])
+  @@index([performedBy])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// CLIENT PORTAL MODULE
+// ============================================
+
+model ClientPortalUser {
+  id           String   @id @default(uuid()) @db.Uuid
+  clientId     String   @map("client_id") @unique @db.Uuid
+  email        String   @unique
+  phone        String?  @db.VarChar(50)
+  passwordHash String   @map("password_hash")
+  status       String   @default("active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  preferences  Json?    @default("{\"paymentReminders\": true, \"emailNotifications\": true, \"smsNotifications\": true}")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  client       Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  auditEvents  ClientPortalAudit[]
+
+  @@index([clientId])
+  @@map("client_portal_users")
+}
+
+model ClientPortalAudit {
+  id                 String   @id @default(uuid()) @db.Uuid
+  clientPortalUserId String   @map("client_portal_user_id") @db.Uuid
+  eventType          String   @map("event_type")
+  ipAddress          String?  @map("ip_address")
+  userAgent          String?  @map("user_agent")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user ClientPortalUser @relation(fields: [clientPortalUserId], references: [id], onDelete: Cascade)
+
+  @@index([clientPortalUserId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("client_portal_audit")
+}
+
+// ============================================
+// INTEREST RATES MODULE
+// ============================================
+
+enum InterestRateType {
+  FLAT
+  REDUCING
+  DECLINING
+}
+
+enum InterestRatePeriod {
+  PER_ANNUM
+  PER_MONTH
+}
+
+model InterestRate {
+  id            String           @id @default(uuid()) @db.Uuid
+  name          String
+  type          InterestRateType
+  rate          Decimal          @db.Decimal(5, 2)
+  ratePeriod    InterestRatePeriod @default(PER_ANNUM) @map("rate_period")
+  minTerm       Int              @map("min_term")
+  maxTerm       Int              @map("max_term")
+  minAmount     Decimal          @map("min_amount") @db.Decimal(15, 2)
+  maxAmount     Decimal          @map("max_amount") @db.Decimal(15, 2)
+  isActive      Boolean          @default(true) @map("is_active")
+  effectiveFrom DateTime         @map("effective_from")
+  effectiveTo   DateTime?        @map("effective_to")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  deletedAt     DateTime?        @map("deleted_at")
+
+  @@index([isActive])
+  @@index([effectiveFrom])
+  @@map("interest_rates")
+}
+
+// ============================================
+// FEE TEMPLATES MODULE
+// ============================================
+
+enum FeeCategory {
+  PROCESSING
+  SERVICE
+  INSURANCE
+  LEGAL
+  PENALTY
+  OTHER
+}
+
+enum FeeCalculationType {
+  FIXED
+  PERCENTAGE
+}
+
+model FeeTemplate {
+  id              String             @id @default(uuid()) @db.Uuid
+  name            String
+  category        FeeCategory
+  calculationType FeeCalculationType @map("calculation_type")
+  value           Decimal            @db.Decimal(15, 2)
+  minAmount       Decimal?           @map("min_amount") @db.Decimal(15, 2)
+  maxAmount       Decimal?           @map("max_amount") @db.Decimal(15, 2)
+  isActive        Boolean            @default(true) @map("is_active")
+  description     String?
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  deletedAt       DateTime?          @map("deleted_at")
+
+  @@index([isActive])
+  @@index([category])
+  @@map("fee_templates")
+}
