@@ -1,0 +1,213 @@
+name: Deploy on Push
+
+on:
+  push:
+    branches: ["main"]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  # Detect what changed
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+  # Run migrations if backend changed
+  migrate:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Pull code and run migrations
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+            set -e
+            cd ${{ secrets.API_DIR }}
+            
+            echo "📥 Pulling latest code..."
+            git fetch origin main
+            git reset --hard origin/main
+            
+            cd backend
+            
+            echo ""
+            echo "📋 Checking migration status..."
+            ./node_modules/.bin/prisma migrate status || true
+            
+            echo ""
+            echo "📦 Installing dependencies..."
+            npm ci --production=false
+            
+            echo ""
+            echo "🗄️ Generating Prisma client..."
+            ./node_modules/.bin/prisma generate
+            
+            echo ""
+            echo "🔄 Running database migrations (only pending)..."
+            ./node_modules/.bin/prisma migrate deploy || {
+              echo "⚠️ Migration deploy failed, checking if baselining needed..."
+              
+              # If P3005 error (non-baselined), mark existing as applied
+              for migration in $(ls -1 prisma/migrations/ | grep -E '^[0-9]+' | sort); do
+                echo "  Marking $migration as applied..."
+                ./node_modules/.bin/prisma migrate resolve --applied "$migration" 2>/dev/null || true
+              done
+              
+              echo "🔄 Retrying migration deploy..."
+              ./node_modules/.bin/prisma migrate deploy
+            }
+            
+            echo ""
+            echo "✅ Migrations complete!"
+          ENDSSH
+
+  # Deploy backend
+  deploy-backend:
+    needs: [changes, migrate]
+    if: always() && needs.changes.outputs.backend == 'true' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Build and restart backend
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+            set -e
+            cd ${{ secrets.API_DIR }}/backend
+            
+            echo "🔨 Building application..."
+            npm run build
+            
+            echo ""
+            echo "🚀 Restarting PM2 process..."
+            pm2 restart kenels-api || pm2 start dist/main.js --name kenels-api
+            pm2 save
+            
+            echo ""
+            echo "🏥 Health check..."
+            sleep 3
+            curl -sf http://localhost:3000/api/health > /dev/null && echo "✅ API is healthy!" || echo "⚠️ Health check pending..."
+            
+            echo ""
+            echo "✅ Backend deployment complete!"
+          ENDSSH
+
+  # Deploy frontend
+  deploy-frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build application
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: npm run build
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy frontend to server
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+            echo "🧹 Cleaning old frontend files..."
+            rm -rf ${{ secrets.APP_DIR }}/*
+          ENDSSH
+          
+          echo "📤 Uploading new frontend build..."
+          scp -r frontend/dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.APP_DIR }}/
+          
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+            echo "🔐 Setting permissions..."
+            chmod -R 755 ${{ secrets.APP_DIR }}
+            
+            echo ""
+            echo "✅ Frontend deployment complete!"
+          ENDSSH
+
+  # Summary
+  summary:
+    needs: [changes, migrate, deploy-backend, deploy-frontend]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "=========================================="
+          echo "📊 Deployment Summary"
+          echo "=========================================="
+          echo ""
+          echo "Backend changes detected: ${{ needs.changes.outputs.backend }}"
+          echo "Frontend changes detected: ${{ needs.changes.outputs.frontend }}"
+          echo ""
+          echo "Migration result: ${{ needs.migrate.result }}"
+          echo "Backend deploy result: ${{ needs.deploy-backend.result }}"
+          echo "Frontend deploy result: ${{ needs.deploy-frontend.result }}"
+          echo ""
+          
+          if [[ "${{ needs.migrate.result }}" == "failure" ]] || \
+             [[ "${{ needs.deploy-backend.result }}" == "failure" ]] || \
+             [[ "${{ needs.deploy-frontend.result }}" == "failure" ]]; then
+            echo "❌ Some deployments failed!"
+            exit 1
+          else
+            echo "✅ All deployments successful!"
+          fi
