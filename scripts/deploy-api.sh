@@ -81,7 +81,30 @@ npx prisma generate
 # Step 6: Run migrations (only if pending)
 if [ "$PENDING_MIGRATIONS" = true ]; then
     log "🔄 Running database migrations..."
-    npx prisma migrate deploy
+    
+    # Try to deploy migrations, handle P3005 error (non-baselined DB)
+    MIGRATE_OUTPUT=$(npx prisma migrate deploy 2>&1) || {
+        if echo "$MIGRATE_OUTPUT" | grep -q "P3005"; then
+            warn "⚠️ Database not baselined. Attempting to baseline existing migrations..."
+            
+            # Get list of migration folders and mark them as applied
+            for migration in $(ls -1 prisma/migrations/ | grep -E '^[0-9]+' | sort); do
+                log "  Marking $migration as applied..."
+                npx prisma migrate resolve --applied "$migration" 2>/dev/null || true
+            done
+            
+            # Try deploy again
+            log "🔄 Retrying migration deploy..."
+            npx prisma migrate deploy || {
+                error "❌ Migration failed even after baselining"
+                exit 1
+            }
+        else
+            echo "$MIGRATE_OUTPUT"
+            error "❌ Migration failed"
+            exit 1
+        fi
+    }
     
     log "📋 Checking migration status (after)..."
     npx prisma migrate status
