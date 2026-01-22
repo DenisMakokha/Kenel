@@ -116,6 +116,7 @@ async function bootstrap() {
     📍 API: http://localhost:${port}/${configService.get('API_PREFIX') || 'api/v1'}
     ${!isProd ? `📚 Docs: http://localhost:${port}/api/docs` : '📚 Docs: Disabled in production'}
     🌍 Environment: ${configService.get('NODE_ENV') || 'development'}
+    🕐 Started: ${new Date().toISOString()}
   `);
 }
 
