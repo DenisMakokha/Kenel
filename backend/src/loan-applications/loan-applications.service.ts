@@ -722,6 +722,14 @@ export class LoanApplicationsService {
     });
   }
 
+  async getDocumentById(applicationId: string, documentId: string) {
+    await this.getApplicationOrThrow(applicationId);
+
+    return this.prisma.applicationDocument.findFirst({
+      where: { id: documentId, applicationId, isDeleted: false } as any,
+    });
+  }
+
   async uploadDocument(
     applicationId: string,
     file: Express.Multer.File,

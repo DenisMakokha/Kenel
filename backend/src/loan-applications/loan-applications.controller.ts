@@ -5,14 +5,17 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -253,6 +256,30 @@ export class LoanApplicationsController {
   @ApiOperation({ summary: 'Get all documents for an application' })
   getDocuments(@Param('id') id: string) {
     return this.loanApplicationsService.getDocuments(id);
+  }
+
+  @Get(':id/documents/:documentId/download')
+  @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER, UserRole.FINANCE_OFFICER)
+  @ApiOperation({ summary: 'Download an application document' })
+  async downloadDocument(
+    @Param('id') id: string,
+    @Param('documentId') documentId: string,
+    @Res() res: Response,
+  ) {
+    const doc = await this.loanApplicationsService.getDocumentById(id, documentId);
+    if (!doc || !doc.filePath) {
+      throw new NotFoundException('Document not found');
+    }
+
+    const filePath = join(process.cwd(), doc.filePath);
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('File not found on server');
+    }
+
+    res.setHeader('Content-Disposition', `inline; filename="${doc.fileName}"`);
+    res.setHeader('Content-Type', doc.mimeType || 'application/octet-stream');
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
   }
 
   @Delete(':id/documents/:documentId')

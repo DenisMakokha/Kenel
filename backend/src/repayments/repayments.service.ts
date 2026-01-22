@@ -174,7 +174,7 @@ export class RepaymentsService {
       throw new NotFoundException('Loan not found');
     }
 
-    if (![LoanStatus.ACTIVE, LoanStatus.DUE, LoanStatus.IN_ARREARS].includes(loan.status)) {
+    if (![LoanStatus.ACTIVE, LoanStatus.DUE, LoanStatus.IN_ARREARS].includes(loan.status as any)) {
       throw new BadRequestException('Repayments can only be posted on ACTIVE/DUE/IN_ARREARS loans');
     }
 

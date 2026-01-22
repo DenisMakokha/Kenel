@@ -939,7 +939,7 @@ export default function LoanApplicationDetailPage() {
                       <TableHead>File Name</TableHead>
                       <TableHead>Size</TableHead>
                       <TableHead>Uploaded At</TableHead>
-                      {canManageDocuments && <TableHead>Actions</TableHead>}
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -953,28 +953,26 @@ export default function LoanApplicationDetailPage() {
                             : ''}
                         </TableCell>
                         <TableCell>{formatDate(doc.uploadedAt)}</TableCell>
-                        {canManageDocuments && (
-                          <TableCell>
-                            <div className="flex gap-2">
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}/api/loan-applications/${application.id}/documents/${doc.id}/download`, '_blank')}
+                            >
+                              View/Download
+                            </Button>
+                            {canDeleteDocuments && (
                               <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() => window.open(`/api/loan-applications/${application.id}/documents`, '_blank')}
+                                variant="destructive"
+                                onClick={() => handleDeleteDocument(doc.id)}
                               >
-                                Refresh
+                                Delete
                               </Button>
-                              {canDeleteDocuments && (
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleDeleteDocument(doc.id)}
-                                >
-                                  Delete
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        )}
+                            )}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
