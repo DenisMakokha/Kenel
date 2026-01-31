@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 
 export interface SmtpConfig {
   host: string;
@@ -31,7 +32,10 @@ export interface SystemSettings {
 
 @Injectable()
 export class SettingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService,
+  ) {}
 
   async getSettings(): Promise<SystemSettings> {
     return {
@@ -95,10 +99,7 @@ export class SettingsService {
       };
     }
 
-    return {
-      success: false,
-      message: 'SMTP test email sending is not available yet.',
-    };
+    return this.emailService.testConnection(config, testEmail);
   }
 
   async updateEmailTemplates(templates: SystemSettings['emailTemplates']): Promise<{ success: boolean }> {
