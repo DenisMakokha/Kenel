@@ -307,6 +307,9 @@ export default function LoanApplicationDetailPage() {
 
   const canDeleteDocuments = user?.role === UserRole.ADMIN;
 
+  const canManageChecklist =
+    user && (user.role === UserRole.ADMIN || user.role === UserRole.CREDIT_OFFICER);
+
   const canEditScore =
     user && application &&
     (user.role === UserRole.ADMIN || user.role === UserRole.CREDIT_OFFICER) &&
@@ -774,6 +777,7 @@ export default function LoanApplicationDetailPage() {
                       type="number"
                       min={1}
                       max={5}
+                      disabled={!canEditScore}
                       value={scoreForm.repaymentHistoryScore}
                       onChange={(e) =>
                         setScoreForm((prev) => ({
@@ -790,6 +794,7 @@ export default function LoanApplicationDetailPage() {
                       type="number"
                       min={1}
                       max={5}
+                      disabled={!canEditScore}
                       value={scoreForm.stabilityScore}
                       onChange={(e) =>
                         setScoreForm((prev) => ({
@@ -806,6 +811,7 @@ export default function LoanApplicationDetailPage() {
                       type="number"
                       min={1}
                       max={5}
+                      disabled={!canEditScore}
                       value={scoreForm.incomeScore}
                       onChange={(e) =>
                         setScoreForm((prev) => ({
@@ -822,6 +828,7 @@ export default function LoanApplicationDetailPage() {
                       type="number"
                       min={1}
                       max={5}
+                      disabled={!canEditScore}
                       value={scoreForm.obligationScore}
                       onChange={(e) =>
                         setScoreForm((prev) => ({
@@ -861,6 +868,7 @@ export default function LoanApplicationDetailPage() {
                   <textarea
                     id="officerComments"
                     className="w-full min-h-[80px] px-3 py-2 rounded-md border border-input bg-background text-sm"
+                    disabled={!canEditScore}
                     value={scoreForm.officerComments || ''}
                     onChange={(e) =>
                       setScoreForm((prev) => ({ ...prev, officerComments: e.target.value }))
@@ -873,6 +881,7 @@ export default function LoanApplicationDetailPage() {
                   <select
                     id="recommendation"
                     className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    disabled={!canEditScore}
                     value={scoreForm.recommendation || 'APPROVE'}
                     onChange={(e) =>
                       setScoreForm((prev) => ({
@@ -998,44 +1007,48 @@ export default function LoanApplicationDetailPage() {
                           {item.completedAt ? formatDate(item.completedAt) : '-'}
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handleChecklistStatusChange(
-                                  item,
-                                  LoanApplicationChecklistStatus.COMPLETED,
-                                )
-                              }
-                            >
-                              Complete
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handleChecklistStatusChange(
-                                  item,
-                                  LoanApplicationChecklistStatus.NOT_APPLICABLE,
-                                )
-                              }
-                            >
-                              N/A
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handleChecklistStatusChange(
-                                  item,
-                                  LoanApplicationChecklistStatus.PENDING,
-                                )
-                              }
-                            >
-                              Reset
-                            </Button>
-                          </div>
+                          {canManageChecklist ? (
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  handleChecklistStatusChange(
+                                    item,
+                                    LoanApplicationChecklistStatus.COMPLETED,
+                                  )
+                                }
+                              >
+                                Complete
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  handleChecklistStatusChange(
+                                    item,
+                                    LoanApplicationChecklistStatus.NOT_APPLICABLE,
+                                  )
+                                }
+                              >
+                                N/A
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  handleChecklistStatusChange(
+                                    item,
+                                    LoanApplicationChecklistStatus.PENDING,
+                                  )
+                                }
+                              >
+                                Reset
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">View only</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1088,7 +1101,7 @@ export default function LoanApplicationDetailPage() {
                             <Button
                               size="sm"
                               variant="default"
-                              onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}/api/loan-applications/${application.id}/documents/${doc.id}/download`, '_blank')}
+                              onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}/loan-applications/${application.id}/documents/${doc.id}/download`, '_blank')}
                             >
                               View/Download
                             </Button>
