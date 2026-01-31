@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { loanProductService } from '../services/loanProductService';
+import { useAuthStore } from '../store/authStore';
+import { UserRole } from '../types/auth';
 import { LoanProduct, LoanProductVersion, ProductVersionStatus } from '../types/loan-product';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -10,6 +12,9 @@ import { formatDate } from '../lib/utils';
 export default function LoanProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const canManageProducts = user?.role === UserRole.ADMIN;
+
   const [product, setProduct] = useState<LoanProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -82,14 +87,16 @@ export default function LoanProductDetailPage() {
           </div>
           <p className="text-muted-foreground">Code: {product.code}</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate(`/loan-products/${id}/edit`)}>
-            Edit Product
-          </Button>
-          <Button onClick={() => navigate(`/loan-products/${id}/versions/new`)}>
-            + New Version
-          </Button>
-        </div>
+        {canManageProducts && (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate(`/loan-products/${id}/edit`)}>
+              Edit Product
+            </Button>
+            <Button onClick={() => navigate(`/loan-products/${id}/versions/new`)}>
+              + New Version
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Product Info */}
@@ -126,18 +133,22 @@ export default function LoanProductDetailPage() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Product Versions</CardTitle>
-            <Button size="sm" onClick={() => navigate(`/loan-products/${id}/versions/new`)}>
-              + New Version
-            </Button>
+            {canManageProducts && (
+              <Button size="sm" onClick={() => navigate(`/loan-products/${id}/versions/new`)}>
+                + New Version
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
           {!product.versions || product.versions.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">No versions created yet</p>
-              <Button onClick={() => navigate(`/loan-products/${id}/versions/new`)}>
-                Create First Version
-              </Button>
+              {canManageProducts && (
+                <Button onClick={() => navigate(`/loan-products/${id}/versions/new`)}>
+                  Create First Version
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -192,7 +203,7 @@ export default function LoanProductDetailPage() {
                       >
                         View
                       </Button>
-                      {version.status === 'DRAFT' && (
+                      {version.status === 'DRAFT' && canManageProducts && (
                         <Button
                           size="sm"
                           variant="outline"
