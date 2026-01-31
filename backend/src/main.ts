@@ -117,6 +117,7 @@ async function bootstrap() {
     ${!isProd ? `📚 Docs: http://localhost:${port}/api/docs` : '📚 Docs: Disabled in production'}
     🌍 Environment: ${configService.get('NODE_ENV') || 'development'}
     🕐 Started: ${new Date().toISOString()}
+    📦 Build: CI/CD Pipeline v1.0
   `);
 }
 
