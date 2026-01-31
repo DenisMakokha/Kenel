@@ -451,6 +451,136 @@ export default function LoanApplicationDetailPage() {
         </TabsList>
 
         <TabsContent value="overview">
+          <div className="space-y-4 mt-4">
+            {/* Application Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Application Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Application Number</p>
+                    <p className="font-semibold">{application.applicationNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Product</p>
+                    <p className="font-semibold">{application.productVersion?.loanProduct?.name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Status</p>
+                    <p className="font-semibold">{application.status}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Requested Amount</p>
+                    <p className="font-semibold">KES {Number(application.requestedAmount).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Requested Term</p>
+                    <p className="font-semibold">{application.requestedTermMonths} months</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Repayment Frequency</p>
+                    <p className="font-semibold">{application.requestedRepaymentFrequency || 'MONTHLY'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Purpose</p>
+                    <p className="font-semibold">{application.purpose || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Created At</p>
+                    <p className="font-semibold">{formatDate(application.createdAt)}</p>
+                  </div>
+                  {application.submittedAt && (
+                    <div>
+                      <p className="text-muted-foreground">Submitted At</p>
+                      <p className="font-semibold">{formatDate(application.submittedAt)}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Client Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Client Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Client Name</p>
+                    <p className="font-semibold">
+                      {application.client ? `${application.client.firstName} ${application.client.lastName}` : 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Client Code</p>
+                    <p className="font-semibold">{application.client?.clientCode || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">KYC Status</p>
+                    <p className="font-semibold">{application.client?.kycStatus || application.kycStatusSnapshot || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Risk Rating</p>
+                    <p className="font-semibold">{application.client?.riskRating || application.riskRatingSnapshot || 'N/A'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Approved Terms (if approved) */}
+            {application.approvedPrincipal && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Approved Terms</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Approved Principal</p>
+                      <p className="font-semibold text-green-600">KES {Number(application.approvedPrincipal).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Approved Term</p>
+                      <p className="font-semibold">{application.approvedTermMonths} months</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Interest Rate</p>
+                      <p className="font-semibold">{application.approvedInterestRate}%</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Approved At</p>
+                      <p className="font-semibold">{application.approvedAt ? formatDate(application.approvedAt) : 'N/A'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Rejection Info (if rejected) */}
+            {application.status === 'REJECTED' && application.rejectionReason && (
+              <Card className="border-destructive">
+                <CardHeader>
+                  <CardTitle className="text-destructive">Rejection Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Reason</p>
+                      <p className="font-semibold">{application.rejectionReason}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Rejected At</p>
+                      <p className="font-semibold">{application.rejectedAt ? formatDate(application.rejectedAt) : 'N/A'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
           {canApproveOrReject && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <Card>
