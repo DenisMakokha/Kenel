@@ -478,7 +478,7 @@ function App() {
         <Route
           path="/credit/dashboard"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.CREDIT_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CREDIT_OFFICER]}>
               <CreditOfficerLayout>
                 <CreditDashboardPage />
               </CreditOfficerLayout>
@@ -488,7 +488,7 @@ function App() {
         <Route
           path="/credit/pipeline"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.CREDIT_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CREDIT_OFFICER]}>
               <CreditOfficerLayout>
                 <CreditPipelinePage />
               </CreditOfficerLayout>
@@ -498,7 +498,7 @@ function App() {
         <Route
           path="/credit/clients"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.CREDIT_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CREDIT_OFFICER]}>
               <CreditOfficerLayout>
                 <CreditClientsPage />
               </CreditOfficerLayout>
@@ -508,7 +508,7 @@ function App() {
         <Route
           path="/credit/kyc-reviews"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.CREDIT_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CREDIT_OFFICER]}>
               <CreditOfficerLayout>
                 <KycReviewsPage />
               </CreditOfficerLayout>
@@ -518,7 +518,7 @@ function App() {
         <Route
           path="/credit/portfolio"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.CREDIT_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CREDIT_OFFICER]}>
               <CreditOfficerLayout>
                 <CreditPortfolioPage />
               </CreditOfficerLayout>
@@ -528,7 +528,7 @@ function App() {
         <Route
           path="/credit/conversion-funnel"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.CREDIT_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CREDIT_OFFICER]}>
               <CreditOfficerLayout>
                 <CreditConversionFunnelPage />
               </CreditOfficerLayout>
@@ -539,7 +539,7 @@ function App() {
         <Route
           path="/finance/dashboard"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinanceDashboardPage />
               </FinanceOfficerLayout>
@@ -549,7 +549,7 @@ function App() {
         <Route
           path="/finance/arrears"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinanceArrearsPage />
               </FinanceOfficerLayout>
@@ -559,7 +559,7 @@ function App() {
         <Route
           path="/finance/pending-disbursements"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinancePendingDisbursementsPage />
               </FinanceOfficerLayout>
@@ -569,7 +569,7 @@ function App() {
         <Route
           path="/finance/post-repayment"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinancePostRepaymentPage />
               </FinanceOfficerLayout>
@@ -579,7 +579,7 @@ function App() {
         <Route
           path="/finance/postings"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinancePostingsPage />
               </FinanceOfficerLayout>
@@ -589,7 +589,7 @@ function App() {
         <Route
           path="/finance/receipts"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinanceReceiptsPage />
               </FinanceOfficerLayout>
@@ -599,7 +599,7 @@ function App() {
         <Route
           path="/finance/collections"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <PortfolioReportsPage />
               </FinanceOfficerLayout>
@@ -609,7 +609,7 @@ function App() {
         <Route
           path="/finance/closed-loans"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinanceClosedLoansPage />
               </FinanceOfficerLayout>
@@ -619,7 +619,7 @@ function App() {
         <Route
           path="/finance/reversals"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinanceReversalsPage />
               </FinanceOfficerLayout>
@@ -629,7 +629,7 @@ function App() {
         <Route
           path="/finance/statements"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinanceStatementsPage />
               </FinanceOfficerLayout>
@@ -639,7 +639,7 @@ function App() {
         <Route
           path="/finance/cashflow"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinanceCashflowPage />
               </FinanceOfficerLayout>
@@ -649,7 +649,7 @@ function App() {
         <Route
           path="/finance/allocation"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinanceAllocationPage />
               </FinanceOfficerLayout>
@@ -659,7 +659,7 @@ function App() {
         <Route
           path="/finance/export"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinanceExportPage />
               </FinanceOfficerLayout>
@@ -669,7 +669,7 @@ function App() {
         <Route
           path="/finance/payment-channels"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.FINANCE_OFFICER]}>
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.FINANCE_OFFICER]}>
               <FinanceOfficerLayout>
                 <FinancePaymentChannelsPage />
               </FinanceOfficerLayout>
