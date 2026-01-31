@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Client, CreateNextOfKinDto, CreateRefereeDto } from '../../types/client';
 import { clientService } from '../../services/clientService';
+import { useAuthStore } from '../../store/authStore';
+import { UserRole } from '../../types/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -15,6 +17,10 @@ interface ClientContactsTabProps {
 }
 
 export default function ClientContactsTab({ client, onUpdate }: ClientContactsTabProps) {
+  const { user } = useAuthStore();
+  const canManageContacts = user && (user.role === UserRole.ADMIN || user.role === UserRole.CREDIT_OFFICER);
+  const canDelete = user?.role === UserRole.ADMIN;
+
   const [showNOKDialog, setShowNOKDialog] = useState(false);
   const [showRefereeDialog, setShowRefereeDialog] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -120,9 +126,11 @@ export default function ClientContactsTab({ client, onUpdate }: ClientContactsTa
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Next of Kin</CardTitle>
-            <Button size="sm" onClick={() => setShowNOKDialog(true)}>
-              Add NOK
-            </Button>
+            {canManageContacts && (
+              <Button size="sm" onClick={() => setShowNOKDialog(true)}>
+                Add NOK
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -146,13 +154,15 @@ export default function ClientContactsTab({ client, onUpdate }: ClientContactsTa
                     {nok.email && <p><strong>Email:</strong> {nok.email}</p>}
                     {nok.address && <p><strong>Address:</strong> {nok.address}</p>}
                   </div>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDeleteNOK(nok.id)}
-                  >
-                    Remove
-                  </Button>
+                  {canDelete && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteNOK(nok.id)}
+                    >
+                      Remove
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -165,9 +175,11 @@ export default function ClientContactsTab({ client, onUpdate }: ClientContactsTa
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Referees</CardTitle>
-            <Button size="sm" onClick={() => setShowRefereeDialog(true)}>
-              Add Referee
-            </Button>
+            {canManageContacts && (
+              <Button size="sm" onClick={() => setShowRefereeDialog(true)}>
+                Add Referee
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -189,13 +201,15 @@ export default function ClientContactsTab({ client, onUpdate }: ClientContactsTa
                     {referee.employerName && <p><strong>Employer:</strong> {referee.employerName}</p>}
                     {referee.address && <p><strong>Address:</strong> {referee.address}</p>}
                   </div>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDeleteReferee(referee.id)}
-                  >
-                    Remove
-                  </Button>
+                  {canDelete && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteReferee(referee.id)}
+                    >
+                      Remove
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

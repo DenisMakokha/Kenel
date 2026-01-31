@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Client, KycEvent, KycStatus, RiskRating } from '../../types/client';
 import { clientService } from '../../services/clientService';
+import { useAuthStore } from '../../store/authStore';
+import { UserRole } from '../../types/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -16,9 +18,13 @@ interface ClientKYCTabProps {
 }
 
 export default function ClientKYCTab({ client, onUpdate }: ClientKYCTabProps) {
+  const { user } = useAuthStore();
   const [kycHistory, setKycHistory] = useState<KycEvent[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const canManageKyc = user && (user.role === UserRole.ADMIN || user.role === UserRole.CREDIT_OFFICER);
+  const canDeleteDocuments = user?.role === UserRole.ADMIN;
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showRiskDialog, setShowRiskDialog] = useState(false);
@@ -201,7 +207,7 @@ export default function ClientKYCTab({ client, onUpdate }: ClientKYCTabProps) {
               </div>
             )}
 
-            {client.kycStatus === KycStatus.PENDING_REVIEW && (
+            {client.kycStatus === KycStatus.PENDING_REVIEW && canManageKyc && (
               <>
                 <Button onClick={() => setShowApproveDialog(true)} disabled={loading} variant="default">
                   Approve KYC
@@ -212,7 +218,7 @@ export default function ClientKYCTab({ client, onUpdate }: ClientKYCTabProps) {
               </>
             )}
 
-            {client.kycStatus === KycStatus.VERIFIED && (
+            {client.kycStatus === KycStatus.VERIFIED && canManageKyc && (
               <Button onClick={() => setShowRiskDialog(true)} variant="outline">
                 Update Risk Rating
               </Button>
@@ -226,9 +232,11 @@ export default function ClientKYCTab({ client, onUpdate }: ClientKYCTabProps) {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Documents</CardTitle>
-            <Button size="sm" onClick={() => setShowUploadDialog(true)}>
-              Upload Document
-            </Button>
+            {canManageKyc && (
+              <Button size="sm" onClick={() => setShowUploadDialog(true)}>
+                Upload Document
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -247,13 +255,15 @@ export default function ClientKYCTab({ client, onUpdate }: ClientKYCTabProps) {
                       Uploaded {formatDate(doc.uploadedAt)}
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDeleteDocument(doc.id)}
-                  >
-                    Delete
-                  </Button>
+                  {canDeleteDocuments && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteDocument(doc.id)}
+                    >
+                      Delete
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

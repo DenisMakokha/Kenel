@@ -63,7 +63,7 @@ jobs:
             
             echo ""
             echo "📦 Installing dependencies..."
-            npm ci --production=false
+            npm install --omit=dev
             
             echo ""
             echo "🗄️ Generating Prisma client..."
