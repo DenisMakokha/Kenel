@@ -3,6 +3,8 @@ import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Label } from '../ui/label';
+import { useAuthStore } from '../../store/authStore';
+import { UserRole } from '../../types/auth';
 import {
   Select,
   SelectContent,
@@ -84,6 +86,10 @@ function formatFileSize(bytes: number): string {
 }
 
 export default function ClientDocumentsTab({ client, onUpdate }: ClientDocumentsTabProps) {
+  const { user } = useAuthStore();
+  const canManageDocuments = user && (user.role === UserRole.ADMIN || user.role === UserRole.CREDIT_OFFICER);
+  const canDeleteDocuments = user?.role === UserRole.ADMIN;
+
   const [documents, setDocuments] = useState<ClientDocument[]>(client.documents || []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -191,13 +197,15 @@ export default function ClientDocumentsTab({ client, onUpdate }: ClientDocuments
             {activeDocuments.length} document{activeDocuments.length !== 1 ? 's' : ''} uploaded
           </p>
         </div>
-        <Button
-          onClick={() => setShowUploadDialog(true)}
-          className="bg-emerald-600 hover:bg-emerald-700"
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          Upload Document
-        </Button>
+        {canManageDocuments && (
+          <Button
+            onClick={() => setShowUploadDialog(true)}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Document
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -217,13 +225,15 @@ export default function ClientDocumentsTab({ client, onUpdate }: ClientDocuments
             <p className="text-sm text-slate-500 mb-4">
               Upload client documents for KYC verification
             </p>
-            <Button
-              variant="outline"
-              onClick={() => setShowUploadDialog(true)}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload First Document
-            </Button>
+            {canManageDocuments && (
+              <Button
+                variant="outline"
+                onClick={() => setShowUploadDialog(true)}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload First Document
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -292,15 +302,17 @@ export default function ClientDocumentsTab({ client, onUpdate }: ClientDocuments
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(doc.id)}
-                            disabled={deletingId === doc.id}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {canDeleteDocuments && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(doc.id)}
+                              disabled={deletingId === doc.id}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

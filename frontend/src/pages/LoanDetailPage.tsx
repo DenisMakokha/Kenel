@@ -253,6 +253,11 @@ export default function LoanDetailPage() {
     (user.role === UserRole.ADMIN || user.role === UserRole.FINANCE_OFFICER) &&
     loan.status === LoanStatus.PENDING_DISBURSEMENT;
 
+  const canPostRepayment =
+    user && (user.role === UserRole.ADMIN || user.role === UserRole.FINANCE_OFFICER);
+
+  const canReverseRepayment = user?.role === UserRole.ADMIN;
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -298,36 +303,105 @@ export default function LoanDetailPage() {
         </TabsList>
 
         <TabsContent value="summary" className="mt-4 space-y-4">
+          {/* Loan Terms Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Summary</CardTitle>
+              <CardTitle>Loan Terms</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <p className="text-muted-foreground">Principal</p>
-                  <p className="font-semibold">{loan.principalAmount}</p>
+                  <p className="text-muted-foreground">Loan Number</p>
+                  <p className="font-semibold">{loan.loanNumber}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Principal Amount</p>
+                  <p className="font-semibold">{formatCurrency(Number(loan.principalAmount), 'KES')}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Interest Rate</p>
-                  <p className="font-semibold">{loan.interestRate}%</p>
+                  <p className="font-semibold">{loan.interestRate}% ({loan.interestMethod?.replace('_', ' ')})</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Term</p>
                   <p className="font-semibold">{loan.termMonths} months</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Total Interest</p>
-                  <p className="font-semibold">{loan.totalInterest}</p>
+                  <p className="text-muted-foreground">Penalty Rate</p>
+                  <p className="font-semibold">{loan.penaltyRate}%</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Total Amount</p>
-                  <p className="font-semibold">{loan.totalAmount}</p>
+                  <p className="text-muted-foreground">Total Interest</p>
+                  <p className="font-semibold">{formatCurrency(Number(loan.totalInterest), 'KES')}</p>
                 </div>
+                <div>
+                  <p className="text-muted-foreground">Total Payable</p>
+                  <p className="font-semibold">{formatCurrency(Number(loan.totalAmount), 'KES')}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Total Repaid</p>
+                  <p className="font-semibold text-green-600">{formatCurrency(Number(loan.totalRepaid || 0), 'KES')}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Outstanding Balances Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Outstanding Balances</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Outstanding Principal</p>
-                  <p className="font-semibold">{loan.outstandingPrincipal}</p>
+                  <p className="font-semibold text-orange-600">{formatCurrency(Number(loan.outstandingPrincipal), 'KES')}</p>
                 </div>
+                <div>
+                  <p className="text-muted-foreground">Outstanding Interest</p>
+                  <p className="font-semibold text-orange-600">{formatCurrency(Number(loan.outstandingInterest), 'KES')}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Outstanding Fees</p>
+                  <p className="font-semibold text-orange-600">{formatCurrency(Number(loan.outstandingFees), 'KES')}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Outstanding Penalties</p>
+                  <p className="font-semibold text-red-600">{formatCurrency(Number(loan.outstandingPenalties), 'KES')}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Key Dates Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Key Dates</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Disbursed At</p>
+                  <p className="font-semibold">{loan.disbursedAt ? formatDate(loan.disbursedAt) : 'Not disbursed'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">First Due Date</p>
+                  <p className="font-semibold">{loan.firstDueDate ? formatDate(loan.firstDueDate) : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Maturity Date</p>
+                  <p className="font-semibold">{loan.maturityDate ? formatDate(loan.maturityDate) : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Last Payment</p>
+                  <p className="font-semibold">{loan.lastPaymentDate ? formatDate(loan.lastPaymentDate) : 'No payments'}</p>
+                </div>
+                {loan.closedAt && (
+                  <div>
+                    <p className="text-muted-foreground">Closed At</p>
+                    <p className="font-semibold">{formatDate(loan.closedAt)}</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -513,7 +587,8 @@ export default function LoanDetailPage() {
                     <p className="text-xs text-muted-foreground mb-1">Value Date</p>
                     <input
                       type="date"
-                      className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                      className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm disabled:opacity-50"
+                      disabled={!canPostRepayment}
                       value={repaymentForm.valueDate}
                       onChange={(e) => handleRepaymentChange('valueDate', e.target.value)}
                     />
@@ -522,7 +597,8 @@ export default function LoanDetailPage() {
                     <p className="text-xs text-muted-foreground mb-1">Amount</p>
                     <input
                       type="number"
-                      className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                      className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm disabled:opacity-50"
+                      disabled={!canPostRepayment}
                       value={repaymentForm.amount}
                       onChange={(e) => handleRepaymentChange('amount', e.target.value)}
                     />
@@ -532,7 +608,8 @@ export default function LoanDetailPage() {
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Channel</p>
                     <select
-                      className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                      className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm disabled:opacity-50"
+                      disabled={!canPostRepayment}
                       value={repaymentForm.channel}
                       onChange={(e) =>
                         handleRepaymentChange('channel', e.target.value as RepaymentChannel)
@@ -548,7 +625,8 @@ export default function LoanDetailPage() {
                     <p className="text-xs text-muted-foreground mb-1">Reference</p>
                     <input
                       type="text"
-                      className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                      className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm disabled:opacity-50"
+                      disabled={!canPostRepayment}
                       value={repaymentForm.reference}
                       onChange={(e) => handleRepaymentChange('reference', e.target.value)}
                     />
@@ -557,7 +635,8 @@ export default function LoanDetailPage() {
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Notes</p>
                   <textarea
-                    className="w-full min-h-[80px] px-3 py-2 rounded-md border border-input bg-background text-sm"
+                    className="w-full min-h-[80px] px-3 py-2 rounded-md border border-input bg-background text-sm disabled:opacity-50"
+                    disabled={!canPostRepayment}
                     value={repaymentForm.notes}
                     onChange={(e) => handleRepaymentChange('notes', e.target.value)}
                   />
@@ -634,7 +713,7 @@ export default function LoanDetailPage() {
                               >
                                 Receipt
                               </Button>
-                              {user?.role === UserRole.ADMIN &&
+                              {canReverseRepayment &&
                                 r.status === RepaymentStatus.APPROVED && (
                                   <Button
                                     variant="outline"
