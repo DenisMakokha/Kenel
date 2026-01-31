@@ -2,18 +2,21 @@ name: Deploy on Push
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "staging"]
 
 env:
   NODE_VERSION: "20"
 
 jobs:
-  # Detect what changed
+  # Detect what changed and which environment
   changes:
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      is_production: ${{ github.ref == 'refs/heads/main' }}
+      is_staging: ${{ github.ref == 'refs/heads/staging' }}
+      environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -24,11 +27,15 @@ jobs:
               - 'backend/**'
             frontend:
               - 'frontend/**'
+      - name: Log environment
+        run: |
+          echo "🎯 Deploying to: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || 'STAGING' }}"
+          echo "Branch: ${{ github.ref_name }}"
 
-  # Run migrations if backend changed
+  # Run migrations if backend changed (PRODUCTION ONLY)
   migrate:
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.backend == 'true' && needs.changes.outputs.is_production == 'true'
     runs-on: ubuntu-latest
     environment: SSH_HOST
     steps:
@@ -88,10 +95,10 @@ jobs:
             echo "✅ Migrations complete!"
           ENDSSH
 
-  # Deploy backend
+  # Deploy backend (PRODUCTION ONLY - staging shares the same API)
   deploy-backend:
     needs: [changes, migrate]
-    if: always() && needs.changes.outputs.backend == 'true' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
+    if: always() && needs.changes.outputs.backend == 'true' && needs.changes.outputs.is_production == 'true' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
     runs-on: ubuntu-latest
     environment: SSH_HOST
     steps:
@@ -131,7 +138,7 @@ jobs:
             echo "✅ Backend deployment complete!"
           ENDSSH
 
-  # Deploy frontend
+  # Deploy frontend (staging → test.kenels.app, production → kenels.app)
   deploy-frontend:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
@@ -169,8 +176,21 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Determine deployment target
+        id: target
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "app_dir=${{ secrets.APP_DIR }}" >> $GITHUB_OUTPUT
+            echo "env_name=PRODUCTION (kenels.app)" >> $GITHUB_OUTPUT
+          else
+            echo "app_dir=${{ secrets.STAGING_APP_DIR }}" >> $GITHUB_OUTPUT
+            echo "env_name=STAGING (test.kenels.app)" >> $GITHUB_OUTPUT
+          fi
+
       - name: Deploy frontend to server
         run: |
+          echo "🎯 Deploying to: ${{ steps.target.outputs.env_name }}"
+          
           # Create a tarball for atomic upload
           echo "📦 Creating deployment package..."
           cd frontend/dist
@@ -182,38 +202,39 @@ jobs:
           scp frontend-build.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/frontend-build.tar.gz
           
           # Atomic deployment on server
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << ENDSSH
             set -e
             
-            APP_DIR="${{ secrets.APP_DIR }}"
-            TEMP_DIR="${APP_DIR}_new"
-            BACKUP_DIR="${APP_DIR}_backup"
+            APP_DIR="${{ steps.target.outputs.app_dir }}"
+            TEMP_DIR="\${APP_DIR}_new"
+            BACKUP_DIR="\${APP_DIR}_backup"
             
+            echo "📂 Deploying to: \$APP_DIR"
             echo "📂 Preparing deployment directories..."
-            rm -rf "$TEMP_DIR" "$BACKUP_DIR"
-            mkdir -p "$TEMP_DIR"
+            rm -rf "\$TEMP_DIR" "\$BACKUP_DIR"
+            mkdir -p "\$TEMP_DIR"
             
             echo "📦 Extracting new build..."
-            tar -xzf /tmp/frontend-build.tar.gz -C "$TEMP_DIR"
+            tar -xzf /tmp/frontend-build.tar.gz -C "\$TEMP_DIR"
             rm /tmp/frontend-build.tar.gz
             
             echo "🔄 Performing atomic swap..."
             # Backup current (if exists)
-            if [ -d "$APP_DIR" ] && [ "$(ls -A $APP_DIR 2>/dev/null)" ]; then
-              mv "$APP_DIR" "$BACKUP_DIR"
+            if [ -d "\$APP_DIR" ] && [ "\$(ls -A \$APP_DIR 2>/dev/null)" ]; then
+              mv "\$APP_DIR" "\$BACKUP_DIR"
             fi
             
             # Swap in new version
-            mv "$TEMP_DIR" "$APP_DIR"
+            mv "\$TEMP_DIR" "\$APP_DIR"
             
             echo "🔐 Setting permissions..."
-            chmod -R 755 "$APP_DIR"
+            chmod -R 755 "\$APP_DIR"
             
             # Cleanup backup on success
-            rm -rf "$BACKUP_DIR"
+            rm -rf "\$BACKUP_DIR"
             
             echo ""
-            echo "✅ Frontend deployment complete!"
+            echo "✅ Frontend deployment to ${{ steps.target.outputs.env_name }} complete!"
           ENDSSH
 
   # Summary
