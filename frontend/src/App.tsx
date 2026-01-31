@@ -4,7 +4,7 @@ import { useAuthStore } from './store/authStore';
 import { UserRole } from './types/auth';
 import { Toaster } from './components/ui/toaster';
 
-// Loading component for Suspense fallback
+// Loading component for Suspense fallback - v1.1 RBAC update
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50">
     <div className="flex flex-col items-center gap-4">
