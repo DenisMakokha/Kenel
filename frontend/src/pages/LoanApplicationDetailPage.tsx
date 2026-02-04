@@ -98,6 +98,11 @@ export default function LoanApplicationDetailPage() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState('');
   const [showApproveFooter, setShowApproveFooter] = useState(false);
+  
+  // Return to client state
+  const [showReturnDialog, setShowReturnDialog] = useState(false);
+  const [returnReason, setReturnReason] = useState('');
+  const [returnLoading, setReturnLoading] = useState(false);
 
   // Show approve/reject footer when scrolled near bottom
   useEffect(() => {
@@ -332,6 +337,34 @@ export default function LoanApplicationDetailPage() {
     }
   };
 
+  const handleReturnToClient = async () => {
+    if (!application || !id || !returnReason.trim()) return;
+    
+    // Build return items from rejected documents
+    const rejectedDocs = documents.filter(d => d.reviewStatus === 'REJECTED');
+    const returnedItems = rejectedDocs.map(doc => ({
+      type: 'document',
+      documentType: doc.documentType,
+      message: doc.reviewNotes || `${doc.documentType} was rejected`,
+    }));
+    
+    try {
+      setReturnLoading(true);
+      setError('');
+      await loanApplicationService.returnToClient(id, {
+        reason: returnReason.trim(),
+        returnedItems,
+      });
+      setShowReturnDialog(false);
+      setReturnReason('');
+      await refreshApplication();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to return application to client');
+    } finally {
+      setReturnLoading(false);
+    }
+  };
+
   const handleCreateLoan = async () => {
     if (!application) return;
     try {
@@ -367,6 +400,7 @@ export default function LoanApplicationDetailPage() {
       UNDER_REVIEW: 'secondary',
       APPROVED: 'success',
       REJECTED: 'destructive',
+      RETURNED: 'warning',
     };
 
     const labels: Record<LoanApplicationStatus, string> = {
@@ -375,9 +409,10 @@ export default function LoanApplicationDetailPage() {
       UNDER_REVIEW: 'Under Review',
       APPROVED: 'Approved',
       REJECTED: 'Rejected',
+      RETURNED: 'Returned to Client',
     };
 
-    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+    return <Badge variant={variants[status]} className={status === 'RETURNED' ? 'bg-orange-100 text-orange-700 border-orange-200' : ''}>{labels[status]}</Badge>;
   };
 
   const canManageDocuments =
@@ -1597,6 +1632,57 @@ export default function LoanApplicationDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Return to Client Dialog */}
+      <Dialog open={showReturnDialog} onOpenChange={setShowReturnDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-700">Return Application to Client</DialogTitle>
+            <DialogDescription>
+              The client will be notified to correct the following issues and resubmit their application.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Show rejected documents */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Rejected Documents:</Label>
+              <div className="space-y-1">
+                {documents.filter(d => d.reviewStatus === 'REJECTED').map(doc => (
+                  <div key={doc.id} className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-sm">
+                    <span className="text-red-600">✗</span>
+                    <span className="font-medium">{doc.documentType?.replace(/_/g, ' ')}</span>
+                    {doc.reviewNotes && <span className="text-slate-500">- {doc.reviewNotes}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Return reason */}
+            <div className="space-y-2">
+              <Label htmlFor="returnReason">Message to Client *</Label>
+              <textarea
+                id="returnReason"
+                className="w-full min-h-[100px] p-3 border rounded-md text-sm"
+                placeholder="Explain what needs to be corrected..."
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReturnDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReturnToClient}
+              disabled={returnLoading || !returnReason.trim()}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {returnLoading ? 'Returning...' : 'Return to Client'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Sticky Action Bar - Shows when verification is complete */}
       {(() => {
         const docsVerified = documents.filter(d => d.reviewStatus === 'VERIFIED').length;
@@ -1605,12 +1691,19 @@ export default function LoanApplicationDetailPage() {
         const hasScore = Boolean(application.creditScore);
         const isVerificationComplete = allDocsVerified && hasScore;
         
-        // Show warning if there are rejected documents
+        // Show warning and return button if there are rejected documents
         if (canMoveToUnderReview && docsRejected > 0) {
           return (
             <div className="fixed bottom-0 left-0 right-0 bg-red-600 shadow-lg border-t z-50">
               <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-                <p className="text-white text-sm">⚠ {docsRejected} document(s) rejected. Cannot submit for approval until resolved.</p>
+                <p className="text-white text-sm">⚠ {docsRejected} document(s) rejected. Return to client for correction.</p>
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowReturnDialog(true)} 
+                  className="bg-white text-red-700 hover:bg-red-50"
+                >
+                  Return to Client →
+                </Button>
               </div>
             </div>
           );

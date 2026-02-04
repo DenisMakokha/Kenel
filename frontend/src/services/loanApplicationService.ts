@@ -141,4 +141,12 @@ export const loanApplicationService = {
     const response = await api.get<LoanApplicationEvent[]>(`${BASE_URL}/${id}/events`);
     return response.data;
   },
+
+  async returnToClient(
+    id: string,
+    data: { reason: string; returnedItems: Array<{ type: string; documentType?: string; message: string }> },
+  ): Promise<LoanApplication> {
+    const response = await api.post<LoanApplication>(`${BASE_URL}/${id}/return`, data);
+    return response.data;
+  },
 };

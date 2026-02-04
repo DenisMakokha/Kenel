@@ -40,6 +40,7 @@ import {
   ChevronRight,
   FolderKanban,
   FileClock,
+  RotateCcw,
 } from 'lucide-react';
 import { exportToExcel, exportToPdf } from '../lib/exportUtils';
 import { DateRangePicker, DateRange } from '../components/ui/date-range-picker';
@@ -56,6 +57,7 @@ const STATUS_CONFIG: Record<LoanApplicationStatus, { label: string; color: strin
   UNDER_REVIEW: { label: 'Under Review', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle },
   APPROVED: { label: 'Approved', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle },
   REJECTED: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: XCircle },
+  RETURNED: { label: 'Returned', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', icon: RotateCcw },
 };
 
 export default function LoanApplicationsPage() {
@@ -356,6 +358,7 @@ export default function LoanApplicationsPage() {
                   <SelectItem value={LoanApplicationStatus.UNDER_REVIEW}>Under Review</SelectItem>
                   <SelectItem value={LoanApplicationStatus.APPROVED}>Approved</SelectItem>
                   <SelectItem value={LoanApplicationStatus.REJECTED}>Rejected</SelectItem>
+                  <SelectItem value={LoanApplicationStatus.RETURNED}>Returned</SelectItem>
                 </SelectContent>
               </Select>
               <DateRangePicker
