@@ -1,3 +1,4 @@
+// Clients controller - handles client CRUD and document operations
 import {
   Controller,
   Get,
