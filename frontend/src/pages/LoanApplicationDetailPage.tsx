@@ -4,6 +4,7 @@ import { loanApplicationService } from '../services/loanApplicationService';
 import { loanService } from '../services/loanService';
 import { auditLogService } from '../services/auditLogService';
 import { useAuthStore } from '../store/authStore';
+import { openAuthenticatedFile } from '../lib/api';
 import type {
   LoanApplication,
   LoanApplicationChecklistItem,
@@ -1305,7 +1306,7 @@ export default function LoanApplicationDetailPage() {
                             size="sm"
                             variant="outline"
                             className="text-green-700 border-green-300 hover:bg-green-100"
-                            onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}/loan-applications/${application.id}/documents/${uploadedDoc.id}/download`, '_blank')}
+                            onClick={() => openAuthenticatedFile(`/loan-applications/${application.id}/documents/${uploadedDoc.id}/download`)}
                           >
                             View
                           </Button>
@@ -1360,7 +1361,7 @@ export default function LoanApplicationDetailPage() {
                               <Button
                                 size="sm"
                                 variant="default"
-                                onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}/loan-applications/${application.id}/documents/${doc.id}/download`, '_blank')}
+                                onClick={() => openAuthenticatedFile(`/loan-applications/${application.id}/documents/${doc.id}/download`)}
                               >
                                 View/Download
                               </Button>

@@ -5,6 +5,7 @@ import { Badge } from '../ui/badge';
 import { Label } from '../ui/label';
 import { useAuthStore } from '../../store/authStore';
 import { UserRole } from '../../types/auth';
+import { openAuthenticatedFile } from '../../lib/api';
 import {
   Select,
   SelectContent,
@@ -180,8 +181,7 @@ export default function ClientDocumentsTab({ client, onUpdate }: ClientDocuments
   };
 
   const handlePreview = (doc: ClientDocument) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
-    setPreviewUrl(`${baseUrl}/clients/${client.id}/documents/${doc.id}/download`);
+    openAuthenticatedFile(`/clients/${client.id}/documents/${doc.id}/download`);
   };
 
   const activeDocuments = documents.filter((d) => !d.isDeleted);

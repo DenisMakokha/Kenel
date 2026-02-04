@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
+import { openAuthenticatedFile } from '../lib/api';
 import {
   Table,
   TableBody,
@@ -422,7 +423,7 @@ export default function KycReviewsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}/clients/${selectedClient?.id}/documents/${doc.id}/download`, '_blank')}
+                        onClick={() => openAuthenticatedFile(`/clients/${selectedClient?.id}/documents/${doc.id}/download`)}
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         View

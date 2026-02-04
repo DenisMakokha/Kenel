@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { formatDate } from '../../lib/utils';
+import { openAuthenticatedFile } from '../../lib/api';
 import { toast } from 'sonner';
 import {
   Shield,
@@ -473,7 +474,7 @@ export default function ClientKYCTab({ client, onUpdate }: ClientKYCTabProps) {
                           size="sm"
                           variant="ghost"
                           className="h-8 px-2"
-                          onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}/clients/${client.id}/documents/${doc.id}/download`, '_blank')}
+                          onClick={() => openAuthenticatedFile(`/clients/${client.id}/documents/${doc.id}/download`)}
                         >
                           {isImage ? <Eye className="h-4 w-4" /> : <Download className="h-4 w-4" />}
                         </Button>

@@ -79,4 +79,22 @@ api.interceptors.response.use(
   }
 );
 
+// Helper to download/view files with authentication
+export const openAuthenticatedFile = async (url: string) => {
+  try {
+    const response = await api.get(url, { responseType: 'blob' });
+    const blob = new Blob([response.data], { type: response.headers['content-type'] });
+    const blobUrl = window.URL.createObjectURL(blob);
+    
+    // Open in new tab for viewing
+    window.open(blobUrl, '_blank');
+    
+    // Clean up after a delay
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
+  } catch (error) {
+    console.error('Failed to open file:', error);
+    throw error;
+  }
+};
+
 export default api;
