@@ -28,6 +28,11 @@ import {
   XCircle,
   MapPin,
   Home,
+  CreditCard,
+  Phone,
+  Calendar,
+  Mail,
+  Play,
 } from 'lucide-react';
 import { usePortalAuthStore } from '../../store/portalAuthStore';
 import { portalService } from '../../services/portalService';
@@ -324,27 +329,206 @@ export default function PortalKYCPage() {
         })()}
       </div>
 
-      {/* Checklist Overview */}
+      {/* Profile Data Grid - Interactive Cards */}
       <Card className="border-slate-200 bg-white">
         <CardHeader>
-          <CardTitle className="text-lg">KYC Checklist</CardTitle>
-          <CardDescription>Track your progress across all requirements</CardDescription>
+          <CardTitle className="text-lg">Profile Information</CardTitle>
+          <CardDescription>Click on any item to add or update your information</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {checklistItems.map((item, index) => (
-              <div
-                key={index}
-                className={`flex items-center gap-3 p-3 rounded-lg ${item.checked ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}
-              >
-                <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${item.checked ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-slate-600'}`}>
-                  {item.checked ? '✓' : index + 1}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            {/* ID Number */}
+            <div className="group relative rounded-xl border-2 border-emerald-500 bg-gradient-to-b from-emerald-900 to-emerald-950 p-4 flex flex-col min-h-[140px]">
+              <div className="flex items-center justify-between mb-2">
+                <div className="h-8 w-8 rounded-full bg-emerald-500 flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-white" />
                 </div>
-                <span className={`text-sm ${item.checked ? 'text-emerald-700' : 'text-slate-600'}`}>
-                  {item.label}
-                </span>
               </div>
-            ))}
+              <div className="flex-1" />
+              <div>
+                <p className="text-xs text-emerald-300 font-medium">ID Number</p>
+                <p className="text-sm text-white font-semibold truncate">{(client as any)?.idNumber || (client as any)?.nationalId || 'N/A'}</p>
+              </div>
+              <div className="absolute bottom-2 right-2">
+                <CheckCircle className="h-5 w-5 text-emerald-400" />
+              </div>
+            </div>
+
+            {/* Date of Birth */}
+            <div className="group relative rounded-xl border-2 border-emerald-500 bg-gradient-to-b from-emerald-900 to-emerald-950 p-4 flex flex-col min-h-[140px]">
+              <div className="flex items-center justify-between mb-2">
+                <div className="h-8 w-8 rounded-full bg-emerald-500 flex items-center justify-center">
+                  <Calendar className="h-4 w-4 text-white" />
+                </div>
+              </div>
+              <div className="flex-1" />
+              <div>
+                <p className="text-xs text-emerald-300 font-medium">Date of Birth</p>
+                <p className="text-sm text-white font-semibold">
+                  {(client as any)?.dateOfBirth ? new Date((client as any).dateOfBirth).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+                </p>
+              </div>
+              <div className="absolute bottom-2 right-2">
+                <CheckCircle className="h-5 w-5 text-emerald-400" />
+              </div>
+            </div>
+
+            {/* Phone Number */}
+            <div className="group relative rounded-xl border-2 border-emerald-500 bg-gradient-to-b from-emerald-900 to-emerald-950 p-4 flex flex-col min-h-[140px]">
+              <div className="flex items-center justify-between mb-2">
+                <div className="h-8 w-8 rounded-full bg-emerald-500 flex items-center justify-center">
+                  <Phone className="h-4 w-4 text-white" />
+                </div>
+              </div>
+              <div className="flex-1" />
+              <div>
+                <p className="text-xs text-emerald-300 font-medium">Phone Number</p>
+                <p className="text-sm text-white font-semibold truncate">{client?.phonePrimary || 'N/A'}</p>
+              </div>
+              <div className="absolute bottom-2 right-2">
+                <CheckCircle className="h-5 w-5 text-emerald-400" />
+              </div>
+            </div>
+
+            {/* Address - Clickable */}
+            <button
+              onClick={() => {
+                const c = client as any;
+                setAddressForm({ residentialAddress: c?.residentialAddress || '' });
+                setShowAddressDialog(true);
+              }}
+              className={`group relative rounded-xl border-2 p-4 flex flex-col min-h-[140px] text-left transition-all hover:scale-[1.02] ${
+                (client as any)?.residentialAddress
+                  ? 'border-emerald-500 bg-gradient-to-b from-emerald-900 to-emerald-950'
+                  : 'border-amber-500 bg-gradient-to-b from-slate-800 to-slate-900'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                  (client as any)?.residentialAddress ? 'bg-emerald-500' : 'bg-amber-500'
+                }`}>
+                  <MapPin className="h-4 w-4 text-white" />
+                </div>
+              </div>
+              <div className="flex-1" />
+              <div>
+                <p className={`text-xs font-medium ${(client as any)?.residentialAddress ? 'text-emerald-300' : 'text-amber-300'}`}>Address</p>
+                <p className="text-sm text-white font-semibold truncate">
+                  {(client as any)?.residentialAddress ? 'Provided' : 'Add'}
+                </p>
+              </div>
+              <div className="absolute bottom-2 right-2">
+                {(client as any)?.residentialAddress ? (
+                  <CheckCircle className="h-5 w-5 text-emerald-400" />
+                ) : (
+                  <Play className="h-5 w-5 text-amber-400" />
+                )}
+              </div>
+            </button>
+
+            {/* Employment - Clickable */}
+            <button
+              onClick={() => {
+                const c = client as any;
+                setEmploymentForm({
+                  employerName: c?.employerName || '',
+                  occupation: c?.occupation || '',
+                  monthlyIncome: c?.monthlyIncome || '',
+                });
+                setShowEmploymentDialog(true);
+              }}
+              className={`group relative rounded-xl border-2 p-4 flex flex-col min-h-[140px] text-left transition-all hover:scale-[1.02] ${
+                (client as any)?.employerName
+                  ? 'border-emerald-500 bg-gradient-to-b from-emerald-900 to-emerald-950'
+                  : 'border-amber-500 bg-gradient-to-b from-slate-800 to-slate-900'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                  (client as any)?.employerName ? 'bg-emerald-500' : 'bg-amber-500'
+                }`}>
+                  <Briefcase className="h-4 w-4 text-white" />
+                </div>
+              </div>
+              <div className="flex-1" />
+              <div>
+                <p className={`text-xs font-medium ${(client as any)?.employerName ? 'text-emerald-300' : 'text-amber-300'}`}>Employment</p>
+                <p className="text-sm text-white font-semibold truncate">
+                  {(client as any)?.employerName || 'Add'}
+                </p>
+              </div>
+              <div className="absolute bottom-2 right-2">
+                {(client as any)?.employerName ? (
+                  <CheckCircle className="h-5 w-5 text-emerald-400" />
+                ) : (
+                  <Play className="h-5 w-5 text-amber-400" />
+                )}
+              </div>
+            </button>
+
+            {/* Next of Kin - Clickable */}
+            <button
+              onClick={() => setShowNokDialog(true)}
+              className={`group relative rounded-xl border-2 p-4 flex flex-col min-h-[140px] text-left transition-all hover:scale-[1.02] ${
+                (client?.nextOfKin || []).length > 0
+                  ? 'border-emerald-500 bg-gradient-to-b from-emerald-900 to-emerald-950'
+                  : 'border-amber-500 bg-gradient-to-b from-slate-800 to-slate-900'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                  (client?.nextOfKin || []).length > 0 ? 'bg-emerald-500' : 'bg-amber-500'
+                }`}>
+                  <Users className="h-4 w-4 text-white" />
+                </div>
+              </div>
+              <div className="flex-1" />
+              <div>
+                <p className={`text-xs font-medium ${(client?.nextOfKin || []).length > 0 ? 'text-emerald-300' : 'text-amber-300'}`}>Next of Kin</p>
+                <p className="text-sm text-white font-semibold">
+                  {(client?.nextOfKin || []).length > 0 ? `${(client?.nextOfKin || []).length} contact(s)` : 'Add'}
+                </p>
+              </div>
+              <div className="absolute bottom-2 right-2">
+                {(client?.nextOfKin || []).length > 0 ? (
+                  <CheckCircle className="h-5 w-5 text-emerald-400" />
+                ) : (
+                  <Play className="h-5 w-5 text-amber-400" />
+                )}
+              </div>
+            </button>
+
+            {/* Referees - Clickable */}
+            <button
+              onClick={() => setShowRefereeDialog(true)}
+              className={`group relative rounded-xl border-2 p-4 flex flex-col min-h-[140px] text-left transition-all hover:scale-[1.02] ${
+                (client?.referees || []).length >= 2
+                  ? 'border-emerald-500 bg-gradient-to-b from-emerald-900 to-emerald-950'
+                  : 'border-amber-500 bg-gradient-to-b from-slate-800 to-slate-900'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                  (client?.referees || []).length >= 2 ? 'bg-emerald-500' : 'bg-amber-500'
+                }`}>
+                  <UserPlus className="h-4 w-4 text-white" />
+                </div>
+              </div>
+              <div className="flex-1" />
+              <div>
+                <p className={`text-xs font-medium ${(client?.referees || []).length >= 2 ? 'text-emerald-300' : 'text-amber-300'}`}>Referees</p>
+                <p className="text-sm text-white font-semibold">
+                  {(client?.referees || []).length > 0 ? `${(client?.referees || []).length} referee(s)` : 'Add'}
+                </p>
+              </div>
+              <div className="absolute bottom-2 right-2">
+                {(client?.referees || []).length >= 2 ? (
+                  <CheckCircle className="h-5 w-5 text-emerald-400" />
+                ) : (
+                  <Play className="h-5 w-5 text-amber-400" />
+                )}
+              </div>
+            </button>
           </div>
         </CardContent>
       </Card>
@@ -419,137 +603,8 @@ export default function PortalKYCPage() {
         );
       })()}
 
-      {/* Address Information */}
+      {/* Next of Kin & Referees */}
       <Card className="border-slate-200 bg-white">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-emerald-600" />
-              Residential Address
-            </CardTitle>
-            <CardDescription>Your current residential address</CardDescription>
-          </div>
-          <Button size="sm" variant="outline" onClick={() => {
-            const c = client as any;
-            setAddressForm({
-              residentialAddress: c?.residentialAddress || '',
-            });
-            setShowAddressDialog(true);
-          }}>
-            {(client as any)?.residentialAddress ? 'Edit' : 'Add'}
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {(() => {
-            const c = client as any;
-            if (!c?.residentialAddress) {
-              return (
-                <div className="text-center py-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
-                  <Home className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-600 font-medium">No address provided</p>
-                  <p className="text-sm text-slate-500 mt-1">Add your residential address</p>
-                  <Button
-                    size="sm"
-                    className="mt-4 bg-emerald-600 hover:bg-emerald-700"
-                    onClick={() => setShowAddressDialog(true)}
-                  >
-                    <MapPin className="h-4 w-4 mr-1" />
-                    Add Address
-                  </Button>
-                </div>
-              );
-            }
-            return (
-              <div className="flex items-start gap-3 p-4 bg-emerald-50 rounded-lg">
-                <MapPin className="h-5 w-5 text-emerald-600 mt-0.5" />
-                <div>
-                  <p className="text-xs text-slate-500">Residential Address</p>
-                  <p className="text-sm font-medium text-slate-900">{c.residentialAddress}</p>
-                </div>
-              </div>
-            );
-          })()}
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Employment Information */}
-        <Card className="border-slate-200 bg-white">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Briefcase className="h-5 w-5 text-emerald-600" />
-                Employment Information
-              </CardTitle>
-              <CardDescription>Your employment details for loan assessment</CardDescription>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => {
-              const c = client as any;
-              setEmploymentForm({
-                employerName: c?.employerName || '',
-                occupation: c?.occupation || '',
-                monthlyIncome: c?.monthlyIncome || '',
-              });
-              setShowEmploymentDialog(true);
-            }}>
-              {(client as any)?.employerName ? 'Edit' : 'Add'}
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const c = client as any;
-              if (!c?.employerName) {
-                return (
-                  <div className="text-center py-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
-                    <Building className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-600 font-medium">No employment information</p>
-                    <p className="text-sm text-slate-500 mt-1">Add your employment details</p>
-                    <Button
-                      size="sm"
-                      className="mt-4 bg-emerald-600 hover:bg-emerald-700"
-                      onClick={() => setShowEmploymentDialog(true)}
-                    >
-                      <Briefcase className="h-4 w-4 mr-1" />
-                      Add Employment Info
-                    </Button>
-                  </div>
-                );
-              }
-              return (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg">
-                    <Building className="h-5 w-5 text-emerald-600" />
-                    <div>
-                      <p className="text-xs text-slate-500">Employer</p>
-                      <p className="text-sm font-medium text-slate-900">{c.employerName}</p>
-                    </div>
-                  </div>
-                  {c.occupation && (
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                      <Briefcase className="h-5 w-5 text-slate-500" />
-                      <div>
-                        <p className="text-xs text-slate-500">Occupation</p>
-                        <p className="text-sm font-medium text-slate-900">{c.occupation}</p>
-                      </div>
-                    </div>
-                  )}
-                  {c.monthlyIncome && (
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                      <DollarSign className="h-5 w-5 text-slate-500" />
-                      <div>
-                        <p className="text-xs text-slate-500">Monthly Income</p>
-                        <p className="text-sm font-medium text-slate-900">KES {Number(c.monthlyIncome).toLocaleString()}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </CardContent>
-        </Card>
-
-        {/* Next of Kin & Referees */}
-        <Card className="border-slate-200 bg-white">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="h-5 w-5 text-emerald-600" />
