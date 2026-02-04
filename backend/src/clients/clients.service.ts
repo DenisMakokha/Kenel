@@ -6,9 +6,11 @@ import {
   UnauthorizedException,
   Inject,
   forwardRef,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PortalNotificationsService } from '../portal/portal-notifications.service';
+import { VirusScanService } from '../virus-scan/virus-scan.service';
 import * as argon2 from 'argon2';
 import { DocumentType } from '@prisma/client';
 import {
@@ -28,10 +30,13 @@ import {
 
 @Injectable()
 export class ClientsService {
+  private readonly logger = new Logger(ClientsService.name);
+
   constructor(
     private prisma: PrismaService,
     @Inject(forwardRef(() => PortalNotificationsService))
     private portalNotificationsService: PortalNotificationsService,
+    private virusScanService: VirusScanService,
   ) {}
 
   /**
@@ -692,6 +697,11 @@ export class ClientsService {
         reviewedAt: null,
         reviewedBy: null,
       },
+    });
+
+    // Trigger virus scan asynchronously (don't wait)
+    this.virusScanService.scanClientDocument(document.id).catch((err) => {
+      this.logger.error(`Failed to scan document ${document.id}: ${err.message}`);
     });
 
     return document;

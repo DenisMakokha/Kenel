@@ -22,6 +22,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { SettingsModule } from './settings/settings.module';
 import { InterestRatesModule } from './interest-rates/interest-rates.module';
 import { FeeTemplatesModule } from './fee-templates/fee-templates.module';
+import { VirusScanModule } from './virus-scan/virus-scan.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { FeeTemplatesModule } from './fee-templates/fee-templates.module';
     SettingsModule,
     InterestRatesModule,
     FeeTemplatesModule,
+    VirusScanModule,
   ],
   providers: [
     {

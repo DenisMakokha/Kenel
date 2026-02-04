@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { DocumentReviewStatus, DocumentType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { VirusScanService } from '../virus-scan/virus-scan.service';
 import { QueryDocumentsDto } from './dto/query-documents.dto';
 import { UploadDocumentDto } from './dto/upload-document.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
@@ -11,7 +12,12 @@ type UnifiedId = string;
 
 @Injectable()
 export class DocumentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(DocumentsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly virusScanService: VirusScanService,
+  ) {}
 
   private encodeId(kind: 'c' | 'a', id: string): UnifiedId {
     return `${kind}_${id}`;
@@ -289,6 +295,11 @@ export class DocumentsService {
         },
       });
 
+      // Trigger virus scan asynchronously
+      this.virusScanService.scanClientDocument(created.id).catch((err) => {
+        this.logger.error(`Failed to scan document ${created.id}: ${err.message}`);
+      });
+
       return { id: this.encodeId('c', created.id) };
     }
 
@@ -309,6 +320,11 @@ export class DocumentsService {
         reviewStatus: DocumentReviewStatus.PENDING,
         reviewNotes: dto.notes ?? null,
       },
+    });
+
+    // Trigger virus scan asynchronously
+    this.virusScanService.scanApplicationDocument(created.id).catch((err) => {
+      this.logger.error(`Failed to scan application document ${created.id}: ${err.message}`);
     });
 
     // Auto-complete corresponding checklist item when document is uploaded
