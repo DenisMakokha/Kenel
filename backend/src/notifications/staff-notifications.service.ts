@@ -150,8 +150,8 @@ export class StaffNotificationsService {
     });
   }
 
-  // Get dashboard alerts for credit officers
-  async getDashboardAlerts() {
+  // Get dashboard alerts for all staff roles
+  async getDashboardAlerts(role?: string) {
     const [pendingKyc, pendingApplications, overdueLoans] = await Promise.all([
       this.getPendingKycCount(),
       this.getPendingApplicationsCount(),
@@ -167,5 +167,79 @@ export class StaffNotificationsService {
       pendingApplications,
       overdueLoans,
     };
+  }
+
+  // Get role-specific dashboard alerts
+  async getRoleAlerts(role: string) {
+    const baseAlerts = await this.getDashboardAlerts(role);
+
+    if (role === 'CREDIT_OFFICER') {
+      const [applicationsUnderReview, pendingKycReviews] = await Promise.all([
+        this.prisma.loanApplication.count({
+          where: { status: 'UNDER_REVIEW' },
+        }),
+        this.prisma.client.count({
+          where: { kycStatus: 'PENDING_REVIEW' },
+        }),
+      ]);
+
+      return {
+        ...baseAlerts,
+        applicationsUnderReview,
+        pendingKycReviews,
+      };
+    }
+
+    if (role === 'FINANCE_OFFICER') {
+      const [pendingDisbursements, loansInArrears, highValueArrears] = await Promise.all([
+        this.prisma.loan.count({
+          where: { status: 'PENDING_DISBURSEMENT' },
+        }),
+        this.prisma.loan.count({
+          where: { status: 'IN_ARREARS' },
+        }),
+        this.prisma.loan.count({
+          where: {
+            status: 'IN_ARREARS',
+            outstandingPrincipal: { gte: 100000 },
+          },
+        }),
+      ]);
+
+      return {
+        ...baseAlerts,
+        pendingDisbursements,
+        loansInArrears,
+        highValueArrears,
+      };
+    }
+
+    // ADMIN gets everything
+    if (role === 'ADMIN') {
+      const [
+        applicationsUnderReview,
+        pendingDisbursements,
+        documentsWithThreats,
+      ] = await Promise.all([
+        this.prisma.loanApplication.count({
+          where: { status: 'UNDER_REVIEW' },
+        }),
+        this.prisma.loan.count({
+          where: { status: 'PENDING_DISBURSEMENT' },
+        }),
+        this.prisma.clientDocument.count({
+          where: { virusScanStatus: 'infected' },
+        }),
+      ]);
+
+      return {
+        ...baseAlerts,
+        applicationsUnderReview,
+        pendingDisbursements,
+        documentsWithThreats,
+      };
+    }
+
+    return baseAlerts;
   }
 }

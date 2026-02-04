@@ -19,6 +19,15 @@ export interface DashboardAlerts {
   pendingKyc: number;
   pendingApplications: number;
   overdueLoans: number;
+  // Credit Officer specific
+  applicationsUnderReview?: number;
+  pendingKycReviews?: number;
+  // Finance Officer specific
+  pendingDisbursements?: number;
+  loansInArrears?: number;
+  highValueArrears?: number;
+  // Admin specific
+  documentsWithThreats?: number;
 }
 
 export const staffNotificationsService = {

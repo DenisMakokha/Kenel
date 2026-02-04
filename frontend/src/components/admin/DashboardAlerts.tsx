@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, FileText, AlertTriangle, ArrowRight, RefreshCw } from 'lucide-react';
+import { Users, FileText, AlertTriangle, ArrowRight, RefreshCw, Wallet, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import staffNotificationsService, { DashboardAlerts as AlertsType } from '@/services/staffNotificationsService';
@@ -22,7 +22,6 @@ export default function DashboardAlerts() {
 
   useEffect(() => {
     fetchAlerts();
-    // Refresh alerts every 60 seconds
     const interval = setInterval(fetchAlerts, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -47,7 +46,7 @@ export default function DashboardAlerts() {
       color: 'bg-blue-500',
       bgColor: 'bg-blue-50 border-blue-200',
       textColor: 'text-blue-700',
-      link: '/clients?kycStatus=PENDING_REVIEW',
+      link: '/kyc-reviews?status=PENDING_REVIEW',
       description: 'Clients awaiting KYC verification',
     },
     {
@@ -70,6 +69,34 @@ export default function DashboardAlerts() {
       link: '/loans?status=IN_ARREARS',
       description: 'Loans with overdue payments',
     },
+    ...(alerts.pendingDisbursements && alerts.pendingDisbursements > 0
+      ? [
+          {
+            label: 'Pending Disbursements',
+            count: alerts.pendingDisbursements,
+            icon: Wallet,
+            color: 'bg-emerald-500',
+            bgColor: 'bg-emerald-50 border-emerald-200',
+            textColor: 'text-emerald-700',
+            link: '/loans?status=PENDING_DISBURSEMENT',
+            description: 'Approved loans awaiting disbursement',
+          },
+        ]
+      : []),
+    ...(alerts.documentsWithThreats && alerts.documentsWithThreats > 0
+      ? [
+          {
+            label: 'Security Threats',
+            count: alerts.documentsWithThreats,
+            icon: Shield,
+            color: 'bg-red-600',
+            bgColor: 'bg-red-50 border-red-300',
+            textColor: 'text-red-800',
+            link: '/documents?virusScanStatus=infected',
+            description: 'Documents flagged by virus scan',
+          },
+        ]
+      : []),
   ];
 
   const hasAlerts = alertItems.some((item) => item.count > 0);
@@ -89,7 +116,7 @@ export default function DashboardAlerts() {
           <RefreshCw className="h-3 w-3" />
         </Button>
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
         {alertItems.map((item) => {
           if (item.count === 0) return null;
           const Icon = item.icon;

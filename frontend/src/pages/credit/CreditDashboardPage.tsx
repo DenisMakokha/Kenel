@@ -19,6 +19,7 @@ import { LoanApplicationStatus } from '../../types/loan-application';
 import { LoanStatus } from '../../types/loan';
 import { formatCurrency } from '../../lib/utils';
 import { cn } from '../../lib/utils';
+import RoleAlerts from '../../components/dashboard/RoleAlerts';
 
 interface CreditKpis {
   newApplications: number | null;
@@ -160,6 +161,9 @@ export default function CreditDashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 px-4 md:px-6 py-4">
+      {/* Action Required Alerts */}
+      <RoleAlerts role="CREDIT_OFFICER" />
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>

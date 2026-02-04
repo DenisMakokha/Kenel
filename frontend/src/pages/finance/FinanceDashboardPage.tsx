@@ -18,6 +18,7 @@ import { reportService } from '../../services/reportService';
 import { repaymentService } from '../../services/repaymentService';
 import { formatCurrency } from '../../lib/utils';
 import { cn } from '../../lib/utils';
+import RoleAlerts from '../../components/dashboard/RoleAlerts';
 
 interface FinanceKpis {
   todaysCollections: number | null;
@@ -201,6 +202,9 @@ export default function FinanceDashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 px-4 md:px-6 py-4">
+      {/* Action Required Alerts */}
+      <RoleAlerts role="FINANCE_OFFICER" />
+
       {/* Header */}
       <section className="mt-1">
         <div className="flex flex-col gap-3 rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50/70 via-emerald-50/40 to-transparent px-5 py-4">

@@ -44,8 +44,9 @@ export class StaffNotificationsController {
   @Roles('ADMIN', 'CREDIT_OFFICER', 'FINANCE_OFFICER')
   @ApiOperation({ summary: 'Get dashboard alerts (pending KYC, applications, overdue loans)' })
   @ApiResponse({ status: 200, description: 'Alerts retrieved successfully' })
-  async getDashboardAlerts() {
-    return this.staffNotificationsService.getDashboardAlerts();
+  async getDashboardAlerts(@Req() req: any) {
+    const role = req.user?.role;
+    return this.staffNotificationsService.getRoleAlerts(role);
   }
 
   @Patch(':id/read')
