@@ -181,7 +181,7 @@ export default function ClientDocumentsTab({ client, onUpdate }: ClientDocuments
   };
 
   const handlePreview = (doc: ClientDocument) => {
-    openAuthenticatedFile(`/clients/${client.id}/documents/${doc.id}/download`);
+    openAuthenticatedFile(`/documents/c_${doc.id}/download`);
   };
 
   const activeDocuments = documents.filter((d) => !d.isDeleted);

@@ -423,7 +423,7 @@ export default function KycReviewsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => openAuthenticatedFile(`/clients/${selectedClient?.id}/documents/${doc.id}/download`)}
+                        onClick={() => openAuthenticatedFile(`/documents/c_${doc.id}/download`)}
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         View

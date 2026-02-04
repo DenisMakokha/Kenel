@@ -474,7 +474,7 @@ export default function ClientKYCTab({ client, onUpdate }: ClientKYCTabProps) {
                           size="sm"
                           variant="ghost"
                           className="h-8 px-2"
-                          onClick={() => openAuthenticatedFile(`/clients/${client.id}/documents/${doc.id}/download`)}
+                          onClick={() => openAuthenticatedFile(`/documents/c_${doc.id}/download`)}
                         >
                           {isImage ? <Eye className="h-4 w-4" /> : <Download className="h-4 w-4" />}
                         </Button>

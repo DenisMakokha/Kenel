@@ -1306,7 +1306,7 @@ export default function LoanApplicationDetailPage() {
                             size="sm"
                             variant="outline"
                             className="text-green-700 border-green-300 hover:bg-green-100"
-                            onClick={() => openAuthenticatedFile(`/loan-applications/${application.id}/documents/${uploadedDoc.id}/download`)}
+                            onClick={() => openAuthenticatedFile(`/documents/a_${uploadedDoc.id}/download`)}
                           >
                             View
                           </Button>
@@ -1361,7 +1361,7 @@ export default function LoanApplicationDetailPage() {
                               <Button
                                 size="sm"
                                 variant="default"
-                                onClick={() => openAuthenticatedFile(`/loan-applications/${application.id}/documents/${doc.id}/download`)}
+                                onClick={() => openAuthenticatedFile(`/documents/a_${doc.id}/download`)}
                               >
                                 View/Download
                               </Button>
