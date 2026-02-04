@@ -12,13 +12,14 @@ import {
   CreditCard,
   CheckCircle,
   Clock,
-  Printer,
   Eye,
+  Loader2,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../lib/utils';
 
 interface PaymentReceipt {
   id: string;
+  loanId: string;
   receiptNumber: string;
   loanNumber: string;
   amount: number;
@@ -73,6 +74,7 @@ export default function PortalStatementsPage() {
           .filter((t) => Boolean(t.receiptNumber))
           .map((t) => ({
             id: t.id,
+            loanId: loanId,
             receiptNumber: t.receiptNumber,
             loanNumber: loan?.loanNumber || '',
             amount: typeof t.amount === 'number' ? t.amount : t.amount?.toNumber?.() ?? Number(t.amount),
@@ -123,17 +125,20 @@ export default function PortalStatementsPage() {
     }
   };
 
-  const handlePrintReceipt = (receipt: PaymentReceipt) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleViewReceipt = (receipt: PaymentReceipt) => {
+    const viewWindow = window.open('', '_blank');
+    if (!viewWindow) return;
     
-    printWindow.document.write(`
+    viewWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
           <title>Payment Receipt - ${receipt.receiptNumber}</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 40px; max-width: 600px; margin: 0 auto; }
+            body { font-family: Arial, sans-serif; padding: 40px; max-width: 600px; margin: 0 auto; background: #f8fafc; }
+            .receipt-card { background: white; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
             .header { text-align: center; border-bottom: 2px solid #10b981; padding-bottom: 20px; margin-bottom: 20px; }
             .logo { font-size: 24px; font-weight: bold; color: #10b981; }
             .receipt-title { font-size: 18px; color: #64748b; margin-top: 10px; }
@@ -142,49 +147,76 @@ export default function PortalStatementsPage() {
             .row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
             .label { color: #64748b; }
             .value { font-weight: 600; }
-            .amount { font-size: 24px; color: #10b981; text-align: center; margin: 30px 0; }
+            .amount { font-size: 28px; color: #10b981; text-align: center; margin: 30px 0; }
             .footer { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 40px; }
             .status { display: inline-block; padding: 4px 12px; background: #d1fae5; color: #059669; border-radius: 20px; font-size: 12px; }
-            @media print { body { padding: 20px; } }
+            .actions { text-align: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+            .btn { padding: 10px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; margin: 0 8px; }
+            .btn-primary { background: #10b981; color: white; }
+            .btn-secondary { background: #f1f5f9; color: #475569; }
           </style>
         </head>
         <body>
-          <div class="header">
-            <div class="logo">KENELS BUREAU</div>
-            <div class="receipt-title">Payment Receipt</div>
-            <div class="receipt-number">${receipt.receiptNumber}</div>
-          </div>
-          <div class="amount">
-            <div style="font-size: 14px; color: #64748b;">Amount Paid</div>
-            <div>KES ${receipt.amount.toLocaleString()}</div>
-          </div>
-          <div class="details">
-            <div class="row">
-              <span class="label">Loan Number</span>
-              <span class="value">${receipt.loanNumber}</span>
+          <div class="receipt-card">
+            <div class="header">
+              <div class="logo">KENELS BUREAU</div>
+              <div class="receipt-title">Payment Receipt</div>
+              <div class="receipt-number">${receipt.receiptNumber}</div>
             </div>
-            <div class="row">
-              <span class="label">Payment Date</span>
-              <span class="value">${new Date(receipt.paymentDate).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <div class="amount">
+              <div style="font-size: 14px; color: #64748b;">Amount Paid</div>
+              <div>KES ${receipt.amount.toLocaleString()}</div>
             </div>
-            <div class="row">
-              <span class="label">Payment Method</span>
-              <span class="value">${receipt.paymentMethod}</span>
+            <div class="details">
+              <div class="row">
+                <span class="label">Loan Number</span>
+                <span class="value">${receipt.loanNumber}</span>
+              </div>
+              <div class="row">
+                <span class="label">Payment Date</span>
+                <span class="value">${new Date(receipt.paymentDate).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              </div>
+              <div class="row">
+                <span class="label">Payment Method</span>
+                <span class="value">${receipt.paymentMethod}</span>
+              </div>
+              <div class="row">
+                <span class="label">Status</span>
+                <span class="status">Completed</span>
+              </div>
             </div>
-            <div class="row">
-              <span class="label">Status</span>
-              <span class="status">Completed</span>
+            <div class="footer">
+              <p>Thank you for your payment!</p>
+              <p>For inquiries, contact support@kenels.co.ke</p>
             </div>
-          </div>
-          <div class="footer">
-            <p>Thank you for your payment!</p>
-            <p>For inquiries, contact support@kenels.co.ke</p>
+            <div class="actions">
+              <button class="btn btn-primary" onclick="window.print()">Print</button>
+              <button class="btn btn-secondary" onclick="window.close()">Close</button>
+            </div>
           </div>
         </body>
       </html>
     `);
-    printWindow.document.close();
-    printWindow.print();
+    viewWindow.document.close();
+  };
+
+  const handleDownloadReceipt = async (receipt: PaymentReceipt) => {
+    try {
+      setDownloadingId(receipt.id);
+      const blob = await portalService.downloadReceipt(receipt.loanId, receipt.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `receipt-${receipt.receiptNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to download receipt');
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   return (
@@ -402,18 +434,24 @@ export default function PortalStatementsPage() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handlePrintReceipt(receipt)}
-                      >
-                        <Printer className="h-4 w-4 mr-1" />
-                        Print
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="text-emerald-600"
+                        onClick={() => handleViewReceipt(receipt)}
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         View
+                      </Button>
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                        onClick={() => handleDownloadReceipt(receipt)}
+                        disabled={downloadingId === receipt.id}
+                      >
+                        {downloadingId === receipt.id ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4 mr-1" />
+                        )}
+                        {downloadingId === receipt.id ? 'Downloading...' : 'Download'}
                       </Button>
                     </div>
                   </div>
