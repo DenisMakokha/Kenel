@@ -156,7 +156,7 @@ export const clientService = {
     return response.data;
   },
 
-  getKycStats: async (): Promise<{ pendingReview: number; verifiedToday: number; rejectedToday: number; totalUnverified: number }> => {
+  getKycStats: async (): Promise<{ pendingReview: number; verifiedToday: number; rejectedToday: number; totalUnverified: number; totalRejected: number; totalReturned: number }> => {
     const response = await api.get('/clients/kyc/stats');
     return response.data;
   },

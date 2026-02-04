@@ -75,7 +75,7 @@ export default function KycReviewsPage() {
   const [total, setTotal] = useState(0);
 
   // KYC Stats
-  const [kycStats, setKycStats] = useState<{ pendingReview: number; verifiedToday: number; rejectedToday: number; totalUnverified: number } | null>(null);
+  const [kycStats, setKycStats] = useState<{ pendingReview: number; verifiedToday: number; rejectedToday: number; totalUnverified: number; totalRejected: number; totalReturned: number } | null>(null);
 
   // Review dialog state
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -239,14 +239,14 @@ export default function KycReviewsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
         <Card className="border-slate-100">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
             <AlertTriangle className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-amber-600">{kycStats?.pendingReview ?? total}</p>
+            <p className="text-2xl font-bold text-amber-600">{kycStats?.pendingReview ?? 0}</p>
             <p className="text-xs text-muted-foreground">Needs action</p>
           </CardContent>
         </Card>
@@ -257,17 +257,27 @@ export default function KycReviewsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-emerald-600">{kycStats?.verifiedToday ?? 0}</p>
-            <p className="text-xs text-muted-foreground">Approved</p>
+            <p className="text-xs text-muted-foreground">Approved today</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Rejected Today</CardTitle>
+            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
             <XCircle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-red-600">{kycStats?.rejectedToday ?? 0}</p>
-            <p className="text-xs text-muted-foreground">Declined</p>
+            <p className="text-2xl font-bold text-red-600">{kycStats?.totalRejected ?? 0}</p>
+            <p className="text-xs text-muted-foreground">{kycStats?.rejectedToday ?? 0} today</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Returned</CardTitle>
+            <RotateCcw className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-orange-600">{kycStats?.totalReturned ?? 0}</p>
+            <p className="text-xs text-muted-foreground">Awaiting client</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -278,6 +288,16 @@ export default function KycReviewsPage() {
           <CardContent>
             <p className="text-2xl font-bold">{kycStats?.totalUnverified ?? 0}</p>
             <p className="text-xs text-muted-foreground">Not started</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100 bg-slate-50">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Total Queue</CardTitle>
+            <FileText className="h-4 w-4 text-slate-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-slate-700">{(kycStats?.pendingReview ?? 0) + (kycStats?.totalUnverified ?? 0) + (kycStats?.totalReturned ?? 0)}</p>
+            <p className="text-xs text-muted-foreground">Needs attention</p>
           </CardContent>
         </Card>
       </div>

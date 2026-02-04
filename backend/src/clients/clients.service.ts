@@ -871,7 +871,7 @@ export class ClientsService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [pendingReview, verifiedToday, rejectedToday, totalUnverified] = await Promise.all([
+    const [pendingReview, verifiedToday, rejectedToday, totalUnverified, totalRejected, totalReturned] = await Promise.all([
       this.prisma.client.count({
         where: { kycStatus: 'PENDING_REVIEW' },
       }),
@@ -890,6 +890,12 @@ export class ClientsService {
       this.prisma.client.count({
         where: { kycStatus: 'UNVERIFIED' },
       }),
+      this.prisma.client.count({
+        where: { kycStatus: 'REJECTED' },
+      }),
+      this.prisma.client.count({
+        where: { kycStatus: 'RETURNED' },
+      }),
     ]);
 
     return {
@@ -897,6 +903,8 @@ export class ClientsService {
       verifiedToday,
       rejectedToday,
       totalUnverified,
+      totalRejected,
+      totalReturned,
     };
   }
 
