@@ -35,8 +35,21 @@ import {
   UserCheck,
   UserX,
   Calendar,
+  MoreHorizontal,
+  Pencil,
+  KeyRound,
+  Trash2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
-import { userService, type User, type CreateUserDto } from '../services/userService';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+import { userService, type User, type CreateUserDto, type UpdateUserDto } from '../services/userService';
 import { formatDate } from '../lib/utils';
 import { cn } from '../lib/utils';
 
@@ -76,6 +89,21 @@ export default function UsersPage() {
   const [createError, setCreateError] = useState('');
 
   const [togglingUserId, setTogglingUserId] = useState<string | null>(null);
+
+  // Edit user state
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState<UpdateUserDto>({});
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  // Password reset state
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordUser, setPasswordUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -157,6 +185,73 @@ export default function UsersPage() {
       setCreateError(err.response?.data?.message || 'Failed to create user');
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  const handleEditClick = (user: User) => {
+    setEditingUser(user);
+    setEditForm({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phone: user.phone || '',
+      role: user.role,
+      isActive: user.isActive,
+    });
+    setEditError('');
+    setShowEditDialog(true);
+  };
+
+  const handleEditUser = async () => {
+    if (!editingUser) return;
+    try {
+      setEditLoading(true);
+      setEditError('');
+      const updatedUser = await userService.updateUser(editingUser.id, editForm);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === editingUser.id ? updatedUser : u))
+      );
+      setShowEditDialog(false);
+      setEditingUser(null);
+    } catch (err: any) {
+      setEditError(err.response?.data?.message || 'Failed to update user');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handlePasswordResetClick = (user: User) => {
+    setPasswordUser(user);
+    setNewPassword('');
+    setPasswordError('');
+    setShowNewPassword(false);
+    setShowPasswordDialog(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!passwordUser) return;
+    try {
+      setPasswordLoading(true);
+      setPasswordError('');
+      await userService.resetPassword(passwordUser.id, newPassword);
+      setShowPasswordDialog(false);
+      setPasswordUser(null);
+      setNewPassword('');
+    } catch (err: any) {
+      setPasswordError(err.response?.data?.message || 'Failed to reset password');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (user: User) => {
+    if (!confirm(`Are you sure you want to deactivate ${user.firstName} ${user.lastName}?`)) return;
+    try {
+      await userService.deleteUser(user.id);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, isActive: false } : u))
+      );
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to deactivate user');
     }
   };
 
@@ -331,23 +426,49 @@ export default function UsersPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleToggleStatus(user)}
-                          disabled={togglingUserId === user.id}
-                          className={cn(
-                            user.isActive
-                              ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
-                              : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
-                          )}
-                        >
-                          {togglingUserId === user.id
-                            ? 'Updating...'
-                            : user.isActive
-                            ? 'Deactivate'
-                            : 'Activate'}
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditClick(user)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePasswordResetClick(user)}>
+                              <KeyRound className="h-4 w-4 mr-2" />
+                              Reset Password
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleToggleStatus(user)}
+                              disabled={togglingUserId === user.id}
+                            >
+                              {user.isActive ? (
+                                <>
+                                  <UserX className="h-4 w-4 mr-2" />
+                                  Deactivate
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="h-4 w-4 mr-2" />
+                                  Activate
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            {user.isActive && (
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteUser(user)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete User
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -467,6 +588,154 @@ export default function UsersPage() {
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               {createLoading ? 'Creating...' : 'Create User'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update user details for {editingUser?.firstName} {editingUser?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {editError && (
+              <div className="rounded-md border border-destructive bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {editError}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-firstName">First Name</Label>
+                <Input
+                  id="edit-firstName"
+                  value={editForm.firstName || ''}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, firstName: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-lastName">Last Name</Label>
+                <Input
+                  id="edit-lastName"
+                  value={editForm.lastName || ''}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, lastName: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input
+                id="edit-phone"
+                value={editForm.phone || ''}
+                onChange={(e) =>
+                  setEditForm((prev) => ({ ...prev, phone: e.target.value }))
+                }
+                placeholder="+254 7XX XXX XXX"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-role">Role</Label>
+              <Select
+                value={editForm.role}
+                onValueChange={(value) =>
+                  setEditForm((prev) => ({ ...prev, role: value as User['role'] }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ADMIN">Administrator</SelectItem>
+                  <SelectItem value="CREDIT_OFFICER">Credit Officer</SelectItem>
+                  <SelectItem value="FINANCE_OFFICER">Finance Officer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="edit-isActive"
+                checked={editForm.isActive}
+                onChange={(e) =>
+                  setEditForm((prev) => ({ ...prev, isActive: e.target.checked }))
+                }
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              <Label htmlFor="edit-isActive">User is active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditUser}
+              disabled={editLoading || !editForm.firstName || !editForm.lastName}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {editLoading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {passwordUser?.firstName} {passwordUser?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {passwordError && (
+              <div className="rounded-md border border-destructive bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {passwordError}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min 8 characters"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Password must be at least 8 characters long. The user will need to use this password to log in.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleResetPassword}
+              disabled={passwordLoading || newPassword.length < 8}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {passwordLoading ? 'Resetting...' : 'Reset Password'}
             </Button>
           </DialogFooter>
         </DialogContent>

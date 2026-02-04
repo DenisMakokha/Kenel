@@ -38,6 +38,7 @@ export class AuthService {
         lastName: registerDto.lastName,
         phone: registerDto.phone,
         role: registerDto.role || 'CLIENT',
+        isActive: true,
       },
     });
 

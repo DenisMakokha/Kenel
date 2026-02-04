@@ -48,13 +48,22 @@ export const userService = {
   },
 
   async createUser(data: CreateUserDto): Promise<User> {
-    // Uses the register endpoint for creating new users
-    const response = await api.post<{ user: User }>('/auth/register', data);
-    return response.data.user;
+    const response = await api.post<User>('/users', data);
+    return response.data;
   },
 
   async updateUser(id: string, data: UpdateUserDto): Promise<User> {
     const response = await api.patch<User>(`/users/${id}`, data);
+    return response.data;
+  },
+
+  async deleteUser(id: string): Promise<{ message: string }> {
+    const response = await api.delete<{ message: string }>(`/users/${id}`);
+    return response.data;
+  },
+
+  async resetPassword(id: string, newPassword: string): Promise<{ message: string }> {
+    const response = await api.patch<{ message: string }>(`/users/${id}/reset-password`, { newPassword });
     return response.data;
   },
 };
