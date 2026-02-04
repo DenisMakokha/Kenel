@@ -161,7 +161,9 @@ export default function DocumentsPage() {
       const response = await api.get('/documents', { params });
       setDocuments(response.data.documents || []);
       setTotal(response.data.total || 0);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Failed to load documents:', error);
+      toast.error(error?.response?.data?.message || 'Failed to load documents');
       setDocuments([]);
       setTotal(0);
     } finally {
