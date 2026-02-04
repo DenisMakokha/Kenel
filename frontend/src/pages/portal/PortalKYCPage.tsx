@@ -773,7 +773,6 @@ export default function PortalKYCPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
       {/* Documents Upload */}
       <Card className="border-slate-200 bg-white">

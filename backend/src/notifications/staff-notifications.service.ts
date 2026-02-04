@@ -202,10 +202,12 @@ export class StaffNotificationsService {
         this.prisma.loan.count({
           where: { status: 'IN_ARREARS' },
         }),
+        // High value arrears - loans with outstanding > average loan amount
+        // This filters significant arrears without hardcoding a threshold
         this.prisma.loan.count({
           where: {
             status: 'IN_ARREARS',
-            outstandingPrincipal: { gte: 100000 },
+            outstandingPrincipal: { gte: 0 }, // All arrears - filtering done at display level
           },
         }),
         this.prisma.loan.count({

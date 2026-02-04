@@ -74,10 +74,12 @@ export default function PortalMakePaymentPage() {
 
   const handleSelectLoan = (loan: PortalLoanSummary) => {
     setSelectedLoan(loan);
-    // Pre-fill with next payment amount if available
-    // Pre-fill with a suggested amount based on outstanding
-    if (loan.outstanding) {
-      setAmount(Math.min(loan.outstanding, 15000).toString());
+    // Pre-fill with next payment amount from loan schedule, or full outstanding if not available
+    const nextPaymentAmount = (loan as any).nextPaymentAmount || (loan as any).monthlyPayment;
+    if (nextPaymentAmount && nextPaymentAmount > 0) {
+      setAmount(Math.min(loan.outstanding, nextPaymentAmount).toString());
+    } else if (loan.outstanding) {
+      setAmount(loan.outstanding.toString());
     }
     setStep('enter-amount');
   };
@@ -318,14 +320,20 @@ export default function PortalMakePaymentPage() {
             
             {/* Quick amount buttons */}
             <div className="flex flex-wrap gap-2">
-              <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAmount(Math.min(selectedLoan.outstanding, 15000).toString())}
-                  className={amount === Math.min(selectedLoan.outstanding, 15000).toString() ? 'border-emerald-500 bg-emerald-50' : ''}
-                >
-                  Suggested ({formatCurrency(Math.min(selectedLoan.outstanding, 15000))})
-                </Button>
+              {(() => {
+                const suggestedAmount = (selectedLoan as any).nextPaymentAmount || (selectedLoan as any).monthlyPayment || selectedLoan.outstanding;
+                const displayAmount = Math.min(selectedLoan.outstanding, suggestedAmount);
+                return (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAmount(displayAmount.toString())}
+                    className={amount === displayAmount.toString() ? 'border-emerald-500 bg-emerald-50' : ''}
+                  >
+                    Next Payment ({formatCurrency(displayAmount)})
+                  </Button>
+                );
+              })()}
               <Button
                 variant="outline"
                 size="sm"
