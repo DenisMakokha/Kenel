@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { IsDateString, IsIn, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
 
 export class QueryDocumentsDto {
@@ -34,12 +35,14 @@ export class QueryDocumentsDto {
 
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @IsPositive()
   page?: number;
 
   @ApiPropertyOptional({ default: 20 })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @IsPositive()
   limit?: number;
