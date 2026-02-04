@@ -174,12 +174,15 @@ export class StaffNotificationsService {
     const baseAlerts = await this.getDashboardAlerts(role);
 
     if (role === 'CREDIT_OFFICER') {
-      const [applicationsUnderReview, pendingKycReviews] = await Promise.all([
+      const [applicationsUnderReview, pendingKycReviews, documentsPendingReview] = await Promise.all([
         this.prisma.loanApplication.count({
           where: { status: 'UNDER_REVIEW' },
         }),
         this.prisma.client.count({
           where: { kycStatus: 'PENDING_REVIEW' },
+        }),
+        this.prisma.clientDocument.count({
+          where: { reviewStatus: 'PENDING', isDeleted: false },
         }),
       ]);
 
@@ -187,11 +190,12 @@ export class StaffNotificationsService {
         ...baseAlerts,
         applicationsUnderReview,
         pendingKycReviews,
+        documentsPendingReview,
       };
     }
 
     if (role === 'FINANCE_OFFICER') {
-      const [pendingDisbursements, loansInArrears, highValueArrears] = await Promise.all([
+      const [pendingDisbursements, loansInArrears, highValueArrears, loansDueToday] = await Promise.all([
         this.prisma.loan.count({
           where: { status: 'PENDING_DISBURSEMENT' },
         }),
@@ -204,6 +208,9 @@ export class StaffNotificationsService {
             outstandingPrincipal: { gte: 100000 },
           },
         }),
+        this.prisma.loan.count({
+          where: { status: 'DUE' },
+        }),
       ]);
 
       return {
@@ -211,6 +218,7 @@ export class StaffNotificationsService {
         pendingDisbursements,
         loansInArrears,
         highValueArrears,
+        loansDueToday,
       };
     }
 
@@ -220,6 +228,8 @@ export class StaffNotificationsService {
         applicationsUnderReview,
         pendingDisbursements,
         documentsWithThreats,
+        loansDueToday,
+        documentsPendingReview,
       ] = await Promise.all([
         this.prisma.loanApplication.count({
           where: { status: 'UNDER_REVIEW' },
@@ -230,6 +240,12 @@ export class StaffNotificationsService {
         this.prisma.clientDocument.count({
           where: { virusScanStatus: 'infected' },
         }),
+        this.prisma.loan.count({
+          where: { status: 'DUE' },
+        }),
+        this.prisma.clientDocument.count({
+          where: { reviewStatus: 'PENDING', isDeleted: false },
+        }),
       ]);
 
       return {
@@ -237,6 +253,8 @@ export class StaffNotificationsService {
         applicationsUnderReview,
         pendingDisbursements,
         documentsWithThreats,
+        loansDueToday,
+        documentsPendingReview,
       };
     }
 

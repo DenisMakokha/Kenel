@@ -8,6 +8,8 @@ import {
   Wallet,
   Shield,
   Clock,
+  CalendarClock,
+  FileCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -95,6 +97,16 @@ export default function RoleAlerts({ role }: RoleAlertsProps) {
           link: '/loan-applications?status=UNDER_REVIEW',
           description: 'Applications currently being reviewed',
         },
+        {
+          label: 'Documents to Verify',
+          count: alerts.documentsPendingReview ?? 0,
+          icon: FileCheck,
+          color: 'bg-cyan-500',
+          bgColor: 'bg-cyan-50 border-cyan-200',
+          textColor: 'text-cyan-700',
+          link: '/documents?reviewStatus=PENDING',
+          description: 'Documents awaiting verification',
+        },
       ];
     }
 
@@ -109,6 +121,16 @@ export default function RoleAlerts({ role }: RoleAlertsProps) {
           textColor: 'text-emerald-700',
           link: '/loans?status=PENDING_DISBURSEMENT',
           description: 'Approved loans awaiting disbursement',
+        },
+        {
+          label: 'Loans Due Today',
+          count: alerts.loansDueToday ?? 0,
+          icon: CalendarClock,
+          color: 'bg-blue-500',
+          bgColor: 'bg-blue-50 border-blue-200',
+          textColor: 'text-blue-700',
+          link: '/loans?status=DUE',
+          description: 'Loans with payments due today',
         },
         {
           label: 'Loans in Arrears',

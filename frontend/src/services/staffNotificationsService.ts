@@ -22,10 +22,12 @@ export interface DashboardAlerts {
   // Credit Officer specific
   applicationsUnderReview?: number;
   pendingKycReviews?: number;
+  documentsPendingReview?: number;
   // Finance Officer specific
   pendingDisbursements?: number;
   loansInArrears?: number;
   highValueArrears?: number;
+  loansDueToday?: number;
   // Admin specific
   documentsWithThreats?: number;
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, FileText, AlertTriangle, ArrowRight, RefreshCw, Wallet, Shield } from 'lucide-react';
+import { Users, FileText, AlertTriangle, ArrowRight, RefreshCw, Wallet, Shield, CalendarClock, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import staffNotificationsService, { DashboardAlerts as AlertsType } from '@/services/staffNotificationsService';
@@ -80,6 +80,34 @@ export default function DashboardAlerts() {
             textColor: 'text-emerald-700',
             link: '/loans?status=PENDING_DISBURSEMENT',
             description: 'Approved loans awaiting disbursement',
+          },
+        ]
+      : []),
+    ...(alerts.loansDueToday && alerts.loansDueToday > 0
+      ? [
+          {
+            label: 'Loans Due Today',
+            count: alerts.loansDueToday,
+            icon: CalendarClock,
+            color: 'bg-blue-500',
+            bgColor: 'bg-blue-50 border-blue-200',
+            textColor: 'text-blue-700',
+            link: '/loans?status=DUE',
+            description: 'Loans with payments due today',
+          },
+        ]
+      : []),
+    ...(alerts.documentsPendingReview && alerts.documentsPendingReview > 0
+      ? [
+          {
+            label: 'Documents to Verify',
+            count: alerts.documentsPendingReview,
+            icon: FileCheck,
+            color: 'bg-cyan-500',
+            bgColor: 'bg-cyan-50 border-cyan-200',
+            textColor: 'text-cyan-700',
+            link: '/documents?reviewStatus=PENDING',
+            description: 'Documents awaiting verification',
           },
         ]
       : []),
