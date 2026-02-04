@@ -4,8 +4,12 @@ import { useAuthStore } from './store/authStore';
 import { UserRole } from './types/auth';
 import { Toaster } from './components/ui/toaster';
 
-// Minimal loading indicator for Suspense fallback
-const PageLoader = () => null;
+// Lightweight loading indicator for Suspense fallback
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="h-8 w-8 border-3 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
+  </div>
+);
 
 // Core components (not lazy loaded)
 import ProtectedRoute from './components/ProtectedRoute';
