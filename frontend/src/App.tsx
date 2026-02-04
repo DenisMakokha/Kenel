@@ -4,7 +4,7 @@ import { useAuthStore } from './store/authStore';
 import { UserRole } from './types/auth';
 import { Toaster } from './components/ui/toaster';
 
-// Lightweight loading indicator for Suspense fallback
+// Lightweight spinner for Suspense fallback
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50">
     <div className="h-8 w-8 border-3 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
