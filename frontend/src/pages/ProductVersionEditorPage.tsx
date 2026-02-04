@@ -31,39 +31,39 @@ export default function ProductVersionEditorPage() {
   const [error, setError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
 
-  // Default rules
+  // Empty default rules - user must configure all values
   const [rules, setRules] = useState<LoanProductRules>({
     terms: {
-      min_principal: 2000,
-      max_principal: 50000,
-      default_principal: 10000,
+      min_principal: 0,
+      max_principal: 0,
+      default_principal: 0,
       min_term_months: 1,
-      max_term_months: 12,
-      default_term_months: 6,
+      max_term_months: 1,
+      default_term_months: 1,
       repayment_frequency: 'MONTHLY' as RepaymentFrequency,
       allow_topup: false,
     },
     interest: {
       calculation_method: 'DECLINING_BALANCE' as InterestCalculationMethod,
-      rate_per_year: 18.0,
-      min_rate_per_year: 12.0,
-      max_rate_per_year: 24.0,
+      rate_per_year: 0,
+      min_rate_per_year: 0,
+      max_rate_per_year: 0,
       rate_period: 'PER_ANNUM' as InterestRatePeriod,
       interest_free_periods: 0,
       recalculate_on_prepayment: true,
     },
     fees: {
       processing_fee_type: 'PERCENTAGE' as FeeType,
-      processing_fee_value: 2.0,
-      processing_fee_cap: 2000,
+      processing_fee_value: 0,
+      processing_fee_cap: 0,
       disbursement_fee: null,
     },
     penalties: {
       late_payment: {
         type: 'PERCENTAGE_OF_OVERDUE' as PenaltyType,
-        value: 1.5,
+        value: 0,
         frequency: 'MONTHLY' as PenaltyFrequency,
-        grace_days: 5,
+        grace_days: 0,
       },
     },
     grace_moratorium: {
@@ -80,7 +80,7 @@ export default function ProductVersionEditorPage() {
     },
     constraints: {
       allow_multiple_loans_per_client: true,
-      max_active_loans_per_client: 3,
+      max_active_loans_per_client: 1,
     },
   });
 

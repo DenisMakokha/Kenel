@@ -1036,10 +1036,16 @@ export default function LoanApplicationDetailPage() {
                       <CardContent>
                         {(() => {
                           const principal = Number(application.approvedPrincipal ?? application.requestedAmount);
-                          const productInterestRate = (application.productVersion as any)?.rules?.interest?.rate_per_year ?? 0;
+                          const interestRules = (application.productVersion as any)?.rules?.interest;
+                          const ratePeriod = interestRules?.rate_period || 'PER_ANNUM';
+                          const productInterestRate = interestRules?.rate_per_year ?? 0;
                           const interestRate = Number(application.approvedInterestRate ?? productInterestRate);
                           const term = Number(application.approvedTermMonths ?? application.requestedTermMonths);
-                          const totalInterest = (principal * interestRate * term) / 1200;
+                          
+                          // Calculate interest based on rate period from product configuration
+                          const totalInterest = ratePeriod === 'PER_MONTH'
+                            ? (principal * interestRate * term) / 100  // Monthly rate
+                            : (principal * interestRate * term) / 1200; // Annual rate
                           
                           // Get processing fee from product rules, default to 0 if not configured
                           const feeRules = application.productVersion?.rules?.fees;

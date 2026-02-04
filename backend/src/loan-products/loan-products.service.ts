@@ -532,20 +532,26 @@ export class LoanProductsService {
     rules: LoanProductRules,
   ) {
     const installments = [];
-    const interestRate = rules.interest.rate_per_year / 100 / 12; // Monthly rate
+    const ratePeriod = rules.interest.rate_period || 'PER_ANNUM';
+    // Calculate monthly rate based on rate period from configuration
+    const interestRate = ratePeriod === 'PER_MONTH'
+      ? rules.interest.rate_per_year / 100  // Already monthly rate
+      : rules.interest.rate_per_year / 100 / 12; // Convert annual to monthly
     const processingFee = this.calculateProcessingFee(principal, rules.fees);
 
     let balance = principal;
     const monthlyPayment =
       rules.interest.calculation_method === 'FLAT'
-        ? this.calculateFlatPayment(principal, termMonths, rules.interest.rate_per_year)
+        ? this.calculateFlatPayment(principal, termMonths, rules.interest.rate_per_year, ratePeriod)
         : this.calculateDecliningPayment(principal, termMonths, interestRate);
 
     for (let i = 1; i <= termMonths; i++) {
       const dueDate = this.addMonths(new Date(startDate), i);
       const interest =
         rules.interest.calculation_method === 'FLAT'
-          ? (principal * rules.interest.rate_per_year) / 100 / 12
+          ? ratePeriod === 'PER_MONTH'
+            ? (principal * rules.interest.rate_per_year) / 100  // Monthly rate
+            : (principal * rules.interest.rate_per_year) / 100 / 12  // Annual rate
           : balance * interestRate;
 
       const principalPayment = monthlyPayment - interest;
@@ -585,8 +591,10 @@ export class LoanProductsService {
     return fees.processing_fee_value;
   }
 
-  private calculateFlatPayment(principal: number, termMonths: number, annualRate: number): number {
-    const totalInterest = (principal * annualRate * termMonths) / 100 / 12;
+  private calculateFlatPayment(principal: number, termMonths: number, rate: number, ratePeriod: string = 'PER_ANNUM'): number {
+    const totalInterest = ratePeriod === 'PER_MONTH'
+      ? (principal * rate * termMonths) / 100  // Monthly rate
+      : (principal * rate * termMonths) / 100 / 12;  // Annual rate
     return (principal + totalInterest) / termMonths;
   }
 
