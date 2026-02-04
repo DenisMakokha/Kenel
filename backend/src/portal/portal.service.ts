@@ -524,7 +524,16 @@ export class PortalService {
     }));
   }
 
-  async updateProfile(clientId: string, data: { firstName?: string; lastName?: string; email?: string; phonePrimary?: string; residentialAddress?: string }) {
+  async updateProfile(clientId: string, data: { 
+    firstName?: string; 
+    lastName?: string; 
+    email?: string; 
+    phonePrimary?: string; 
+    residentialAddress?: string;
+    employerName?: string;
+    occupation?: string;
+    monthlyIncome?: string;
+  }) {
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
     });
@@ -559,6 +568,18 @@ export class PortalService {
           typeof data.residentialAddress === 'string'
             ? data.residentialAddress
             : client.residentialAddress,
+        employerName:
+          typeof data.employerName === 'string'
+            ? data.employerName
+            : client.employerName,
+        occupation:
+          typeof data.occupation === 'string'
+            ? data.occupation
+            : client.occupation,
+        monthlyIncome:
+          typeof data.monthlyIncome === 'string'
+            ? data.monthlyIncome
+            : client.monthlyIncome,
       },
     });
 

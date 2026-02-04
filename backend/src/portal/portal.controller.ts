@@ -331,7 +331,16 @@ export class PortalController {
   @ApiResponse({ status: 200, description: 'Profile updated successfully' })
   async updateProfile(
     @Req() req: PortalRequest,
-    @Body() body: { firstName?: string; lastName?: string; email?: string; phonePrimary?: string; residentialAddress?: string },
+    @Body() body: { 
+      firstName?: string; 
+      lastName?: string; 
+      email?: string; 
+      phonePrimary?: string; 
+      residentialAddress?: string;
+      employerName?: string;
+      occupation?: string;
+      monthlyIncome?: string;
+    },
   ) {
     const clientId = req.portalClientId as string;
     return this.portalService.updateProfile(clientId, body);
