@@ -121,6 +121,10 @@ jobs:
             set -e
             cd ${{ secrets.API_DIR }}/backend
             
+            echo "📦 Installing dependencies (including dev for build)..."
+            npm install
+            
+            echo ""
             echo "🔨 Building application..."
             npm run build
             
