@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
+import { lazyWithRetry } from './lib/lazyWithRetry';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { UserRole } from './types/auth';
@@ -20,86 +21,86 @@ import FinanceOfficerLayout from './components/finance/FinanceOfficerLayout';
 import RoleBasedRedirect from './components/shared/RoleBasedRedirect';
 import RoleBasedLayout from './components/shared/RoleBasedLayout';
 
-// Landing page (lazy loaded)
-const LandingPage = lazy(() => import('./pages/LandingPage'));
-const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
-const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
+// Landing page (lazy loaded with retry)
+const LandingPage = lazyWithRetry(() => import('./pages/LandingPage'));
+const PrivacyPolicyPage = lazyWithRetry(() => import('./pages/PrivacyPolicyPage'));
+const TermsConditionsPage = lazyWithRetry(() => import('./pages/TermsConditionsPage'));
 
-// Auth pages (lazy loaded)
-const LoginPage = lazy(() => import('./pages/LoginPage'));
-const RegisterPage = lazy(() => import('./pages/RegisterPage'));
-const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+// Auth pages (lazy loaded with retry)
+const LoginPage = lazyWithRetry(() => import('./pages/LoginPage'));
+const RegisterPage = lazyWithRetry(() => import('./pages/RegisterPage'));
+const ForgotPasswordPage = lazyWithRetry(() => import('./pages/ForgotPasswordPage'));
 
-// Portal pages (lazy loaded)
-const PortalLoginPage = lazy(() => import('./pages/portal/PortalLoginPage'));
-const PortalRegisterPage = lazy(() => import('./pages/portal/PortalRegisterPage'));
-const PortalForgotPasswordPage = lazy(() => import('./pages/portal/PortalForgotPasswordPage'));
-const PortalDashboardPage = lazy(() => import('./pages/portal/PortalDashboardPage'));
-const PortalLoansPage = lazy(() => import('./pages/portal/PortalLoansPage'));
-const PortalLoanDetailPage = lazy(() => import('./pages/portal/PortalLoanDetailPage'));
-const PortalStatementsPage = lazy(() => import('./pages/portal/PortalStatementsPage'));
-const PortalProfilePage = lazy(() => import('./pages/portal/PortalProfilePage'));
-const PortalKYCPage = lazy(() => import('./pages/portal/PortalKYCPage'));
-const PortalMakePaymentPage = lazy(() => import('./pages/portal/PortalMakePaymentPage'));
-const PortalApplyLoanPage = lazy(() => import('./pages/portal/PortalApplyLoanPage'));
-const PortalApplicationDetailPage = lazy(() => import('./pages/portal/PortalApplicationDetailPage'));
-const PortalNotificationsPage = lazy(() => import('./pages/portal/PortalNotificationsPage'));
+// Portal pages (lazy loaded with retry)
+const PortalLoginPage = lazyWithRetry(() => import('./pages/portal/PortalLoginPage'));
+const PortalRegisterPage = lazyWithRetry(() => import('./pages/portal/PortalRegisterPage'));
+const PortalForgotPasswordPage = lazyWithRetry(() => import('./pages/portal/PortalForgotPasswordPage'));
+const PortalDashboardPage = lazyWithRetry(() => import('./pages/portal/PortalDashboardPage'));
+const PortalLoansPage = lazyWithRetry(() => import('./pages/portal/PortalLoansPage'));
+const PortalLoanDetailPage = lazyWithRetry(() => import('./pages/portal/PortalLoanDetailPage'));
+const PortalStatementsPage = lazyWithRetry(() => import('./pages/portal/PortalStatementsPage'));
+const PortalProfilePage = lazyWithRetry(() => import('./pages/portal/PortalProfilePage'));
+const PortalKYCPage = lazyWithRetry(() => import('./pages/portal/PortalKYCPage'));
+const PortalMakePaymentPage = lazyWithRetry(() => import('./pages/portal/PortalMakePaymentPage'));
+const PortalApplyLoanPage = lazyWithRetry(() => import('./pages/portal/PortalApplyLoanPage'));
+const PortalApplicationDetailPage = lazyWithRetry(() => import('./pages/portal/PortalApplicationDetailPage'));
+const PortalNotificationsPage = lazyWithRetry(() => import('./pages/portal/PortalNotificationsPage'));
 
-// Admin pages (lazy loaded)
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
-const ClientsPage = lazy(() => import('./pages/ClientsPage'));
-const ClientDetailPage = lazy(() => import('./pages/ClientDetailPage'));
-const ClientFormPage = lazy(() => import('./pages/ClientFormPage'));
-const LoanProductsPage = lazy(() => import('./pages/LoanProductsPage'));
-const LoanProductFormPage = lazy(() => import('./pages/LoanProductFormPage'));
-const LoanProductDetailPage = lazy(() => import('./pages/LoanProductDetailPage'));
-const ProductVersionEditorPage = lazy(() => import('./pages/ProductVersionEditorPage'));
-const LoanApplicationsPage = lazy(() => import('./pages/LoanApplicationsPage'));
-const LoanApplicationFormPage = lazy(() => import('./pages/LoanApplicationFormPage'));
-const LoanApplicationDetailPage = lazy(() => import('./pages/LoanApplicationDetailPage'));
-const LoansPage = lazy(() => import('./pages/LoansPage'));
-const LoanDetailPage = lazy(() => import('./pages/LoanDetailPage'));
-const PortfolioReportsPage = lazy(() => import('./pages/PortfolioReportsPage'));
-const AgingReportsPage = lazy(() => import('./pages/AgingReportsPage'));
-const UsersPage = lazy(() => import('./pages/UsersPage'));
-const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage'));
-const RepaymentsPage = lazy(() => import('./pages/RepaymentsPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
-const WriteOffsPage = lazy(() => import('./pages/WriteOffsPage'));
-const KycReviewsPage = lazy(() => import('./pages/KycReviewsPage'));
-const InterestRatesPage = lazy(() => import('./pages/InterestRatesPage'));
-const FeeTemplatesPage = lazy(() => import('./pages/FeeTemplatesPage'));
-const SystemStatusPage = lazy(() => import('./pages/SystemStatusPage'));
-const DocumentsPage = lazy(() => import('./pages/DocumentsPage'));
-const ProfilePage = lazy(() => import('./pages/ProfilePage'));
-const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+// Admin pages (lazy loaded with retry)
+const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'));
+const ClientsPage = lazyWithRetry(() => import('./pages/ClientsPage'));
+const ClientDetailPage = lazyWithRetry(() => import('./pages/ClientDetailPage'));
+const ClientFormPage = lazyWithRetry(() => import('./pages/ClientFormPage'));
+const LoanProductsPage = lazyWithRetry(() => import('./pages/LoanProductsPage'));
+const LoanProductFormPage = lazyWithRetry(() => import('./pages/LoanProductFormPage'));
+const LoanProductDetailPage = lazyWithRetry(() => import('./pages/LoanProductDetailPage'));
+const ProductVersionEditorPage = lazyWithRetry(() => import('./pages/ProductVersionEditorPage'));
+const LoanApplicationsPage = lazyWithRetry(() => import('./pages/LoanApplicationsPage'));
+const LoanApplicationFormPage = lazyWithRetry(() => import('./pages/LoanApplicationFormPage'));
+const LoanApplicationDetailPage = lazyWithRetry(() => import('./pages/LoanApplicationDetailPage'));
+const LoansPage = lazyWithRetry(() => import('./pages/LoansPage'));
+const LoanDetailPage = lazyWithRetry(() => import('./pages/LoanDetailPage'));
+const PortfolioReportsPage = lazyWithRetry(() => import('./pages/PortfolioReportsPage'));
+const AgingReportsPage = lazyWithRetry(() => import('./pages/AgingReportsPage'));
+const UsersPage = lazyWithRetry(() => import('./pages/UsersPage'));
+const AuditLogsPage = lazyWithRetry(() => import('./pages/AuditLogsPage'));
+const RepaymentsPage = lazyWithRetry(() => import('./pages/RepaymentsPage'));
+const SettingsPage = lazyWithRetry(() => import('./pages/SettingsPage'));
+const WriteOffsPage = lazyWithRetry(() => import('./pages/WriteOffsPage'));
+const KycReviewsPage = lazyWithRetry(() => import('./pages/KycReviewsPage'));
+const InterestRatesPage = lazyWithRetry(() => import('./pages/InterestRatesPage'));
+const FeeTemplatesPage = lazyWithRetry(() => import('./pages/FeeTemplatesPage'));
+const SystemStatusPage = lazyWithRetry(() => import('./pages/SystemStatusPage'));
+const DocumentsPage = lazyWithRetry(() => import('./pages/DocumentsPage'));
+const ProfilePage = lazyWithRetry(() => import('./pages/ProfilePage'));
+const NotificationsPage = lazyWithRetry(() => import('./pages/NotificationsPage'));
 
-// Credit Officer pages (lazy loaded)
-const CreditDashboardPage = lazy(() => import('./pages/credit/CreditDashboardPage'));
-const CreditPipelinePage = lazy(() => import('./pages/credit/CreditPipelinePage'));
-const CreditClientsPage = lazy(() => import('./pages/credit/CreditClientsPage'));
-const CreditPortfolioPage = lazy(() => import('./pages/credit/CreditPortfolioPage'));
-const CreditConversionFunnelPage = lazy(() => import('./pages/credit/CreditConversionFunnelPage'));
+// Credit Officer pages (lazy loaded with retry)
+const CreditDashboardPage = lazyWithRetry(() => import('./pages/credit/CreditDashboardPage'));
+const CreditPipelinePage = lazyWithRetry(() => import('./pages/credit/CreditPipelinePage'));
+const CreditClientsPage = lazyWithRetry(() => import('./pages/credit/CreditClientsPage'));
+const CreditPortfolioPage = lazyWithRetry(() => import('./pages/credit/CreditPortfolioPage'));
+const CreditConversionFunnelPage = lazyWithRetry(() => import('./pages/credit/CreditConversionFunnelPage'));
 
-// Finance Officer pages (lazy loaded)
-const FinanceDashboardPage = lazy(() => import('./pages/finance/FinanceDashboardPage'));
-const FinanceArrearsPage = lazy(() => import('./pages/finance/FinanceArrearsPage'));
-const FinancePostRepaymentPage = lazy(() => import('./pages/finance/FinancePostRepaymentPage'));
-const FinancePostingsPage = lazy(() => import('./pages/finance/FinancePostingsPage'));
-const FinanceReceiptsPage = lazy(() => import('./pages/finance/FinanceReceiptsPage'));
-const FinanceClosedLoansPage = lazy(() => import('./pages/finance/FinanceClosedLoansPage'));
-const FinancePendingDisbursementsPage = lazy(
+// Finance Officer pages (lazy loaded with retry)
+const FinanceDashboardPage = lazyWithRetry(() => import('./pages/finance/FinanceDashboardPage'));
+const FinanceArrearsPage = lazyWithRetry(() => import('./pages/finance/FinanceArrearsPage'));
+const FinancePostRepaymentPage = lazyWithRetry(() => import('./pages/finance/FinancePostRepaymentPage'));
+const FinancePostingsPage = lazyWithRetry(() => import('./pages/finance/FinancePostingsPage'));
+const FinanceReceiptsPage = lazyWithRetry(() => import('./pages/finance/FinanceReceiptsPage'));
+const FinanceClosedLoansPage = lazyWithRetry(() => import('./pages/finance/FinanceClosedLoansPage'));
+const FinancePendingDisbursementsPage = lazyWithRetry(
   () => import('./pages/finance/FinancePendingDisbursementsPage'),
 );
-const FinanceReversalsPage = lazy(() => import('./pages/finance/FinanceReversalsPage'));
-const FinanceStatementsPage = lazy(() => import('./pages/finance/FinanceStatementsPage'));
-const FinanceCashflowPage = lazy(() => import('./pages/finance/FinanceCashflowPage'));
-const FinanceAllocationPage = lazy(() => import('./pages/finance/FinanceAllocationPage'));
-const FinanceExportPage = lazy(() => import('./pages/finance/FinanceExportPage'));
-const FinancePaymentChannelsPage = lazy(() => import('./pages/finance/FinancePaymentChannelsPage'));
+const FinanceReversalsPage = lazyWithRetry(() => import('./pages/finance/FinanceReversalsPage'));
+const FinanceStatementsPage = lazyWithRetry(() => import('./pages/finance/FinanceStatementsPage'));
+const FinanceCashflowPage = lazyWithRetry(() => import('./pages/finance/FinanceCashflowPage'));
+const FinanceAllocationPage = lazyWithRetry(() => import('./pages/finance/FinanceAllocationPage'));
+const FinanceExportPage = lazyWithRetry(() => import('./pages/finance/FinanceExportPage'));
+const FinancePaymentChannelsPage = lazyWithRetry(() => import('./pages/finance/FinancePaymentChannelsPage'));
 
-// Shared pages (lazy loaded)
-const HelpCenterPage = lazy(() => import('./pages/shared/HelpCenterPage'));
+// Shared pages (lazy loaded with retry)
+const HelpCenterPage = lazyWithRetry(() => import('./pages/shared/HelpCenterPage'));
 
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
