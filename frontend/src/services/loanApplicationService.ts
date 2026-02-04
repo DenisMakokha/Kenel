@@ -149,4 +149,17 @@ export const loanApplicationService = {
     const response = await api.post<LoanApplication>(`${BASE_URL}/${id}/return`, data);
     return response.data;
   },
+
+  async getStats(): Promise<{
+    total: number;
+    draft: number;
+    submitted: number;
+    underReview: number;
+    approved: number;
+    rejected: number;
+    returned: number;
+  }> {
+    const response = await api.get(`${BASE_URL}/stats/summary`);
+    return response.data;
+  },
 };

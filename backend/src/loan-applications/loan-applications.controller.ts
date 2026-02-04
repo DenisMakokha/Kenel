@@ -70,6 +70,14 @@ export class LoanApplicationsController {
     return this.loanApplicationsService.findAll(query);
   }
 
+  @Get('stats/summary')
+  @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER, UserRole.FINANCE_OFFICER)
+  @ApiOperation({ summary: 'Get loan application statistics' })
+  @ApiResponse({ status: 200, description: 'Statistics retrieved successfully' })
+  getStats() {
+    return this.loanApplicationsService.getStats();
+  }
+
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER, UserRole.FINANCE_OFFICER)
   @ApiOperation({ summary: 'Get full loan application detail' })

@@ -1001,4 +1001,26 @@ export class LoanApplicationsService {
       },
     });
   }
+
+  async getStats() {
+    const [total, draft, submitted, underReview, approved, rejected, returned] = await Promise.all([
+      this.prisma.loanApplication.count(),
+      this.prisma.loanApplication.count({ where: { status: 'DRAFT' } }),
+      this.prisma.loanApplication.count({ where: { status: 'SUBMITTED' } }),
+      this.prisma.loanApplication.count({ where: { status: 'UNDER_REVIEW' } }),
+      this.prisma.loanApplication.count({ where: { status: 'APPROVED' } }),
+      this.prisma.loanApplication.count({ where: { status: 'REJECTED' } }),
+      this.prisma.loanApplication.count({ where: { status: 'RETURNED' } }),
+    ]);
+
+    return {
+      total,
+      draft,
+      submitted,
+      underReview,
+      approved,
+      rejected,
+      returned,
+    };
+  }
 }

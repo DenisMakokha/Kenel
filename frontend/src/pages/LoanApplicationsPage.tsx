@@ -81,10 +81,31 @@ export default function LoanApplicationsPage() {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
 
+  // Stats from backend
+  const [stats, setStats] = useState<{
+    total: number;
+    draft: number;
+    submitted: number;
+    underReview: number;
+    approved: number;
+    rejected: number;
+    returned: number;
+  } | null>(null);
+
   useEffect(() => {
     loadApplications();
+    loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, dateRange, page]);
+
+  const loadStats = async () => {
+    try {
+      const data = await loanApplicationService.getStats();
+      setStats(data);
+    } catch (err) {
+      console.error('Failed to load stats', err);
+    }
+  };
 
   const loadApplications = async () => {
     try {
@@ -126,13 +147,6 @@ export default function LoanApplicationsPage() {
     );
   };
 
-  // Calculate stats
-  const stats = {
-    total: total,
-    submitted: applications.filter(a => a.status === LoanApplicationStatus.SUBMITTED).length,
-    underReview: applications.filter(a => a.status === LoanApplicationStatus.UNDER_REVIEW).length,
-    approved: applications.filter(a => a.status === LoanApplicationStatus.APPROVED).length,
-  };
 
   const getExportData = () => {
     const dataToExport = selectedIds.size > 0
@@ -288,14 +302,14 @@ export default function LoanApplicationsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <Card className="border-slate-100">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
+            <CardTitle className="text-sm font-medium">Total</CardTitle>
             <FolderKanban className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{stats.total}</p>
+            <p className="text-2xl font-bold">{stats?.total ?? 0}</p>
             <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
@@ -305,7 +319,7 @@ export default function LoanApplicationsPage() {
             <FileClock className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-600">{stats.submitted}</p>
+            <p className="text-2xl font-bold text-blue-600">{stats?.submitted ?? 0}</p>
             <p className="text-xs text-muted-foreground">Awaiting review</p>
           </CardContent>
         </Card>
@@ -315,7 +329,7 @@ export default function LoanApplicationsPage() {
             <Clock className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-amber-600">{stats.underReview}</p>
+            <p className="text-2xl font-bold text-amber-600">{stats?.underReview ?? 0}</p>
             <p className="text-xs text-muted-foreground">In progress</p>
           </CardContent>
         </Card>
@@ -325,8 +339,28 @@ export default function LoanApplicationsPage() {
             <CheckCircle className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-emerald-600">{stats.approved}</p>
+            <p className="text-2xl font-bold text-emerald-600">{stats?.approved ?? 0}</p>
             <p className="text-xs text-muted-foreground">Ready for disbursement</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+            <XCircle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-red-600">{stats?.rejected ?? 0}</p>
+            <p className="text-xs text-muted-foreground">Declined</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Returned</CardTitle>
+            <RotateCcw className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-orange-600">{stats?.returned ?? 0}</p>
+            <p className="text-xs text-muted-foreground">Needs correction</p>
           </CardContent>
         </Card>
       </div>
