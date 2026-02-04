@@ -286,6 +286,21 @@ export default function LoanApplicationDetailPage() {
 
   const handleMoveToUnderReview = async () => {
     if (!application || !id) return;
+    
+    // Check for rejected documents - block submission if any documents are rejected
+    const rejectedDocs = documents.filter(d => d.reviewStatus === 'REJECTED');
+    if (rejectedDocs.length > 0) {
+      setError(`Cannot submit for approval: ${rejectedDocs.length} document(s) have been rejected. Please resolve rejected documents first.`);
+      return;
+    }
+    
+    // Check that all documents are verified
+    const unverifiedDocs = documents.filter(d => d.reviewStatus !== 'VERIFIED');
+    if (unverifiedDocs.length > 0) {
+      setError(`Cannot submit for approval: ${unverifiedDocs.length} document(s) have not been verified yet.`);
+      return;
+    }
+    
     try {
       setError('');
       await loanApplicationService.moveToUnderReview(id);
@@ -1585,9 +1600,21 @@ export default function LoanApplicationDetailPage() {
       {/* Sticky Action Bar - Shows when verification is complete */}
       {(() => {
         const docsVerified = documents.filter(d => d.reviewStatus === 'VERIFIED').length;
-        const allDocsVerified = documents.length >= 6 && docsVerified >= 6;
+        const docsRejected = documents.filter(d => d.reviewStatus === 'REJECTED').length;
+        const allDocsVerified = documents.length > 0 && docsVerified === documents.length && docsRejected === 0;
         const hasScore = Boolean(application.creditScore);
-        const isVerificationComplete = (allDocsVerified || docsVerified >= documents.length) && hasScore;
+        const isVerificationComplete = allDocsVerified && hasScore;
+        
+        // Show warning if there are rejected documents
+        if (canMoveToUnderReview && docsRejected > 0) {
+          return (
+            <div className="fixed bottom-0 left-0 right-0 bg-red-600 shadow-lg border-t z-50">
+              <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+                <p className="text-white text-sm">⚠ {docsRejected} document(s) rejected. Cannot submit for approval until resolved.</p>
+              </div>
+            </div>
+          );
+        }
         
         if (canMoveToUnderReview && isVerificationComplete) {
           return (
