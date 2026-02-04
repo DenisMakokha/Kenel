@@ -4,16 +4,8 @@ import { useAuthStore } from './store/authStore';
 import { UserRole } from './types/auth';
 import { Toaster } from './components/ui/toaster';
 
-// Loading component for Suspense fallback - v1.1 RBAC update
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-slate-50">
-    <div className="flex flex-col items-center gap-4">
-      <img src="/assets/kenel-dark-TlumRj43.svg" alt="Kenels Bureau" className="h-12 w-auto opacity-80" onError={(e) => e.currentTarget.style.display = 'none'} />
-      <div className="h-10 w-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
-      <p className="text-sm text-slate-500 font-medium">Loading...</p>
-    </div>
-  </div>
-);
+// Minimal loading indicator for Suspense fallback
+const PageLoader = () => null;
 
 // Core components (not lazy loaded)
 import ProtectedRoute from './components/ProtectedRoute';
