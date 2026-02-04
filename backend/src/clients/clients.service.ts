@@ -713,6 +713,29 @@ export class ClientsService {
   }
 
   /**
+   * Get document download info
+   */
+  async getDocumentDownloadInfo(clientId: string, documentId: string) {
+    const document = await this.prisma.clientDocument.findFirst({
+      where: {
+        id: documentId,
+        clientId,
+        isDeleted: false,
+      },
+    });
+
+    if (!document) {
+      throw new NotFoundException('Document not found');
+    }
+
+    return {
+      filePath: document.filePath,
+      fileName: document.fileName,
+      mimeType: document.mimeType,
+    };
+  }
+
+  /**
    * Delete a document
    */
   async deleteDocument(clientId: string, documentId: string) {

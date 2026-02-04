@@ -12,7 +12,9 @@ import {
   HttpStatus,
   UseInterceptors,
   UploadedFile,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -313,6 +315,29 @@ export class ClientsController {
   @ApiResponse({ status: 200, description: 'Documents retrieved successfully' })
   getDocuments(@Param('id') clientId: string) {
     return this.clientsService.getDocuments(clientId);
+  }
+
+  @Get(':id/documents/:documentId/download')
+  @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER, UserRole.FINANCE_OFFICER)
+  @ApiOperation({ summary: 'Download a client document' })
+  @ApiResponse({ status: 200, description: 'Document file' })
+  @ApiResponse({ status: 404, description: 'Document not found' })
+  async downloadDocument(
+    @Param('id') clientId: string,
+    @Param('documentId') documentId: string,
+    @Res() res: Response,
+  ) {
+    const info = await this.clientsService.getDocumentDownloadInfo(clientId, documentId);
+    const absolutePath = join(process.cwd(), info.filePath);
+
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ message: 'File not found on server' });
+    }
+
+    res.setHeader('Content-Type', info.mimeType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${info.fileName}"`);
+
+    return res.sendFile(absolutePath);
   }
 
   @Delete(':id/documents/:documentId')
