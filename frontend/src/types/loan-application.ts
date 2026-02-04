@@ -7,6 +7,7 @@ export enum LoanApplicationStatus {
   UNDER_REVIEW = 'UNDER_REVIEW',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
+  RETURNED = 'RETURNED',
 }
 
 export enum LoanApplicationChecklistStatus {
