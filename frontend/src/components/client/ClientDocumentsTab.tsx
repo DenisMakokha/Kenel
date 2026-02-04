@@ -66,9 +66,9 @@ const DOCUMENT_TYPE_CONFIG: Record<string, { label: string; icon: any; color: st
 };
 
 const SCAN_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: any }> = {
-  pending: { label: 'Scanning', color: 'text-amber-700', bg: 'bg-amber-100', border: 'border-amber-300', icon: Clock },
+  pending: { label: 'Uploaded', color: 'text-blue-700', bg: 'bg-blue-100', border: 'border-blue-300', icon: CheckCircle },
   clean: { label: 'Verified', color: 'text-emerald-700', bg: 'bg-emerald-100', border: 'border-emerald-300', icon: CheckCircle },
-  infected: { label: 'Infected', color: 'text-red-700', bg: 'bg-red-100', border: 'border-red-300', icon: AlertTriangle },
+  infected: { label: 'Flagged', color: 'text-red-700', bg: 'bg-red-100', border: 'border-red-300', icon: AlertTriangle },
 };
 
 function getFileIcon(mimeType: string) {
@@ -214,14 +214,14 @@ export default function ClientDocumentsTab({ client, onUpdate }: ClientDocuments
             </div>
           </div>
         </div>
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 border border-amber-200">
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
-              <Clock className="h-6 w-6 text-amber-600" />
+            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <CheckCircle className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-amber-600 font-medium">Pending Scan</p>
-              <p className="text-2xl font-bold text-amber-700">
+              <p className="text-sm text-blue-600 font-medium">Uploaded</p>
+              <p className="text-2xl font-bold text-blue-700">
                 {activeDocuments.filter((d) => !d.virusScanStatus || d.virusScanStatus === 'pending').length}
               </p>
             </div>
