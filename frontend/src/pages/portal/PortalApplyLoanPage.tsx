@@ -91,8 +91,20 @@ export default function PortalApplyLoanPage() {
   const [processingFeeAmount, setProcessingFeeAmount] = useState(0);
 
   useEffect(() => {
-    const checkActiveLoans = async () => {
+    const checkEligibility = async () => {
       try {
+        // Check KYC status first
+        const kycStatus = (client as any)?.kycStatus;
+        if (kycStatus !== 'VERIFIED') {
+          toast.warning(
+            'KYC Required',
+            'You must complete and verify your KYC before applying for a loan.'
+          );
+          navigate('/portal/kyc');
+          return;
+        }
+
+        // Check for active loans
         const dash = await portalService.getDashboard();
         if ((dash?.summary?.totalActiveLoans || 0) > 0) {
           toast.warning(
@@ -106,8 +118,8 @@ export default function PortalApplyLoanPage() {
       }
     };
 
-    checkActiveLoans();
-  }, []);
+    checkEligibility();
+  }, [client]);
 
   useEffect(() => {
     const loadProducts = async () => {

@@ -25,10 +25,9 @@ export default function PortalLoginPage() {
       localStorage.setItem('portalAccessToken', result.accessToken);
       if (result.client) {
         setClient(result.client);
-        // Check if KYC is incomplete - redirect new clients to KYC page
+        // Only redirect to KYC page if KYC is not verified
         const c = result.client as any;
-        const hasBasicInfo = c?.employerName && (c?.nextOfKin?.length > 0 || c?.referees?.length > 0);
-        if (!hasBasicInfo && c?.kycStatus !== 'VERIFIED') {
+        if (c?.kycStatus !== 'VERIFIED' && c?.kycStatus !== 'PENDING_REVIEW') {
           navigate('/portal/kyc');
           return;
         }
