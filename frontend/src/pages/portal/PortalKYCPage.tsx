@@ -26,6 +26,8 @@ import {
   History,
   Clock,
   XCircle,
+  MapPin,
+  Home,
 } from 'lucide-react';
 import { usePortalAuthStore } from '../../store/portalAuthStore';
 import { portalService } from '../../services/portalService';
@@ -44,6 +46,13 @@ export default function PortalKYCPage() {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedDocType, setSelectedDocType] = useState('');
+
+  // Address form state
+  const [showAddressDialog, setShowAddressDialog] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    residentialAddress: '',
+  });
 
   // Employment form state
   const [showEmploymentDialog, setShowEmploymentDialog] = useState(false);
@@ -409,6 +418,59 @@ export default function PortalKYCPage() {
           </Card>
         );
       })()}
+
+      {/* Address Information */}
+      <Card className="border-slate-200 bg-white">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-emerald-600" />
+              Residential Address
+            </CardTitle>
+            <CardDescription>Your current residential address</CardDescription>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => {
+            const c = client as any;
+            setAddressForm({
+              residentialAddress: c?.residentialAddress || '',
+            });
+            setShowAddressDialog(true);
+          }}>
+            {(client as any)?.residentialAddress ? 'Edit' : 'Add'}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {(() => {
+            const c = client as any;
+            if (!c?.residentialAddress) {
+              return (
+                <div className="text-center py-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                  <Home className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-600 font-medium">No address provided</p>
+                  <p className="text-sm text-slate-500 mt-1">Add your residential address</p>
+                  <Button
+                    size="sm"
+                    className="mt-4 bg-emerald-600 hover:bg-emerald-700"
+                    onClick={() => setShowAddressDialog(true)}
+                  >
+                    <MapPin className="h-4 w-4 mr-1" />
+                    Add Address
+                  </Button>
+                </div>
+              );
+            }
+            return (
+              <div className="flex items-start gap-3 p-4 bg-emerald-50 rounded-lg">
+                <MapPin className="h-5 w-5 text-emerald-600 mt-0.5" />
+                <div>
+                  <p className="text-xs text-slate-500">Residential Address</p>
+                  <p className="text-sm font-medium text-slate-900">{c.residentialAddress}</p>
+                </div>
+              </div>
+            );
+          })()}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Employment Information */}
@@ -854,6 +916,58 @@ export default function PortalKYCPage() {
               }}
             >
               {uploadingDoc ? 'Uploading...' : 'Upload'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Address Dialog */}
+      <Dialog open={showAddressDialog} onOpenChange={setShowAddressDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Residential Address</DialogTitle>
+            <DialogDescription>Enter your current residential address.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs text-slate-600">Full Address *</label>
+              <textarea
+                className="w-full min-h-[100px] px-3 py-2 rounded-md border border-slate-200 bg-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                value={addressForm.residentialAddress}
+                onChange={(e) => setAddressForm({ ...addressForm, residentialAddress: e.target.value })}
+                placeholder="Enter your full residential address including building, street, area, city..."
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowAddressDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700"
+              disabled={savingAddress || !addressForm.residentialAddress.trim()}
+              onClick={async () => {
+                if (!addressForm.residentialAddress.trim()) {
+                  toast.error('Please enter your address');
+                  return;
+                }
+                setSavingAddress(true);
+                try {
+                  await portalService.updateProfile({
+                    residentialAddress: addressForm.residentialAddress.trim(),
+                  });
+                  const me = await portalService.getMe();
+                  setClient(me);
+                  setShowAddressDialog(false);
+                  toast.success('Address updated successfully');
+                } catch (err: any) {
+                  toast.error(err.response?.data?.message || 'Failed to update address');
+                } finally {
+                  setSavingAddress(false);
+                }
+              }}
+            >
+              {savingAddress ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </DialogContent>
