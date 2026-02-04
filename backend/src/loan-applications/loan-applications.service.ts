@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import {
   Prisma,
   LoanApplicationStatus,
@@ -9,6 +9,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { LoansService } from '../loans/loans.service';
 import { PortalNotificationsService } from '../portal/portal-notifications.service';
+import { VirusScanService } from '../virus-scan/virus-scan.service';
 import {
   ApproveLoanApplicationDto,
   BulkActionResultDto,
@@ -26,11 +27,14 @@ import { LoanProductRules } from '../loan-products/interfaces/loan-product-rules
 
 @Injectable()
 export class LoanApplicationsService {
+  private readonly logger = new Logger(LoanApplicationsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly loansService: LoansService,
     @Inject(forwardRef(() => PortalNotificationsService))
     private readonly notificationsService: PortalNotificationsService,
+    private readonly virusScanService: VirusScanService,
   ) {}
 
   // ============================================
@@ -831,6 +835,11 @@ export class LoanApplicationsService {
         reviewedAt: null,
         reviewedBy: null,
       },
+    });
+
+    // Trigger virus scan asynchronously
+    this.virusScanService.scanApplicationDocument(document.id).catch((err) => {
+      this.logger.error(`Failed to scan document ${document.id}: ${err.message}`);
     });
 
     return document;

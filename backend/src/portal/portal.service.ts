@@ -1,9 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { VirusScanService } from '../virus-scan/virus-scan.service';
 
 @Injectable()
 export class PortalService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(PortalService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly virusScanService: VirusScanService,
+  ) {}
 
   private maskIdNumber(idNumber: string | null | undefined): string | null {
     if (!idNumber) return null;
@@ -638,7 +644,13 @@ export class PortalService {
         sizeBytes: file.size,
         uploadedBy: client.userId,
         uploadedAt: new Date(),
+        virusScanStatus: 'pending',
       },
+    });
+
+    // Trigger virus scan asynchronously
+    this.virusScanService.scanClientDocument(document.id).catch((err) => {
+      this.logger.error(`Failed to scan document ${document.id}: ${err.message}`);
     });
 
     return document;
