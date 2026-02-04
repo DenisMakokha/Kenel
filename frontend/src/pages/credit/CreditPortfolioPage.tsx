@@ -2,13 +2,9 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import {
-  PieChart,
   TrendingUp,
   DollarSign,
-  Users,
-  FileText,
   AlertTriangle,
-  CheckCircle,
   BarChart3,
   Download,
   FileSpreadsheet,
@@ -81,12 +77,17 @@ export default function CreditPortfolioPage() {
         return sum + collected;
       }, 0);
 
-      const arrearsCount = agingSummary.buckets.reduce(
+      // Filter out bucket "0" (current loans) - only include overdue loans in arrears
+      const arrearsBuckets = agingSummary.buckets.filter(
+        (bucket) => bucket.bucketLabel !== '0'
+      );
+
+      const arrearsCount = arrearsBuckets.reduce(
         (sum, bucket) => sum + bucket.loansInBucket,
         0,
       );
 
-      const arrearsAmount = agingSummary.buckets.reduce(
+      const arrearsAmount = arrearsBuckets.reduce(
         (sum, bucket) => sum + (Number(bucket.principalOutstanding) || 0),
         0,
       );
@@ -186,18 +187,16 @@ export default function CreditPortfolioPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">My Portfolio</h1>
-          <p className="text-sm text-slate-600">
-            Overview of your loan portfolio performance
-          </p>
+          <p className="text-sm text-slate-600">Loan portfolio performance and metrics</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportSummary}>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportSummary}>
             <Download className="h-4 w-4 mr-2" />
-            Export Summary
+            Summary
           </Button>
-          <Button variant="outline" onClick={handleExportPortfolio}>
+          <Button variant="outline" size="sm" onClick={handleExportPortfolio}>
             <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Export Portfolio
+            Portfolio
           </Button>
         </div>
       </div>
@@ -216,10 +215,8 @@ export default function CreditPortfolioPage() {
             <DollarSign className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-emerald-600">
-              {formatCurrency(stats.totalDisbursed)}
-            </p>
-            <p className="text-xs text-muted-foreground">Lifetime disbursements</p>
+            <p className="text-xl font-bold text-emerald-600">{formatCurrency(stats.totalDisbursed)}</p>
+            <p className="text-xs text-muted-foreground">Lifetime</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -228,10 +225,8 @@ export default function CreditPortfolioPage() {
             <BarChart3 className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-600">
-              {formatCurrency(stats.totalOutstanding)}
-            </p>
-            <p className="text-xs text-muted-foreground">Current portfolio</p>
+            <p className="text-xl font-bold">{formatCurrency(stats.totalOutstanding)}</p>
+            <p className="text-xs text-muted-foreground">Current</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -240,12 +235,8 @@ export default function CreditPortfolioPage() {
             <TrendingUp className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
-              {formatCurrency(stats.totalCollected)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-emerald-600">{collectionRate}%</span> collection rate
-            </p>
+            <p className="text-xl font-bold">{formatCurrency(stats.totalCollected)}</p>
+            <p className="text-xs text-muted-foreground">{collectionRate}% rate</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -254,12 +245,8 @@ export default function CreditPortfolioPage() {
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-red-600">
-              {formatCurrency(stats.arrearsAmount ?? 0)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-red-600">{parRate}%</span> PAR
-            </p>
+            <p className="text-xl font-bold text-red-600">{formatCurrency(stats.arrearsAmount ?? 0)}</p>
+            <p className="text-xs text-muted-foreground">{parRate}% PAR</p>
           </CardContent>
         </Card>
       </div>
@@ -269,73 +256,41 @@ export default function CreditPortfolioPage() {
         {/* Loan Status Distribution */}
         <Card className="border-slate-100">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PieChart className="h-5 w-5" />
-              Loan Status Distribution
-            </CardTitle>
-            <CardDescription>
-              Breakdown of your loans by status
-            </CardDescription>
+            <CardTitle>Loan Status</CardTitle>
+            <CardDescription>Distribution by status</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                  <span className="text-sm">Active Loans</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">{stats.activeLoans}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {stats.totalLoans > 0 ? ((stats.activeLoans / stats.totalLoans) * 100).toFixed(0) : 0}%
-                  </Badge>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-3 w-3 rounded-full bg-red-500" />
-                  <span className="text-sm">In Arrears</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">{stats.arrearsCount ?? '—'}</span>
-                  <Badge variant="outline" className="text-xs text-red-600">
-                    {stats.arrearsCount !== null && stats.totalLoans > 0
-                      ? ((stats.arrearsCount / stats.totalLoans) * 100).toFixed(0)
-                      : '—'}
-                    %
-                  </Badge>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-3 w-3 rounded-full bg-slate-400" />
-                  <span className="text-sm">Closed Loans</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">{stats.totalLoans - stats.activeLoans}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {stats.totalLoans > 0 ? (((stats.totalLoans - stats.activeLoans) / stats.totalLoans) * 100).toFixed(0) : 0}%
-                  </Badge>
-                </div>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between p-2 rounded bg-emerald-50">
+              <span className="text-sm font-medium">Active</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-emerald-600">{stats.activeLoans}</span>
+                <span className="text-xs text-muted-foreground">
+                  ({stats.totalLoans > 0 ? ((stats.activeLoans / stats.totalLoans) * 100).toFixed(0) : 0}%)
+                </span>
               </div>
             </div>
-
+            <div className="flex items-center justify-between p-2 rounded bg-red-50">
+              <span className="text-sm font-medium">In Arrears</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-red-600">{stats.arrearsCount ?? '—'}</span>
+                <span className="text-xs text-muted-foreground">
+                  ({stats.arrearsCount !== null && stats.totalLoans > 0 ? ((stats.arrearsCount / stats.totalLoans) * 100).toFixed(0) : '—'}%)
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-2 rounded bg-slate-50">
+              <span className="text-sm font-medium">Closed</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold">{stats.totalLoans - stats.activeLoans}</span>
+                <span className="text-xs text-muted-foreground">
+                  ({stats.totalLoans > 0 ? (((stats.totalLoans - stats.activeLoans) / stats.totalLoans) * 100).toFixed(0) : 0}%)
+                </span>
+              </div>
+            </div>
             {/* Visual bar */}
-            <div className="mt-6 h-4 rounded-full bg-slate-100 overflow-hidden flex">
-              <div
-                className="bg-emerald-500 h-full"
-                style={{ width: `${stats.totalLoans > 0 ? (stats.activeLoans / stats.totalLoans) * 100 : 0}%` }}
-              />
-              <div
-                className="bg-red-500 h-full"
-                style={{
-                  width: `${
-                    stats.arrearsCount !== null && stats.totalLoans > 0
-                      ? (stats.arrearsCount / stats.totalLoans) * 100
-                      : 0
-                  }%`,
-                }}
-              />
+            <div className="mt-2 h-3 rounded-full bg-slate-100 overflow-hidden flex">
+              <div className="bg-emerald-500 h-full" style={{ width: `${stats.totalLoans > 0 ? (stats.activeLoans / stats.totalLoans) * 100 : 0}%` }} />
+              <div className="bg-red-500 h-full" style={{ width: `${stats.arrearsCount !== null && stats.totalLoans > 0 ? (stats.arrearsCount / stats.totalLoans) * 100 : 0}%` }} />
             </div>
           </CardContent>
         </Card>
@@ -343,121 +298,47 @@ export default function CreditPortfolioPage() {
         {/* Performance Metrics */}
         <Card className="border-slate-100">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Performance Metrics
-            </CardTitle>
-            <CardDescription>
-              Key performance indicators
-            </CardDescription>
+            <CardTitle>Performance</CardTitle>
+            <CardDescription>Key indicators</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-slate-50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-600">Collection Rate</span>
-                  <Badge className={parseFloat(collectionRate) >= 90 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>
-                    {parseFloat(collectionRate) >= 90 ? 'Excellent' : 'Needs Improvement'}
-                  </Badge>
-                </div>
-                <p className="text-3xl font-bold">{collectionRate}%</p>
-                <div className="mt-2 h-2 rounded-full bg-slate-200 overflow-hidden">
-                  <div
-                    className="bg-emerald-500 h-full"
-                    style={{ width: `${Math.min(parseFloat(collectionRate), 100)}%` }}
-                  />
-                </div>
+          <CardContent className="space-y-4">
+            <div className={`p-3 rounded-md ${parseFloat(collectionRate) >= 90 ? 'bg-emerald-50' : 'bg-amber-50'}`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-medium">Collection Rate</span>
+                <Badge className={parseFloat(collectionRate) >= 90 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>
+                  {parseFloat(collectionRate) >= 90 ? 'Good' : 'Improve'}
+                </Badge>
               </div>
-
-              <div className="p-4 rounded-lg bg-slate-50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-600">Portfolio at Risk (PAR)</span>
-                  <Badge className={parseFloat(parRate) <= 5 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>
-                    {parseFloat(parRate) <= 5 ? 'Healthy' : 'At Risk'}
-                  </Badge>
-                </div>
-                <p className="text-3xl font-bold">{parRate}%</p>
-                <div className="mt-2 h-2 rounded-full bg-slate-200 overflow-hidden">
-                  <div
-                    className="bg-red-500 h-full"
-                    style={{ width: `${Math.min(parseFloat(parRate) * 5, 100)}%` }}
-                  />
-                </div>
+              <p className={`text-2xl font-bold ${parseFloat(collectionRate) >= 90 ? 'text-emerald-600' : 'text-amber-600'}`}>{collectionRate}%</p>
+              <div className="mt-2 h-2 rounded-full bg-white overflow-hidden">
+                <div className={`h-full ${parseFloat(collectionRate) >= 90 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(parseFloat(collectionRate), 100)}%` }} />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 rounded-lg bg-slate-50 text-center">
-                  <p className="text-xs text-slate-600 mb-1">Avg Loan Size</p>
-                  <p className="font-semibold">{formatCurrency(stats.avgLoanSize)}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-slate-50 text-center">
-                  <p className="text-xs text-slate-600 mb-1">Active Clients</p>
-                  <p className="font-semibold">{stats.activeLoans}</p>
-                </div>
+            </div>
+            <div className={`p-3 rounded-md ${parseFloat(parRate) <= 5 ? 'bg-emerald-50' : 'bg-red-50'}`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-medium">PAR Rate</span>
+                <Badge className={parseFloat(parRate) <= 5 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>
+                  {parseFloat(parRate) <= 5 ? 'Healthy' : 'At Risk'}
+                </Badge>
+              </div>
+              <p className={`text-2xl font-bold ${parseFloat(parRate) <= 5 ? 'text-emerald-600' : 'text-red-600'}`}>{parRate}%</p>
+              <div className="mt-2 h-2 rounded-full bg-white overflow-hidden">
+                <div className={`h-full ${parseFloat(parRate) <= 5 ? 'bg-emerald-500' : 'bg-red-500'}`} style={{ width: `${Math.min(parseFloat(parRate) * 5, 100)}%` }} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-md bg-slate-50 text-center">
+                <p className="text-xs text-muted-foreground">Avg Loan</p>
+                <p className="font-bold">{formatCurrency(stats.avgLoanSize)}</p>
+              </div>
+              <div className="p-3 rounded-md bg-slate-50 text-center">
+                <p className="text-xs text-muted-foreground">Active</p>
+                <p className="font-bold">{stats.activeLoans}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      <Card className="border-slate-100">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <a
-              href="/credit/pipeline"
-              className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition-all"
-            >
-              <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">View Pipeline</p>
-                <p className="text-xs text-slate-500">Manage applications</p>
-              </div>
-            </a>
-            <a
-              href="/credit/clients"
-              className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all"
-            >
-              <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <Users className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">My Clients</p>
-                <p className="text-xs text-slate-500">View client list</p>
-              </div>
-            </a>
-            <a
-              href="/kyc-reviews"
-              className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 hover:border-amber-300 hover:bg-amber-50 transition-all"
-            >
-              <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">KYC Reviews</p>
-                <p className="text-xs text-slate-500">Pending verifications</p>
-              </div>
-            </a>
-            <a
-              href="/reports/aging"
-              className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50 transition-all"
-            >
-              <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">Arrears Report</p>
-                <p className="text-xs text-slate-500">View overdue loans</p>
-              </div>
-            </a>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

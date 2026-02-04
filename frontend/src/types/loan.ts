@@ -94,6 +94,7 @@ export interface QueryLoansDto {
   status?: LoanStatus;
   clientId?: string;
   applicationId?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }

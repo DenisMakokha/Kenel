@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { loanService } from '../services/loanService';
 import type { Loan, LoanListResponse } from '../types/loan';
 import { LoanStatus } from '../types/loan';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import {
   Table,
@@ -14,10 +14,27 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
-import { Progress } from '../components/ui/progress';
-import { Download } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import {
+  Download,
+  Wallet,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { exportLoanPortfolio } from '../lib/exportUtils';
 import { formatCurrency } from '../lib/utils';
+import { cn } from '../lib/utils';
 
 export default function LoansPage() {
   const navigate = useNavigate();
@@ -50,28 +67,14 @@ export default function LoansPage() {
     load();
   }, [statusFilter, page, limit]);
 
-  const getStatusBadge = (status: LoanStatus) => {
-    const variants: Record<LoanStatus, any> = {
-      PENDING_DISBURSEMENT: 'warning',
-      ACTIVE: 'success',
-      DUE: 'warning',
-      IN_ARREARS: 'destructive',
-      CLOSED: 'outline',
-      WRITTEN_OFF: 'destructive',
-      RESTRUCTURED: 'secondary',
-    };
-
-    const labels: Record<LoanStatus, string> = {
-      PENDING_DISBURSEMENT: 'Pending Disbursement',
-      ACTIVE: 'Active',
-      DUE: 'Due',
-      IN_ARREARS: 'In Arrears',
-      CLOSED: 'Closed',
-      WRITTEN_OFF: 'Written Off',
-      RESTRUCTURED: 'Restructured',
-    };
-
-    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+  const STATUS_CONFIG: Record<LoanStatus, { label: string; color: string; bg: string; border: string; icon: any }> = {
+    PENDING_DISBURSEMENT: { label: 'Pending', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: Clock },
+    ACTIVE: { label: 'Active', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle },
+    DUE: { label: 'Due', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', icon: AlertTriangle },
+    IN_ARREARS: { label: 'In Arrears', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: AlertTriangle },
+    CLOSED: { label: 'Closed', color: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200', icon: CheckCircle },
+    WRITTEN_OFF: { label: 'Written Off', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: AlertTriangle },
+    RESTRUCTURED: { label: 'Restructured', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', icon: TrendingUp },
   };
 
   const handleExport = () => {
@@ -92,106 +95,191 @@ export default function LoansPage() {
     exportLoanPortfolio(exportData, 'loans_export');
   };
 
+  // Calculate stats
+  const stats = {
+    total: data?.meta?.total || 0,
+    active: data?.data?.filter(l => l.status === LoanStatus.ACTIVE).length || 0,
+    totalDisbursed: data?.data?.reduce((sum, l) => sum + (Number(l.principalAmount) || 0), 0) || 0,
+    totalOutstanding: data?.data?.reduce((sum, l) => sum + (Number(l.outstandingPrincipal) || 0), 0) || 0,
+  };
+
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="max-w-6xl mx-auto space-y-6 px-4 md:px-6 py-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Loans</h1>
-          <p className="text-muted-foreground text-sm">Loans created from approved applications.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Loans</h1>
+          <p className="text-sm text-slate-600">Manage and track all disbursed loans</p>
         </div>
-        <Button variant="outline" onClick={handleExport} disabled={!data?.data?.length}>
+        <Button onClick={handleExport} disabled={!data?.data?.length} className="bg-emerald-600 hover:bg-emerald-700">
           <Download className="h-4 w-4 mr-2" />
           Export
         </Button>
       </div>
 
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Total Loans</CardTitle>
+            <Wallet className="h-4 w-4 text-slate-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{stats.total}</p>
+            <p className="text-xs text-muted-foreground">All time</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Active Loans</CardTitle>
+            <CheckCircle className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
+            <p className="text-xs text-muted-foreground">Currently running</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Total Disbursed</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{formatCurrency(stats.totalDisbursed)}</p>
+            <p className="text-xs text-muted-foreground">Principal amount</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{formatCurrency(stats.totalOutstanding)}</p>
+            <p className="text-xs text-muted-foreground">Balance to collect</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {error && (
-        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded">
+        <div className="rounded-md border border-destructive bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
-      <Card className="border-slate-100 bg-white shadow-sm">
+      {/* Loans Table */}
+      <Card className="border-slate-100">
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>All Loans</CardTitle>
-            <select
-              className="border border-input rounded-md px-2 py-1 text-sm bg-background"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as LoanStatus | 'ALL')}
-            >
-              <option value="ALL">All Statuses</option>
-              <option value={LoanStatus.PENDING_DISBURSEMENT}>Pending Disbursement</option>
-              <option value={LoanStatus.ACTIVE}>Active</option>
-              <option value={LoanStatus.CLOSED}>Closed</option>
-              <option value={LoanStatus.WRITTEN_OFF}>Written Off</option>
-              <option value={LoanStatus.RESTRUCTURED}>Restructured</option>
-            </select>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle>All Loans</CardTitle>
+              <CardDescription>View and manage loan portfolio</CardDescription>
+            </div>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as LoanStatus | 'ALL')}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Statuses</SelectItem>
+                <SelectItem value={LoanStatus.PENDING_DISBURSEMENT}>Pending Disbursement</SelectItem>
+                <SelectItem value={LoanStatus.ACTIVE}>Active</SelectItem>
+                <SelectItem value={LoanStatus.CLOSED}>Closed</SelectItem>
+                <SelectItem value={LoanStatus.WRITTEN_OFF}>Written Off</SelectItem>
+                <SelectItem value={LoanStatus.RESTRUCTURED}>Restructured</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading loans...</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">Loading loans...</p>
           ) : !data || data.data.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No loans found.</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">No loans found</p>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Loan #</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Principal</TableHead>
-                    <TableHead>Repayment Progress</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.data.map((loan: Loan) => {
-                    const principal = Number(loan.principalAmount) || 0;
-                    const outstanding = Number(loan.outstandingPrincipal) || 0;
-                    const paid = principal - outstanding;
-                    const progress = principal > 0 ? Math.round((paid / principal) * 100) : 0;
-                    
-                    return (
-                      <TableRow key={loan.id}>
-                        <TableCell className="font-medium">{loan.loanNumber}</TableCell>
-                        <TableCell>
-                          {loan.client
-                            ? `${loan.client.firstName} ${loan.client.lastName}`
-                            : loan.clientId}
-                        </TableCell>
-                        <TableCell>{formatCurrency(principal)}</TableCell>
-                        <TableCell className="min-w-[180px]">
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-slate-500">{progress}% paid</span>
-                              <span className="text-slate-500">{formatCurrency(outstanding)} left</span>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Loan #</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Principal</TableHead>
+                      <TableHead>Progress</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.data.map((loan: Loan) => {
+                      const principal = Number(loan.principalAmount) || 0;
+                      const outstanding = Number(loan.outstandingPrincipal) || 0;
+                      const paid = principal - outstanding;
+                      const progress = principal > 0 ? Math.round((paid / principal) * 100) : 0;
+                      const statusConfig = STATUS_CONFIG[loan.status];
+                      const StatusIcon = statusConfig?.icon || Clock;
+                      
+                      return (
+                        <TableRow key={loan.id}>
+                          <TableCell>
+                            <span className="font-mono text-sm">{loan.loanNumber}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">
+                                {loan.client ? `${loan.client.firstName} ${loan.client.lastName}` : loan.clientId}
+                              </p>
+                              {loan.client?.clientCode && (
+                                <p className="text-xs text-slate-500">{loan.client.clientCode}</p>
+                              )}
                             </div>
-                            <Progress value={progress} className="h-2" />
-                          </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(loan.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/loans/${loan.id}`)}
-                          >
-                            View
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-semibold text-emerald-600">{formatCurrency(principal)}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="w-32">
+                              <div className="flex items-center justify-between text-xs mb-1">
+                                <span>{progress}%</span>
+                                <span className="text-slate-500">{formatCurrency(outstanding)}</span>
+                              </div>
+                              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                <div 
+                                  className={cn(
+                                    'h-full rounded-full',
+                                    progress === 100 ? 'bg-emerald-500' : 'bg-emerald-400'
+                                  )}
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={cn(statusConfig?.bg, statusConfig?.color)}>
+                              <StatusIcon className="h-3 w-3 mr-1" />
+                              {statusConfig?.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/loans/${loan.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
 
-              <div className="flex justify-between items-center mt-4 text-sm">
-                <span className="text-muted-foreground">
-                  Page {data.meta.page} of {data.meta.totalPages} (Total: {data.meta.total})
-                </span>
+              {/* Pagination */}
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Page {data.meta.page} of {data.meta.totalPages}
+                </p>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -199,17 +287,15 @@ export default function LoansPage() {
                     disabled={page <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                   >
-                    Previous
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     disabled={data.meta.page >= data.meta.totalPages}
-                    onClick={() =>
-                      setPage((p) => (data.meta.totalPages ? Math.min(data.meta.totalPages, p + 1) : p))
-                    }
+                    onClick={() => setPage((p) => (data.meta.totalPages ? Math.min(data.meta.totalPages, p + 1) : p))}
                   >
-                    Next
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               </div>

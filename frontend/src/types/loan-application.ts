@@ -109,6 +109,13 @@ export interface LoanApplication {
   productVersion?: {
     id: string;
     versionNumber: number;
+    rules?: {
+      fees?: {
+        processing_fee_type: 'FIXED' | 'PERCENTAGE';
+        processing_fee_value: number;
+        processing_fee_cap: number | null;
+      };
+    };
     loanProduct?: {
       id: string;
       code: string;

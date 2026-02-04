@@ -17,18 +17,22 @@ import {
   Receipt,
   Phone,
   HelpCircle,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import { portalService } from '../../services/portalService';
 import { usePortalAuthStore } from '../../store/portalAuthStore';
-import type { PortalDashboardResponse } from '../../types/portal';
+import type { PortalDashboardResponse, PortalLoanApplication } from '../../types/portal';
 import { formatCurrency } from '../../lib/utils';
 import { useToast } from '../../hooks/useToast';
+import { NotificationBanner } from '../../components/portal/NotificationBanner';
 
 export default function PortalDashboardPage() {
   const navigate = useNavigate();
   const { client } = usePortalAuthStore();
   const { toast } = useToast();
   const [data, setData] = useState<PortalDashboardResponse | null>(null);
+  const [applications, setApplications] = useState<PortalLoanApplication[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -51,8 +55,12 @@ export default function PortalDashboardPage() {
       try {
         setLoading(true);
         setError('');
-        const result = await portalService.getDashboard();
-        setData(result);
+        const [dashResult, appsResult] = await Promise.all([
+          portalService.getDashboard(),
+          portalService.getLoanApplications(),
+        ]);
+        setData(dashResult);
+        setApplications(appsResult);
       } catch (err: any) {
         setError(err.response?.data?.message || 'Failed to load dashboard');
       } finally {
@@ -61,6 +69,11 @@ export default function PortalDashboardPage() {
     };
     load();
   }, []);
+
+
+  const pendingApplications = applications.filter(app => 
+    ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'].includes(app.status)
+  );
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -108,6 +121,9 @@ export default function PortalDashboardPage() {
           {error}
         </div>
       )}
+
+      {/* Notification Banners */}
+      <NotificationBanner maxBanners={2} />
 
       {/* Key Stats */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -239,6 +255,79 @@ export default function PortalDashboardPage() {
                 <Banknote className="h-4 w-4 mr-2" />
                 Pay Now
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Pending Applications Section */}
+      {!loading && pendingApplications.length > 0 && (
+        <Card className="border-slate-200 bg-white">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="h-5 w-5 text-blue-600" />
+                Pending Applications
+              </CardTitle>
+              <CardDescription>Track your loan application status</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/portal/loans')}>
+              View All
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-3">
+              {pendingApplications.slice(0, 3).map((app) => {
+                const getStatusConfig = (status: string) => {
+                  switch (status) {
+                    case 'SUBMITTED':
+                      return { icon: Clock, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Submitted' };
+                    case 'UNDER_REVIEW':
+                      return { icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100', label: 'Under Review' };
+                    case 'APPROVED':
+                      return { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-100', label: 'Approved' };
+                    case 'REJECTED':
+                      return { icon: XCircle, color: 'text-red-600', bg: 'bg-red-100', label: 'Rejected' };
+                    default:
+                      return { icon: FileText, color: 'text-slate-500', bg: 'bg-slate-100', label: status };
+                  }
+                };
+                const statusConfig = getStatusConfig(app.status);
+                const StatusIcon = statusConfig.icon;
+
+                return (
+                  <div
+                    key={app.id}
+                    className="rounded-lg border border-slate-200 p-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
+                    onClick={() => navigate(`/portal/applications/${app.id}`)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-10 w-10 rounded-full ${statusConfig.bg} flex items-center justify-center`}>
+                          <StatusIcon className={`h-5 w-5 ${statusConfig.color}`} />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-slate-900">{app.productName}</h4>
+                          <div className="flex items-center gap-2 text-sm text-slate-500">
+                            <span>{formatCurrency(Number(app.requestedAmount))}</span>
+                            <span>•</span>
+                            <span>{app.requestedTermMonths} months</span>
+                          </div>
+                          {app.status === 'REJECTED' && app.rejectionReason && (
+                            <p className="text-xs text-red-600 mt-1">
+                              Reason: {app.rejectionReason}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0`}>
+                        {statusConfig.label}
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

@@ -21,9 +21,6 @@ import {
   XCircle,
   AlertTriangle,
   FileText,
-  User,
-  Calendar,
-  ArrowRight,
   Plus,
   Download,
 } from 'lucide-react';
@@ -33,13 +30,13 @@ import { formatCurrency, formatDate } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import { exportToExcel } from '../../lib/exportUtils';
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  DRAFT: { label: 'Draft', color: 'bg-slate-100 text-slate-700', icon: FileText },
-  SUBMITTED: { label: 'Submitted', color: 'bg-blue-100 text-blue-700', icon: Clock },
-  UNDER_REVIEW: { label: 'Under Review', color: 'bg-amber-100 text-amber-700', icon: AlertTriangle },
-  APPROVED: { label: 'Approved', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
-  REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: XCircle },
-  DISBURSED: { label: 'Disbursed', color: 'bg-purple-100 text-purple-700', icon: CheckCircle },
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: any }> = {
+  DRAFT: { label: 'Draft', color: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200', icon: FileText },
+  SUBMITTED: { label: 'Submitted', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', icon: Clock },
+  UNDER_REVIEW: { label: 'Under Review', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle },
+  APPROVED: { label: 'Approved', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle },
+  REJECTED: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: XCircle },
+  DISBURSED: { label: 'Disbursed', color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200', icon: CheckCircle },
 };
 
 export default function CreditPipelinePage() {
@@ -77,14 +74,6 @@ export default function CreditPipelinePage() {
       )
     : applications;
 
-  // Group by status for pipeline view
-  const pipelineStages = [
-    { key: 'DRAFT', label: 'Draft', items: filteredApplications.filter(a => a.status === 'DRAFT') },
-    { key: 'SUBMITTED', label: 'Submitted', items: filteredApplications.filter(a => a.status === 'SUBMITTED') },
-    { key: 'UNDER_REVIEW', label: 'Under Review', items: filteredApplications.filter(a => a.status === 'UNDER_REVIEW') },
-    { key: 'APPROVED', label: 'Approved', items: filteredApplications.filter(a => a.status === 'APPROVED') },
-  ];
-
   const stats = {
     total: applications.length,
     pending: applications.filter(a => ['SUBMITTED', 'UNDER_REVIEW'].includes(a.status)).length,
@@ -119,24 +108,19 @@ export default function CreditPipelinePage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 px-4 md:px-6 py-4">
+    <div className="max-w-6xl mx-auto space-y-6 px-4 md:px-6 py-4">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">My Pipeline</h1>
-          <p className="text-sm text-slate-600">
-            Track and manage your loan applications
-          </p>
+          <p className="text-sm text-slate-600">Track loan applications through each stage</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport}>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button
-            onClick={() => navigate('/loan-applications/new')}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
+          <Button onClick={() => navigate('/loan-applications/new')} className="bg-emerald-600 hover:bg-emerald-700">
             <Plus className="h-4 w-4 mr-2" />
             New Application
           </Button>
@@ -147,12 +131,12 @@ export default function CreditPipelinePage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="border-slate-100">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
+            <CardTitle className="text-sm font-medium">Total</CardTitle>
             <FolderKanban className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{stats.total}</p>
-            <p className="text-xs text-muted-foreground">In your pipeline</p>
+            <p className="text-xs text-muted-foreground">Applications</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -162,7 +146,7 @@ export default function CreditPipelinePage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
-            <p className="text-xs text-muted-foreground">Awaiting action</p>
+            <p className="text-xs text-muted-foreground">Active</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -172,7 +156,7 @@ export default function CreditPipelinePage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-emerald-600">{stats.approved}</p>
-            <p className="text-xs text-muted-foreground">Ready for disbursement</p>
+            <p className="text-xs text-muted-foreground">Ready</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -182,7 +166,7 @@ export default function CreditPipelinePage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
-            <p className="text-xs text-muted-foreground">This month</p>
+            <p className="text-xs text-muted-foreground">Declined</p>
           </CardContent>
         </Card>
       </div>
@@ -193,90 +177,28 @@ export default function CreditPipelinePage() {
         </div>
       )}
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-        <Input
-          placeholder="Search applications..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
-      {/* Pipeline Kanban View */}
-      <div className="grid gap-4 md:grid-cols-4">
-        {pipelineStages.map((stage) => {
-          const config = STATUS_CONFIG[stage.key];
-          const StageIcon = config?.icon || FileText;
-          return (
-            <Card key={stage.key} className="border-slate-100">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <StageIcon className="h-4 w-4" />
-                    {stage.label}
-                  </CardTitle>
-                  <Badge variant="outline">{stage.items.length}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {loading ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">Loading...</p>
-                ) : stage.items.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No applications</p>
-                ) : (
-                  stage.items.slice(0, 5).map((app) => (
-                    <div
-                      key={app.id}
-                      onClick={() => navigate(`/loan-applications/${app.id}`)}
-                      className="p-3 rounded-lg border border-slate-200 hover:border-slate-300 cursor-pointer transition-all hover:shadow-sm"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <code className="text-xs font-mono text-slate-600">
-                          {app.applicationNumber}
-                        </code>
-                        <ArrowRight className="h-3 w-3 text-slate-400" />
-                      </div>
-                      <p className="font-medium text-sm mb-1">
-                        {app.client?.firstName} {app.client?.lastName}
-                      </p>
-                      <p className="text-sm text-emerald-600 font-semibold">
-                        {formatCurrency(Number(app.requestedAmount))}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {formatDate(app.createdAt)}
-                      </p>
-                    </div>
-                  ))
-                )}
-                {stage.items.length > 5 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={() => navigate('/loan-applications')}
-                  >
-                    View all {stage.items.length} applications
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Recent Applications Table */}
+      {/* Table */}
       <Card className="border-slate-100">
         <CardHeader>
-          <CardTitle>Recent Applications</CardTitle>
-          <CardDescription>
-            Your latest loan applications
-          </CardDescription>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle>Applications</CardTitle>
+              <CardDescription>{filteredApplications.length} applications</CardDescription>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 w-[200px]"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Loading...</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">Loading applications...</p>
           ) : filteredApplications.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">No applications found</p>
           ) : (
@@ -287,9 +209,9 @@ export default function CreditPipelinePage() {
                     <TableHead>Application</TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Date</TableHead>
+                    <TableHead className="text-right font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -297,19 +219,19 @@ export default function CreditPipelinePage() {
                     const statusConfig = STATUS_CONFIG[app.status];
                     const StatusIcon = statusConfig?.icon || FileText;
                     return (
-                      <TableRow key={app.id}>
+                      <TableRow key={app.id} className="hover:bg-slate-50 transition-colors">
                         <TableCell>
-                          <code className="text-xs font-mono bg-slate-100 px-2 py-1 rounded">
+                          <code className="text-xs font-mono bg-slate-100 px-2 py-1 rounded border border-slate-200">
                             {app.applicationNumber}
                           </code>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center">
-                              <User className="h-4 w-4 text-slate-600" />
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600">
+                              {app.client?.firstName?.[0]}{app.client?.lastName?.[0]}
                             </div>
                             <div>
-                              <p className="font-medium text-sm">
+                              <p className="font-medium text-sm text-slate-900">
                                 {app.client?.firstName} {app.client?.lastName}
                               </p>
                               <p className="text-xs text-slate-500">{app.client?.clientCode}</p>
@@ -317,27 +239,25 @@ export default function CreditPipelinePage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="font-semibold text-emerald-600">
+                          <span className="font-bold text-emerald-600">
                             {formatCurrency(Number(app.requestedAmount))}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Badge className={cn('font-medium', statusConfig?.color)}>
+                          <Badge className={cn('font-medium border', statusConfig?.bg, statusConfig?.color, statusConfig?.border)}>
                             <StatusIcon className="h-3 w-3 mr-1" />
                             {statusConfig?.label}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm text-slate-600">
-                            <Calendar className="h-3 w-3" />
-                            {formatDate(app.createdAt)}
-                          </div>
+                        <TableCell className="text-sm text-slate-500">
+                          {formatDate(app.createdAt)}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => navigate(`/loan-applications/${app.id}`)}
+                            className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             View

@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
 import {
   FileText,
-  Users,
   Clock,
-  AlertTriangle,
   Plus,
   Search,
   ChevronRight,
   Wallet,
+  CheckCircle,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { loanApplicationService } from '../../services/loanApplicationService';
@@ -159,28 +159,24 @@ export default function CreditDashboardPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 px-4 md:px-6 py-4">
+    <div className="max-w-6xl mx-auto space-y-6 px-4 md:px-6 py-4">
       {/* Header */}
-      <section className="mt-1">
-        <div className="flex flex-col gap-3 rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50/70 via-emerald-50/40 to-transparent px-5 py-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">
-              {greeting}, {user?.firstName || 'Credit Officer'}.
-            </h1>
-            <p className="text-sm text-slate-600">
-              Here's your loan pipeline and tasks for today.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-            <span className="inline-flex items-center rounded-full border border-emerald-100 bg-white/70 px-2 py-0.5 font-medium text-emerald-700">
-              <span className="mr-1 text-[11px] uppercase tracking-wide">Role</span>
-              <span>Credit Officer</span>
-            </span>
-            <span className="hidden md:inline text-slate-400">•</span>
-            <span className="hidden md:inline">Pipeline & origination focus</span>
-          </div>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">{greeting}, {user?.firstName || 'there'}!</h1>
+          <p className="text-sm text-slate-600">Your loan pipeline and tasks for today</p>
         </div>
-      </section>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => navigate('/loan-applications/new')} className="bg-emerald-600 hover:bg-emerald-700">
+            <Plus className="h-4 w-4 mr-2" />
+            New Application
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/clients')}>
+            <Search className="h-4 w-4 mr-2" />
+            Clients
+          </Button>
+        </div>
+      </div>
 
       {error && (
         <div className="rounded-md border border-destructive bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -188,238 +184,127 @@ export default function CreditDashboardPage() {
         </div>
       )}
 
-      {/* KPI Row */}
-      <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-xs font-semibold tracking-wide text-slate-600 uppercase">
-            My Pipeline Snapshot
-          </h2>
-          <p className="hidden md:block text-[11px] text-slate-500">
-            Applications and portfolio metrics
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-slate-100 bg-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-100">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle className="text-sm font-medium">New Applications</CardTitle>
-                <CardDescription>Last 7 days</CardDescription>
-              </div>
-              <div className="rounded-full bg-emerald-50 text-emerald-700 p-2">
-                <FileText className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-emerald-700">
-                {kpis.newApplications !== null ? kpis.newApplications : '—'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-100 bg-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-100">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle className="text-sm font-medium">In Review</CardTitle>
-                <CardDescription>Assigned to me</CardDescription>
-              </div>
-              <div className="rounded-full bg-blue-50 text-blue-700 p-2">
-                <Clock className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-slate-900">
-                {kpis.applicationsInReview !== null ? kpis.applicationsInReview : '—'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-100 bg-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-100">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle className="text-sm font-medium">Awaiting Disbursement</CardTitle>
-                <CardDescription>Approved, pending</CardDescription>
-              </div>
-              <div className="rounded-full bg-amber-50 text-amber-700 p-2">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-slate-900">
-                {kpis.awaitingDisbursement !== null ? kpis.awaitingDisbursement : '—'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-100 bg-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-100">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle className="text-sm font-medium">Portfolio Outstanding</CardTitle>
-                <CardDescription>My active loans (KES)</CardDescription>
-              </div>
-              <div className="rounded-full bg-emerald-50 text-emerald-700 p-2">
-                <Wallet className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-slate-900">
-                {kpis.portfolioOutstanding !== null
-                  ? formatCurrency(kpis.portfolioOutstanding)
-                  : '—'}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Quick Actions */}
-      <section className="space-y-2">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold text-slate-700">Quick Actions</h2>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="default"
-            size="sm"
-            className="bg-emerald-600 hover:bg-emerald-700"
-            onClick={() => navigate('/loan-applications/new')}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            New Application
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/clients')}
-          >
-            <Search className="h-4 w-4 mr-1" />
-            Search Clients
-          </Button>
-        </div>
-      </section>
+      {/* KPI Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">New Applications</CardTitle>
+            <FileText className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-emerald-600">{loading ? '...' : kpis.newApplications ?? '—'}</p>
+            <p className="text-xs text-muted-foreground">Last 7 days</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">In Review</CardTitle>
+            <Clock className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{loading ? '...' : kpis.applicationsInReview ?? '—'}</p>
+            <p className="text-xs text-muted-foreground">Active</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Awaiting Disbursement</CardTitle>
+            <CheckCircle className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-amber-600">{loading ? '...' : kpis.awaitingDisbursement ?? '—'}</p>
+            <p className="text-xs text-muted-foreground">Approved</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Portfolio Outstanding</CardTitle>
+            <Wallet className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-xl font-bold">{loading ? '...' : kpis.portfolioOutstanding !== null ? formatCurrency(kpis.portfolioOutstanding) : '—'}</p>
+            <p className="text-xs text-muted-foreground">Total</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-        {/* Pipeline Table */}
-        <Card className="border-slate-100 bg-white shadow-sm">
+        {/* Pipeline */}
+        <Card className="border-slate-100">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div>
               <CardTitle>Application Pipeline</CardTitle>
-              <CardDescription>Recent applications across all stages</CardDescription>
+              <CardDescription>Recent applications</CardDescription>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/credit/pipeline')}
-              className="text-emerald-700 hover:text-emerald-800"
-            >
-              View All
-              <ChevronRight className="h-4 w-4 ml-1" />
+            <Button variant="ghost" size="sm" onClick={() => navigate('/credit/pipeline')}>
+              View All <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-sm text-muted-foreground">Loading pipeline...</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">Loading pipeline...</p>
             ) : pipelineItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No applications in pipeline.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">No applications yet</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-xs text-slate-500 uppercase">
-                      <th className="pb-2 font-medium">Client</th>
-                      <th className="pb-2 font-medium">Product</th>
-                      <th className="pb-2 font-medium text-right">Amount</th>
-                      <th className="pb-2 font-medium">Stage</th>
-                      <th className="pb-2 font-medium text-right">Days</th>
-                      <th className="pb-2 font-medium"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {pipelineItems.map((item) => {
-                      const stage = getStageInfo(item.status);
-                      return (
-                        <tr key={item.id} className="hover:bg-slate-50">
-                          <td className="py-2.5 font-medium text-slate-900">
-                            {item.clientName}
-                          </td>
-                          <td className="py-2.5 text-slate-600">{item.product}</td>
-                          <td className="py-2.5 text-right text-slate-900">
-                            {formatCurrency(item.amount)}
-                          </td>
-                          <td className="py-2.5">
-                            <span
-                              className={cn(
-                                'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                                stage.color
-                              )}
-                            >
-                              {stage.label}
-                            </span>
-                          </td>
-                          <td className="py-2.5 text-right text-slate-600">
-                            {item.daysInStage}d
-                          </td>
-                          <td className="py-2.5 text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 text-xs"
-                              onClick={() => navigate(`/loan-applications/${item.id}`)}
-                            >
-                              View
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="space-y-2">
+                {pipelineItems.map((item) => {
+                  const stage = getStageInfo(item.status);
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 p-3 rounded-lg border hover:bg-slate-50 cursor-pointer"
+                      onClick={() => navigate(`/loan-applications/${item.id}`)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{item.clientName}</p>
+                          <Badge className={cn('text-xs', stage.color)}>{stage.label}</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {item.product} • {formatCurrency(item.amount)}
+                        </p>
+                      </div>
+                      <div className="text-right text-xs text-muted-foreground">
+                        {item.daysInStage}d ago
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* KYC & Tasks Panel */}
+        {/* Side Panel */}
         <div className="space-y-4">
           {/* KYC Follow-ups */}
-          <Card className="border-slate-100 bg-white shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">KYC Follow-ups</CardTitle>
-              <CardDescription>Pending document collection</CardDescription>
+          <Card className="border-slate-100">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">KYC Follow-ups</CardTitle>
+              <CardDescription className="text-xs">Pending documents</CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading...</p>
               ) : kycFollowUps.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No pending KYC items.</p>
+                <div className="text-center py-4">
+                  <CheckCircle className="h-6 w-6 text-emerald-400 mx-auto mb-1" />
+                  <p className="text-xs text-muted-foreground">All clear!</p>
+                </div>
               ) : (
-                <ul className="space-y-3">
+                <ul className="space-y-2">
                   {kycFollowUps.map((item) => (
                     <li
                       key={item.id}
-                      className="flex items-start justify-between gap-2 text-sm"
+                      className="flex items-center justify-between p-2 rounded hover:bg-slate-50 cursor-pointer"
+                      onClick={() => navigate(`/loan-applications/${item.id}`)}
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-900 truncate">
-                          {item.clientName}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Missing: {item.missingDocs.join(', ')}
-                        </p>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{item.clientName}</p>
+                        <p className="text-xs text-muted-foreground">Missing: {item.missingDocs.join(', ')}</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-amber-600 font-medium">
-                          {item.daysOutstanding}d
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-xs px-2"
-                          onClick={() => navigate(`/loan-applications/${item.id}`)}
-                        >
-                          Open
-                        </Button>
-                      </div>
+                      <Badge variant="outline">{item.daysOutstanding}d</Badge>
                     </li>
                   ))}
                 </ul>
@@ -427,30 +312,25 @@ export default function CreditDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Today's Reminders */}
-          <Card className="border-slate-100 bg-white shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Today's Reminders</CardTitle>
-              <CardDescription>Scheduled follow-ups</CardDescription>
+          {/* Today's Tasks */}
+          <Card className="border-slate-100">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Today's Tasks</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Users className="h-4 w-4 text-slate-400" />
-                  <span>
-                    {kpis.applicationsInReview !== null
-                      ? `${kpis.applicationsInReview} applications need review`
-                      : '— applications need review'}
-                  </span>
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between p-2 rounded-md bg-blue-50">
+                <div>
+                  <p className="text-sm font-medium">Applications to Review</p>
+                  <p className="text-xs text-muted-foreground">Needs attention</p>
                 </div>
-                <div className="flex items-center gap-2 text-slate-600">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  <span>
-                    {kpis.awaitingDisbursement !== null
-                      ? `${kpis.awaitingDisbursement} approved, awaiting disbursement`
-                      : '— approved, awaiting disbursement'}
-                  </span>
+                <Badge className="bg-blue-100 text-blue-700">{kpis.applicationsInReview ?? 0}</Badge>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-md bg-amber-50">
+                <div>
+                  <p className="text-sm font-medium">Pending Disbursement</p>
+                  <p className="text-xs text-muted-foreground">Approved</p>
                 </div>
+                <Badge className="bg-amber-100 text-amber-700">{kpis.awaitingDisbursement ?? 0}</Badge>
               </div>
             </CardContent>
           </Card>

@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { FileText } from 'lucide-react';
 
 export default function LoanApplicationFormPage() {
   const navigate = useNavigate();
@@ -250,6 +251,37 @@ export default function LoanApplicationFormPage() {
                     <option value="ONLINE">Online</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Required Documents Reference */}
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <p className="text-sm font-medium mb-3">Required Documents:</p>
+                <ul className="text-sm text-muted-foreground space-y-2">
+                  <li className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Bank statement for the latest three months (stamped at bank)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Copy of KRA PIN certificate
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Copy of ID
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Copy of Employment Contract
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Duly-filled KENELS BUREAU Loan Application form
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Utility Bill (proof of address)
+                  </li>
+                </ul>
               </div>
 
               <div className="flex justify-end gap-2">

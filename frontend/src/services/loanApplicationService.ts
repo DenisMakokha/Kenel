@@ -124,6 +124,19 @@ export const loanApplicationService = {
     await api.delete(`${BASE_URL}/${applicationId}/documents/${documentId}`);
   },
 
+  async reviewDocument(
+    applicationId: string,
+    documentId: string,
+    status: 'VERIFIED' | 'REJECTED',
+    notes?: string,
+  ): Promise<ApplicationDocument> {
+    const response = await api.patch<ApplicationDocument>(
+      `${BASE_URL}/${applicationId}/documents/${documentId}/review`,
+      { status, notes },
+    );
+    return response.data;
+  },
+
   async getEvents(id: string): Promise<LoanApplicationEvent[]> {
     const response = await api.get<LoanApplicationEvent[]>(`${BASE_URL}/${id}/events`);
     return response.data;

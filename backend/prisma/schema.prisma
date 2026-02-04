@@ -63,8 +63,11 @@ enum DocumentType {
   PAYSLIP
   BANK_STATEMENT
   EMPLOYMENT_LETTER
+  EMPLOYMENT_CONTRACT
   CONTRACT
   PROOF_OF_RESIDENCE
+  KRA_PIN
+  LOAN_APPLICATION_FORM
   OTHER
 }
 
@@ -182,6 +185,7 @@ model User {
   // Relations
   refreshTokens     RefreshToken[]
   notificationStates NotificationUserState[]
+  staffNotifications StaffNotification[]
   client            Client?
   postedRepayments  Repayment[]
   auditLogs         AuditLog[]
@@ -226,6 +230,28 @@ model NotificationUserState {
   @@index([userId])
   @@index([notificationKey])
   @@map("notification_user_state")
+}
+
+model StaffNotification {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  type            String    // info, success, warning, error, kyc_review, loan_application
+  category        String    // kyc, loan, system, client
+  title           String
+  message         String
+  linkUrl         String?   @map("link_url")
+  linkText        String?   @map("link_text")
+  metadata        Json?     // Additional data like clientId, applicationId, etc.
+  isRead          Boolean   @default(false) @map("is_read")
+  readAt          DateTime? @map("read_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("staff_notifications")
 }
 
 // ============================================
@@ -284,12 +310,39 @@ model Client {
   kycEvents           ClientKycEvent[]
   applications        LoanApplication[]
   loans               Loan[]
+  notifications       ClientNotification[]
 
   @@index([idNumber])
   @@index([phonePrimary])
   @@index([kycStatus])
   @@index([clientCode])
   @@map("clients")
+}
+
+model ClientNotification {
+  id              String    @id @default(uuid()) @db.Uuid
+  clientId        String    @map("client_id") @db.Uuid
+  type            String    // info, success, warning, error
+  category        String    // loan_application, payment, loan, system
+  title           String
+  message         String
+  actionUrl       String?   @map("action_url")
+  actionLabel     String?   @map("action_label")
+  metadata        Json?     // Additional data like applicationId, loanId, etc.
+  read            Boolean   @default(false)
+  emailSent       Boolean   @default(false) @map("email_sent")
+  smsSent         Boolean   @default(false) @map("sms_sent")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  expiresAt       DateTime? @map("expires_at")
+
+  // Relations
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([read])
+  @@index([createdAt])
+  @@index([category])
+  @@map("client_notifications")
 }
 
 model ClientNextOfKin {

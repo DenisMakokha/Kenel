@@ -110,7 +110,7 @@ export class LoanApplicationsController {
   }
 
   @Post(':id/move-to-under-review')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER)
   @ApiOperation({ summary: 'Move a submitted application to UNDER_REVIEW' })
   @ApiResponse({ status: 200, description: 'Application moved to UNDER_REVIEW' })
   @ApiResponse({ status: 400, description: 'Only SUBMITTED applications can be moved' })
@@ -291,6 +291,19 @@ export class LoanApplicationsController {
     @Param('documentId') documentId: string,
   ) {
     return this.loanApplicationsService.deleteDocument(id, documentId);
+  }
+
+  @Patch(':id/documents/:documentId/review')
+  @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER)
+  @ApiOperation({ summary: 'Review (approve/reject) an application document' })
+  @ApiResponse({ status: 200, description: 'Document reviewed successfully' })
+  reviewDocument(
+    @Param('id') id: string,
+    @Param('documentId') documentId: string,
+    @Body() body: { status: 'VERIFIED' | 'REJECTED'; notes?: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.loanApplicationsService.reviewDocument(id, documentId, body.status, body.notes, user.sub);
   }
 
   // ============================================

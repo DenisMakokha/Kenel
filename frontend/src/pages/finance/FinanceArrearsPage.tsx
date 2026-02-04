@@ -72,7 +72,7 @@ export default function FinanceArrearsPage() {
       const today = new Date().toISOString().slice(0, 10);
 
       const [loansResponse, agingSummary] = await Promise.all([
-        loanService.getLoans({ status: LoanStatus.IN_ARREARS, page: 1, limit: 1000 }),
+        loanService.getLoans({ status: LoanStatus.IN_ARREARS, search: searchTerm.trim() || undefined, page: 1, limit: 1000 }),
         reportService.getAgingSummary({ asOfDate: today }),
       ]);
 
@@ -95,6 +95,7 @@ export default function FinanceArrearsPage() {
 
   const handleSearch = () => {
     setPage(1);
+    loadData();
   };
 
   const getMaxDaysPastDue = (loan: Loan): number => {
@@ -120,15 +121,7 @@ export default function FinanceArrearsPage() {
   const totalArrears = agingBuckets.reduce((sum, b) => sum + b.amount, 0);
   const totalLoansInArrears = agingBuckets.reduce((sum, b) => sum + b.count, 0);
 
-  const filteredLoans = (searchTerm
-    ? loans.filter(
-        (loan) =>
-          loan.loanNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          loan.client?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          loan.client?.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : loans
-  ).filter((loan) => {
+  const filteredLoans = loans.filter((loan) => {
     if (bucketFilter === 'ALL') return true;
     const days = getMaxDaysPastDue(loan);
     const bucketKey = getBucketForDays(days);

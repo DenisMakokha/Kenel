@@ -6,7 +6,7 @@ import {
   LoanApplicationStatus,
   QueryLoanApplicationsDto,
 } from '../types/loan-application';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
@@ -18,8 +18,29 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
-import { formatDate } from '../lib/utils';
-import { Download, FileText } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import { formatDate, formatCurrency, cn } from '../lib/utils';
+import {
+  Download,
+  FileText,
+  Plus,
+  Search,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  FolderKanban,
+  FileClock,
+} from 'lucide-react';
 import { exportToExcel, exportToPdf } from '../lib/exportUtils';
 import { DateRangePicker, DateRange } from '../components/ui/date-range-picker';
 import { BulkActionsBar, LOAN_APPLICATION_BULK_ACTIONS } from '../components/ui/bulk-actions';
@@ -29,14 +50,13 @@ import { useAuthStore } from '../store/authStore';
 import { UserRole } from '../types/auth';
 import { BulkApproveModal, BulkRejectModal } from '../components/ui/bulk-action-modal';
 
-const STATUS_OPTIONS: { value: '' | LoanApplicationStatus; label: string }[] = [
-  { value: '', label: 'All Statuses' },
-  { value: LoanApplicationStatus.DRAFT, label: 'Draft' },
-  { value: LoanApplicationStatus.SUBMITTED, label: 'Submitted' },
-  { value: LoanApplicationStatus.UNDER_REVIEW, label: 'Under Review' },
-  { value: LoanApplicationStatus.APPROVED, label: 'Approved' },
-  { value: LoanApplicationStatus.REJECTED, label: 'Rejected' },
-];
+const STATUS_CONFIG: Record<LoanApplicationStatus, { label: string; color: string; bg: string; border: string; icon: any }> = {
+  DRAFT: { label: 'Draft', color: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200', icon: FileText },
+  SUBMITTED: { label: 'Submitted', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', icon: FileClock },
+  UNDER_REVIEW: { label: 'Under Review', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle },
+  APPROVED: { label: 'Approved', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle },
+  REJECTED: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: XCircle },
+};
 
 export default function LoanApplicationsPage() {
   const navigate = useNavigate();
@@ -94,23 +114,22 @@ export default function LoanApplicationsPage() {
   };
 
   const getStatusBadge = (status: LoanApplicationStatus) => {
-    const variants: Record<LoanApplicationStatus, any> = {
-      DRAFT: 'outline',
-      SUBMITTED: 'warning',
-      UNDER_REVIEW: 'secondary',
-      APPROVED: 'success',
-      REJECTED: 'destructive',
-    };
+    const config = STATUS_CONFIG[status];
+    const StatusIcon = config?.icon || FileText;
+    return (
+      <Badge className={cn('font-medium border', config?.bg, config?.color, config?.border)}>
+        <StatusIcon className="h-3 w-3 mr-1" />
+        {config?.label}
+      </Badge>
+    );
+  };
 
-    const labels: Record<LoanApplicationStatus, string> = {
-      DRAFT: 'Draft',
-      SUBMITTED: 'Submitted',
-      UNDER_REVIEW: 'Under Review',
-      APPROVED: 'Approved',
-      REJECTED: 'Rejected',
-    };
-
-    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+  // Calculate stats
+  const stats = {
+    total: total,
+    submitted: applications.filter(a => a.status === LoanApplicationStatus.SUBMITTED).length,
+    underReview: applications.filter(a => a.status === LoanApplicationStatus.UNDER_REVIEW).length,
+    approved: applications.filter(a => a.status === LoanApplicationStatus.APPROVED).length,
   };
 
   const getExportData = () => {
@@ -243,57 +262,102 @@ export default function LoanApplicationsPage() {
   const isIndeterminate = selectedIds.size > 0 && selectedIds.size < applications.length;
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 px-4 md:px-6 py-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Loan Applications</h1>
-          <p className="text-muted-foreground">
-            Manage the lifecycle of loan applications from draft to approval
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900">Loan Applications</h1>
+          <p className="text-sm text-slate-600">Manage loan applications from draft to approval</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportExcel}>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportExcel}>
             <Download className="h-4 w-4 mr-2" />
             Excel
           </Button>
-          <Button variant="outline" onClick={handleExportPdf}>
+          <Button variant="outline" size="sm" onClick={handleExportPdf}>
             <FileText className="h-4 w-4 mr-2" />
             PDF
           </Button>
-          <Button onClick={() => navigate('/loan-applications/new')}>+ New Application</Button>
+          <Button onClick={() => navigate('/loan-applications/new')} className="bg-emerald-600 hover:bg-emerald-700">
+            <Plus className="h-4 w-4 mr-2" />
+            New Application
+          </Button>
         </div>
       </div>
 
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
+            <FolderKanban className="h-4 w-4 text-slate-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{stats.total}</p>
+            <p className="text-xs text-muted-foreground">All time</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Submitted</CardTitle>
+            <FileClock className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600">{stats.submitted}</p>
+            <p className="text-xs text-muted-foreground">Awaiting review</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Under Review</CardTitle>
+            <Clock className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-amber-600">{stats.underReview}</p>
+            <p className="text-xs text-muted-foreground">In progress</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Approved</CardTitle>
+            <CheckCircle className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-emerald-600">{stats.approved}</p>
+            <p className="text-xs text-muted-foreground">Ready for disbursement</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSearch} className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
+      <Card className="border-slate-100">
+        <CardContent className="pt-6">
+          <form onSubmit={handleSearch}>
+            <div className="flex flex-col md:flex-row gap-3">
               <div className="flex-1">
-                <Input
-                  placeholder="Search by application #, client name or code..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Search by application #, client name..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
               </div>
-              <select
-                className="h-10 px-3 rounded-md border border-input bg-background"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value as LoanApplicationStatus | '');
-                  setPage(1);
-                }}
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.label} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as LoanApplicationStatus | ''); setPage(1); }}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value={LoanApplicationStatus.DRAFT}>Draft</SelectItem>
+                  <SelectItem value={LoanApplicationStatus.SUBMITTED}>Submitted</SelectItem>
+                  <SelectItem value={LoanApplicationStatus.UNDER_REVIEW}>Under Review</SelectItem>
+                  <SelectItem value={LoanApplicationStatus.APPROVED}>Approved</SelectItem>
+                  <SelectItem value={LoanApplicationStatus.REJECTED}>Rejected</SelectItem>
+                </SelectContent>
+              </Select>
               <DateRangePicker
                 value={dateRange}
                 onChange={(range) => {
@@ -301,137 +365,134 @@ export default function LoanApplicationsPage() {
                   setPage(1);
                 }}
               />
-              <Button type="submit">Search</Button>
+              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
+                <Search className="h-4 w-4 mr-2" />
+                Search
+              </Button>
             </div>
           </form>
         </CardContent>
       </Card>
 
-      {/* Error */}
       {error && (
-        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded">
+        <div className="rounded-md border border-destructive bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {/* Table */}
-      <Card>
+      <Card className="border-slate-100">
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Applications</CardTitle>
-            <span className="text-sm text-muted-foreground">{total} total</span>
-          </div>
+          <CardTitle>Applications</CardTitle>
+          <CardDescription>{total} applications found</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading applications...</div>
+            <p className="text-sm text-muted-foreground py-8 text-center">Loading applications...</p>
           ) : applications.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No applications found</div>
+            <p className="text-sm text-muted-foreground py-8 text-center">No applications found</p>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]">
-                      <Checkbox
-                        checked={isAllSelected ? true : isIndeterminate ? 'indeterminate' : false}
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead>Application #</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Requested</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {applications.map((app) => (
-                    <TableRow 
-                      key={app.id}
-                      className={selectedIds.has(app.id) ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}
-                    >
-                      <TableCell className="w-[40px]">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px]">
                         <Checkbox
-                          checked={selectedIds.has(app.id)}
-                          onCheckedChange={(checked) => handleSelectRow(app.id, checked as boolean)}
+                          checked={isAllSelected ? true : isIndeterminate ? 'indeterminate' : false}
+                          onCheckedChange={handleSelectAll}
                         />
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{app.applicationNumber}</TableCell>
-                      <TableCell>
-                        {app.client ? (
-                          <div>
-                            <div className="font-medium">
-                              {app.client.firstName} {app.client.lastName}
-                            </div>
-                            <div className="text-xs text-muted-foreground font-mono">
-                              {app.client.clientCode}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {app.productVersion?.loanProduct ? (
-                          <div>
-                            <div className="font-medium">
-                              {app.productVersion.loanProduct.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground font-mono">
-                              {app.productVersion.loanProduct.code} v{app.productVersion.versionNumber}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(app.status)}</TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {app.requestedAmount} / {app.requestedTermMonths}m
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDate(app.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/loan-applications/${app.id}`)}
-                        >
-                          View
-                        </Button>
-                      </TableCell>
+                      </TableHead>
+                      <TableHead>Application #</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {applications.map((app) => (
+                      <TableRow 
+                        key={app.id}
+                        className={cn(selectedIds.has(app.id) && 'bg-emerald-50')}
+                      >
+                        <TableCell className="w-[40px]">
+                          <Checkbox
+                            checked={selectedIds.has(app.id)}
+                            onCheckedChange={(checked) => handleSelectRow(app.id, checked as boolean)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm">{app.applicationNumber}</span>
+                        </TableCell>
+                        <TableCell>
+                          {app.client ? (
+                            <div>
+                              <p className="font-medium">{app.client.firstName} {app.client.lastName}</p>
+                              <p className="text-xs text-slate-500">{app.client.clientCode}</p>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {app.productVersion?.loanProduct ? (
+                            <div>
+                              <p className="font-medium">{app.productVersion.loanProduct.name}</p>
+                              <p className="text-xs text-slate-500">{app.productVersion.loanProduct.code}</p>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(app.status)}</TableCell>
+                        <TableCell>
+                          <span className="font-semibold text-emerald-600">{formatCurrency(Number(app.requestedAmount) || 0)}</span>
+                        </TableCell>
+                        <TableCell className="text-sm text-slate-500">
+                          {formatDate(app.createdAt)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/loan-applications/${app.id}`)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
+              {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === 1}
-                    onClick={() => setPage(page - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <p className="text-sm text-muted-foreground">
                     Page {page} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === totalPages}
-                    onClick={() => setPage(page + 1)}
-                  >
-                    Next
-                  </Button>
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page === 1}
+                      onClick={() => setPage(page - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page === totalPages}
+                      onClick={() => setPage(page + 1)}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </>

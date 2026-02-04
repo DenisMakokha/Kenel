@@ -43,8 +43,11 @@ const PortalLoansPage = lazy(() => import('./pages/portal/PortalLoansPage'));
 const PortalLoanDetailPage = lazy(() => import('./pages/portal/PortalLoanDetailPage'));
 const PortalStatementsPage = lazy(() => import('./pages/portal/PortalStatementsPage'));
 const PortalProfilePage = lazy(() => import('./pages/portal/PortalProfilePage'));
+const PortalKYCPage = lazy(() => import('./pages/portal/PortalKYCPage'));
 const PortalMakePaymentPage = lazy(() => import('./pages/portal/PortalMakePaymentPage'));
 const PortalApplyLoanPage = lazy(() => import('./pages/portal/PortalApplyLoanPage'));
+const PortalApplicationDetailPage = lazy(() => import('./pages/portal/PortalApplicationDetailPage'));
+const PortalNotificationsPage = lazy(() => import('./pages/portal/PortalNotificationsPage'));
 
 // Admin pages (lazy loaded)
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -122,8 +125,11 @@ function App() {
           <Route path="loans/:loanId" element={<PortalLoanDetailPage />} />
           <Route path="statements" element={<PortalStatementsPage />} />
           <Route path="profile" element={<PortalProfilePage />} />
+          <Route path="kyc" element={<PortalKYCPage />} />
           <Route path="make-payment" element={<PortalMakePaymentPage />} />
           <Route path="apply" element={<PortalApplyLoanPage />} />
+          <Route path="applications/:applicationId" element={<PortalApplicationDetailPage />} />
+          <Route path="notifications" element={<PortalNotificationsPage />} />
         </Route>
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms-conditions" element={<TermsConditionsPage />} />

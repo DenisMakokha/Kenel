@@ -22,6 +22,7 @@ export class LoansController {
     @Query('status') status?: LoanStatus,
     @Query('clientId') clientId?: string,
     @Query('applicationId') applicationId?: string,
+    @Query('search') search?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
@@ -29,6 +30,7 @@ export class LoansController {
       status,
       clientId,
       applicationId,
+      search,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
     });

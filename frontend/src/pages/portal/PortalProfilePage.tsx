@@ -4,13 +4,6 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../../components/ui/dialog';
-import {
   User,
   Mail,
   Phone,
@@ -25,14 +18,17 @@ import {
   Eye,
   EyeOff,
   Smartphone,
+  ArrowRight,
 } from 'lucide-react';
 import { usePortalAuthStore } from '../../store/portalAuthStore';
 import { portalService } from '../../services/portalService';
 import { formatDate } from '../../lib/utils';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 export default function PortalProfilePage() {
   const { client, setClient } = usePortalAuthStore();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -55,26 +51,6 @@ export default function PortalProfilePage() {
     smsNotifications: true,
   });
   const [savingPrefs, setSavingPrefs] = useState(false);
-
-  const [showNokDialog, setShowNokDialog] = useState(false);
-  const [showRefereeDialog, setShowRefereeDialog] = useState(false);
-  const [savingContacts, setSavingContacts] = useState(false);
-  const [nokForm, setNokForm] = useState({
-    fullName: '',
-    relation: '',
-    phone: '',
-    email: '',
-    address: '',
-    isPrimary: true,
-  });
-  const [refereeForm, setRefereeForm] = useState({
-    fullName: '',
-    phone: '',
-    relation: '',
-    idNumber: '',
-    employerName: '',
-    address: '',
-  });
 
   useEffect(() => {
     const hydrate = async () => {
@@ -121,6 +97,31 @@ export default function PortalProfilePage() {
     }
   };
 
+  // Calculate KYC completion
+  const getKycProgress = () => {
+    const c = client as any;
+    const docs = c?.documents || [];
+    const hasDoc = (type: string) => docs.some((d: any) => d.documentType === type);
+
+    const items = [
+      !!(c?.firstName && c?.lastName && (c?.idNumber || c?.nationalId) && c?.dateOfBirth),
+      !!c?.residentialAddress,
+      !!(c?.employerName || c?.employer),
+      (c?.nextOfKin || []).length > 0,
+      (c?.referees || []).length >= 2,
+      hasDoc('NATIONAL_ID') || hasDoc('PASSPORT'),
+      hasDoc('KRA_PIN'),
+      hasDoc('BANK_STATEMENT'),
+      hasDoc('EMPLOYMENT_CONTRACT') || hasDoc('EMPLOYMENT_LETTER') || hasDoc('CONTRACT'),
+      hasDoc('PROOF_OF_RESIDENCE'),
+    ];
+
+    const completed = items.filter(Boolean).length;
+    return { completed, total: items.length, percentage: Math.round((completed / items.length) * 100) };
+  };
+
+  const kycProgress = getKycProgress();
+
   return (
     <div className="space-y-6 pb-20 md:pb-0">
       {/* Header */}
@@ -149,6 +150,38 @@ export default function PortalProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* KYC Progress Card */}
+      {kycProgress.percentage < 100 && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
+                  <Shield className="h-6 w-6 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-amber-900">Complete Your KYC</p>
+                  <p className="text-sm text-amber-700">{kycProgress.completed}/{kycProgress.total} items completed ({kycProgress.percentage}%)</p>
+                </div>
+              </div>
+              <Button
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={() => navigate('/portal/kyc')}
+              >
+                Complete KYC
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+            <div className="mt-3 h-2 bg-amber-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-amber-500 rounded-full transition-all"
+                style={{ width: `${kycProgress.percentage}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Personal Information */}
@@ -181,10 +214,7 @@ export default function PortalProfilePage() {
                       setIsEditing(false);
                       toast.success('Profile updated');
                     } catch (err: any) {
-                      toast.error(
-                        err.response?.data?.message
-                          || 'Failed to update profile. Please try again.',
-                      );
+                      toast.error(err.response?.data?.message || 'Failed to update profile');
                     } finally {
                       setSaving(false);
                     }
@@ -201,37 +231,20 @@ export default function PortalProfilePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs text-slate-600">First Name</label>
-                    <Input
-                      value={profileForm.firstName}
-                      onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
-                      disabled
-                    />
+                    <Input value={profileForm.firstName} disabled />
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs text-slate-600">Last Name</label>
-                    <Input
-                      value={profileForm.lastName}
-                      onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
-                      disabled
-                    />
+                    <Input value={profileForm.lastName} disabled />
                   </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-slate-600">Email Address</label>
-                  <Input
-                    type="email"
-                    value={profileForm.email}
-                    onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                    disabled
-                  />
+                  <Input type="email" value={profileForm.email} disabled />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-slate-600">Phone Number</label>
-                  <Input
-                    value={profileForm.phonePrimary}
-                    onChange={(e) => setProfileForm({ ...profileForm, phonePrimary: e.target.value })}
-                    disabled
-                  />
+                  <Input value={profileForm.phonePrimary} disabled />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-slate-600">Address</label>
@@ -307,144 +320,6 @@ export default function PortalProfilePage() {
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-200 bg-white">
-          <CardHeader>
-            <CardTitle className="text-lg">KYC Checklist</CardTitle>
-            <CardDescription>Complete these items to finish your profile</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <input type="checkbox" checked={!!client?.residentialAddress} readOnly />
-                <span className="text-sm text-slate-700">Address Provided</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" checked={(client?.nextOfKin || []).length > 0} readOnly />
-                <span className="text-sm text-slate-700">Next of Kin Added</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" checked={(client?.referees || []).length > 0} readOnly />
-                <span className="text-sm text-slate-700">Referees Added</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-200 bg-white md:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Next of Kin & Referees</CardTitle>
-              <CardDescription>Add your next of kin and referees for KYC completion</CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setShowNokDialog(true)}>
-                Add Next of Kin
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowRefereeDialog(true)}>
-                Add Referee
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-900">Next of Kin</p>
-                <Badge className="bg-slate-100 text-slate-700">{(client?.nextOfKin || []).length}</Badge>
-              </div>
-              {(client?.nextOfKin || []).length === 0 ? (
-                <p className="text-sm text-slate-500">No next of kin added yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {(client?.nextOfKin || []).map((nok) => (
-                    <div key={nok.id} className="border border-slate-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-slate-900">{nok.fullName}</p>
-                          <p className="text-xs text-slate-500">{nok.relation}</p>
-                          <p className="text-xs text-slate-500 mt-1">{nok.phone}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          {nok.isPrimary ? (
-                            <Badge className="bg-emerald-100 text-emerald-700">Primary</Badge>
-                          ) : null}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            disabled={savingContacts}
-                            onClick={async () => {
-                              if (!confirm('Remove this next of kin?')) return;
-                              setSavingContacts(true);
-                              try {
-                                await portalService.removeNextOfKin(nok.id);
-                                const me = await portalService.getMe();
-                                setClient(me);
-                                toast.success('Next of kin removed');
-                              } catch {
-                                toast.error('Failed to remove next of kin');
-                              } finally {
-                                setSavingContacts(false);
-                              }
-                            }}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-900">Referees</p>
-                <Badge className="bg-slate-100 text-slate-700">{(client?.referees || []).length}</Badge>
-              </div>
-              {(client?.referees || []).length === 0 ? (
-                <p className="text-sm text-slate-500">No referees added yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {(client?.referees || []).map((referee) => (
-                    <div key={referee.id} className="border border-slate-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-slate-900">{referee.fullName}</p>
-                          <p className="text-xs text-slate-500">{referee.relation || 'Referee'}</p>
-                          <p className="text-xs text-slate-500 mt-1">{referee.phone}</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          disabled={savingContacts}
-                          onClick={async () => {
-                            if (!confirm('Remove this referee?')) return;
-                            setSavingContacts(true);
-                            try {
-                              await portalService.removeReferee(referee.id);
-                              const me = await portalService.getMe();
-                              setClient(me);
-                              toast.success('Referee removed');
-                            } catch {
-                              toast.error('Failed to remove referee');
-                            } finally {
-                              setSavingContacts(false);
-                            }
-                          }}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </CardContent>
         </Card>
 
@@ -545,17 +420,14 @@ export default function PortalProfilePage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-slate-100">
-                    <Shield className="h-5 w-5 text-slate-600" />
+                    <Smartphone className="h-5 w-5 text-slate-600" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-900">Two-Factor Authentication</p>
-                    <p className="text-xs text-slate-500">
-                      Two-factor authentication is not available yet.
-                    </p>
+                    <p className="text-xs text-slate-500">Coming soon</p>
                   </div>
                 </div>
                 <Button size="sm" variant="outline" disabled>
-                  <Smartphone className="h-4 w-4 mr-1" />
                   Enable
                 </Button>
               </div>
@@ -635,7 +507,7 @@ export default function PortalProfilePage() {
                   try {
                     await portalService.updateNotificationPreferences(notificationPrefs);
                     toast.success('Preferences saved successfully');
-                  } catch (err) {
+                  } catch {
                     toast.error('Failed to save preferences');
                   } finally {
                     setSavingPrefs(false);
@@ -648,169 +520,6 @@ export default function PortalProfilePage() {
           </CardContent>
         </Card>
       </div>
-
-      <Dialog open={showNokDialog} onOpenChange={setShowNokDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Next of Kin</DialogTitle>
-            <DialogDescription>Provide details for your next of kin contact.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-xs text-slate-600">Full Name</label>
-              <Input value={nokForm.fullName} onChange={(e) => setNokForm({ ...nokForm, fullName: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-600">Relation</label>
-              <Input value={nokForm.relation} onChange={(e) => setNokForm({ ...nokForm, relation: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-600">Phone</label>
-              <Input value={nokForm.phone} onChange={(e) => setNokForm({ ...nokForm, phone: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-600">Email (optional)</label>
-              <Input value={nokForm.email} onChange={(e) => setNokForm({ ...nokForm, email: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-600">Address (optional)</label>
-              <Input value={nokForm.address} onChange={(e) => setNokForm({ ...nokForm, address: e.target.value })} />
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={nokForm.isPrimary}
-                onChange={(e) => setNokForm({ ...nokForm, isPrimary: e.target.checked })}
-                className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-              />
-              <span className="text-sm text-slate-700">Set as primary</span>
-            </div>
-          </div>
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowNokDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              className="bg-emerald-600 hover:bg-emerald-700"
-              disabled={savingContacts}
-              onClick={async () => {
-                if (!nokForm.fullName || !nokForm.relation || !nokForm.phone) {
-                  toast.error('Please fill in full name, relation and phone');
-                  return;
-                }
-                setSavingContacts(true);
-                try {
-                  await portalService.addNextOfKin({
-                    fullName: nokForm.fullName,
-                    relation: nokForm.relation,
-                    phone: nokForm.phone,
-                    email: nokForm.email || undefined,
-                    address: nokForm.address || undefined,
-                    isPrimary: nokForm.isPrimary,
-                  });
-                  const me = await portalService.getMe();
-                  setClient(me);
-                  setNokForm({
-                    fullName: '',
-                    relation: '',
-                    phone: '',
-                    email: '',
-                    address: '',
-                    isPrimary: true,
-                  });
-                  setShowNokDialog(false);
-                  toast.success('Next of kin added');
-                } catch (err: any) {
-                  toast.error(err.response?.data?.message || 'Failed to add next of kin');
-                } finally {
-                  setSavingContacts(false);
-                }
-              }}
-            >
-              {savingContacts ? 'Saving...' : 'Save'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showRefereeDialog} onOpenChange={setShowRefereeDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Referee</DialogTitle>
-            <DialogDescription>Provide details for a referee contact.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-xs text-slate-600">Full Name</label>
-              <Input value={refereeForm.fullName} onChange={(e) => setRefereeForm({ ...refereeForm, fullName: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-600">Phone</label>
-              <Input value={refereeForm.phone} onChange={(e) => setRefereeForm({ ...refereeForm, phone: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-600">Relation (optional)</label>
-              <Input value={refereeForm.relation} onChange={(e) => setRefereeForm({ ...refereeForm, relation: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-600">ID Number (optional)</label>
-              <Input value={refereeForm.idNumber} onChange={(e) => setRefereeForm({ ...refereeForm, idNumber: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-600">Employer (optional)</label>
-              <Input value={refereeForm.employerName} onChange={(e) => setRefereeForm({ ...refereeForm, employerName: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-600">Address (optional)</label>
-              <Input value={refereeForm.address} onChange={(e) => setRefereeForm({ ...refereeForm, address: e.target.value })} />
-            </div>
-          </div>
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowRefereeDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              className="bg-emerald-600 hover:bg-emerald-700"
-              disabled={savingContacts}
-              onClick={async () => {
-                if (!refereeForm.fullName || !refereeForm.phone) {
-                  toast.error('Please fill in full name and phone');
-                  return;
-                }
-                setSavingContacts(true);
-                try {
-                  await portalService.addReferee({
-                    fullName: refereeForm.fullName,
-                    phone: refereeForm.phone,
-                    relation: refereeForm.relation || undefined,
-                    idNumber: refereeForm.idNumber || undefined,
-                    employerName: refereeForm.employerName || undefined,
-                    address: refereeForm.address || undefined,
-                  });
-                  const me = await portalService.getMe();
-                  setClient(me);
-                  setRefereeForm({
-                    fullName: '',
-                    phone: '',
-                    relation: '',
-                    idNumber: '',
-                    employerName: '',
-                    address: '',
-                  });
-                  setShowRefereeDialog(false);
-                  toast.success('Referee added');
-                } catch (err: any) {
-                  toast.error(err.response?.data?.message || 'Failed to add referee');
-                } finally {
-                  setSavingContacts(false);
-                }
-              }}
-            >
-              {savingContacts ? 'Saving...' : 'Save'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

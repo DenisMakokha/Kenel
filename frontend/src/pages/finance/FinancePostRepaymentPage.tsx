@@ -29,7 +29,7 @@ import { formatCurrency } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 
 const PAYMENT_CHANNELS = [
-  { value: 'MPESA', label: 'M-Pesa', icon: '📱' },
+  { value: 'MOBILE_MONEY', label: 'M-Pesa', icon: '📱' },
   { value: 'BANK_TRANSFER', label: 'Bank Transfer', icon: '🏦' },
   { value: 'CASH', label: 'Cash', icon: '💵' },
   { value: 'CHEQUE', label: 'Cheque', icon: '📝' },
@@ -48,7 +48,7 @@ export default function FinancePostRepaymentPage() {
 
   const [paymentForm, setPaymentForm] = useState({
     amount: '',
-    channel: 'MPESA',
+    channel: 'MOBILE_MONEY',
     referenceNumber: '',
     paymentDate: new Date().toISOString().slice(0, 10),
     notes: '',
@@ -62,20 +62,12 @@ export default function FinancePostRepaymentPage() {
       setError('');
       const response = await loanService.getLoans({
         status: LoanStatus.ACTIVE,
+        search: searchTerm.trim(),
         page: 1,
         limit: 10,
       });
 
-      // Filter by search term
-      const filtered = response.data.filter(
-        (loan) =>
-          loan.loanNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          loan.client?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          loan.client?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          loan.client?.clientCode?.includes(searchTerm)
-      );
-
-      setSearchResults(filtered);
+      setSearchResults(response.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to search loans');
     } finally {
@@ -104,6 +96,10 @@ export default function FinancePostRepaymentPage() {
         notes: paymentForm.notes || undefined,
       });
 
+      // Refresh the selected loan to get updated balances
+      const refreshedLoan = await loanService.getLoan(selectedLoan.id);
+      setSelectedLoan(refreshedLoan);
+
       setSuccess(true);
       setShowConfirmDialog(false);
     } catch (err: any) {
@@ -118,7 +114,7 @@ export default function FinancePostRepaymentPage() {
     setSelectedLoan(null);
     setPaymentForm({
       amount: '',
-      channel: 'MPESA',
+      channel: 'MOBILE_MONEY',
       referenceNumber: '',
       paymentDate: new Date().toISOString().slice(0, 10),
       notes: '',
@@ -132,7 +128,14 @@ export default function FinancePostRepaymentPage() {
     // Find the first unpaid schedule
     const nextDue = loan.schedules.find((s) => !s.isPaid);
     if (!nextDue) return 0;
-    return Number(nextDue.principalDue || 0) + Number(nextDue.interestDue || 0) - Number(nextDue.principalPaid || 0) - Number(nextDue.interestPaid || 0);
+    return Number(nextDue.principalDue || 0) + Number(nextDue.interestDue || 0) + Number(nextDue.feesDue || 0) - Number(nextDue.principalPaid || 0) - Number(nextDue.interestPaid || 0) - Number(nextDue.feesPaid || 0);
+  };
+
+  const getTotalOutstanding = (loan: Loan): number => {
+    return Number(loan.outstandingPrincipal || 0) + 
+           Number(loan.outstandingInterest || 0) + 
+           Number(loan.outstandingFees || 0) + 
+           Number(loan.outstandingPenalties || 0);
   };
 
   if (success) {
@@ -149,11 +152,36 @@ export default function FinancePostRepaymentPage() {
                 <p className="text-sm text-emerald-700 mt-1">
                   {formatCurrency(parseFloat(paymentForm.amount))} has been posted to loan {selectedLoan?.loanNumber}
                 </p>
+                {selectedLoan && (
+                  <div className="mt-3 p-3 bg-white rounded-lg">
+                    <p className="text-xs text-slate-500">New Outstanding Balance</p>
+                    <p className="text-lg font-bold text-slate-900">
+                      {formatCurrency(getTotalOutstanding(selectedLoan))}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="flex gap-3 justify-center pt-4">
                 <Button variant="outline" onClick={resetForm}>
                   Post Another Payment
                 </Button>
+                {selectedLoan && getTotalOutstanding(selectedLoan) > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setPaymentForm({
+                        amount: '',
+                        channel: 'MOBILE_MONEY',
+                        referenceNumber: '',
+                        paymentDate: new Date().toISOString().slice(0, 10),
+                        notes: '',
+                      });
+                      setSuccess(false);
+                    }}
+                  >
+                    Pay Same Loan
+                  </Button>
+                )}
                 <Button
                   onClick={() => navigate(`/loans/${selectedLoan?.id}`)}
                   className="bg-emerald-600 hover:bg-emerald-700"
@@ -273,7 +301,7 @@ export default function FinancePostRepaymentPage() {
                   <div className="p-3 rounded-lg bg-white">
                     <p className="text-xs text-slate-500">Outstanding Balance</p>
                     <p className="text-lg font-bold text-slate-900">
-                      {formatCurrency(Number(selectedLoan.outstandingPrincipal || 0))}
+                      {formatCurrency(getTotalOutstanding(selectedLoan))}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-white">
@@ -334,7 +362,7 @@ export default function FinancePostRepaymentPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setPaymentForm({ ...paymentForm, amount: (Number(selectedLoan.outstandingPrincipal) || 0).toString() })}
+                    onClick={() => setPaymentForm({ ...paymentForm, amount: getTotalOutstanding(selectedLoan).toString() })}
                   >
                     Full Balance
                   </Button>

@@ -215,6 +215,36 @@ export class EmailService {
     });
   }
 
+  async sendLoanDisbursementEmail(
+    clientEmail: string,
+    clientName: string,
+    loanNumber: string,
+    amount: number,
+    disbursedBy: string,
+  ): Promise<{ success: boolean; message: string }> {
+    return this.sendEmail({
+      to: clientEmail,
+      subject: `Loan ${loanNumber} Disbursed - KES ${amount.toLocaleString()}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #16a34a;">Loan Disbursed Successfully!</h2>
+          <p>Dear ${clientName},</p>
+          <p>Great news! Your loan has been disbursed to your account.</p>
+          <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0;"><strong>Loan Number:</strong> ${loanNumber}</p>
+            <p style="margin: 0 0 10px 0; font-size: 18px;"><strong>Amount Disbursed:</strong> KES ${amount.toLocaleString()}</p>
+            <p style="margin: 0;"><strong>Disbursed By:</strong> ${disbursedBy}</p>
+          </div>
+          <p>Please log in to your portal to view the loan details and repayment schedule.</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+          <p style="color: #6b7280; font-size: 12px;">
+            This email was sent by Kenels Bureau LMS. Do not reply to this email.
+          </p>
+        </div>
+      `,
+    });
+  }
+
   async sendPaymentConfirmationEmail(
     clientEmail: string,
     clientName: string,

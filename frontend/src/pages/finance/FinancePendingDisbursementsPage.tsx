@@ -46,23 +46,12 @@ export default function FinancePendingDisbursementsPage() {
 
       const res = await loanService.getLoans({
         status: LoanStatus.PENDING_DISBURSEMENT,
+        search: searchTerm.trim() || undefined,
         page,
         limit: 20,
       });
 
-      const filtered = searchTerm.trim()
-        ? res.data.filter((l) => {
-            const q = searchTerm.toLowerCase();
-            return (
-              l.loanNumber?.toLowerCase().includes(q) ||
-              l.client?.firstName?.toLowerCase().includes(q) ||
-              l.client?.lastName?.toLowerCase().includes(q) ||
-              l.client?.clientCode?.toLowerCase().includes(q)
-            );
-          })
-        : res.data;
-
-      setLoans(filtered);
+      setLoans(res.data);
       setTotalPages(res.meta.totalPages);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to load pending disbursements');

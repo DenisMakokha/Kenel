@@ -1,12 +1,13 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { LoanProductsModule } from '../loan-products/loan-products.module';
 import { LoansModule } from '../loans/loans.module';
+import { PortalModule } from '../portal/portal.module';
 import { LoanApplicationsService } from './loan-applications.service';
 import { LoanApplicationsController } from './loan-applications.controller';
 
 @Module({
-  imports: [PrismaModule, LoanProductsModule, LoansModule],
+  imports: [PrismaModule, LoanProductsModule, LoansModule, forwardRef(() => PortalModule)],
   providers: [LoanApplicationsService],
   controllers: [LoanApplicationsController],
   exports: [LoanApplicationsService],

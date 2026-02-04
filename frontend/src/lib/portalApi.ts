@@ -70,7 +70,14 @@ portalApi.interceptors.response.use(
 
         return portalApi(originalRequest);
       } catch (refreshError) {
+        // Clear tokens and redirect to login
         localStorage.removeItem('portalAccessToken');
+        localStorage.removeItem('portal-auth-storage');
+        
+        // Redirect to login page if not already there
+        if (!window.location.pathname.includes('/portal/login')) {
+          window.location.href = '/portal/login';
+        }
         return Promise.reject(refreshError);
       }
     }

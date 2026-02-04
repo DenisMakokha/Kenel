@@ -29,29 +29,26 @@ import {
 } from '../components/ui/select';
 import { Label } from '../components/ui/label';
 import {
-  ClipboardCheck,
   Search,
-  User,
-  Calendar,
   Eye,
   CheckCircle,
   XCircle,
   Clock,
   AlertTriangle,
-  FileText,
   ChevronLeft,
   ChevronRight,
+  FileText,
 } from 'lucide-react';
 import { clientService } from '../services/clientService';
 import type { Client, KycStatus } from '../types/client';
 import { formatDate } from '../lib/utils';
 import { cn } from '../lib/utils';
 
-const KYC_STATUS_CONFIG: Record<KycStatus, { label: string; color: string; icon: any }> = {
-  UNVERIFIED: { label: 'Unverified', color: 'bg-slate-100 text-slate-700', icon: Clock },
-  PENDING_REVIEW: { label: 'Pending Review', color: 'bg-amber-100 text-amber-700', icon: AlertTriangle },
-  VERIFIED: { label: 'Verified', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
-  REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: XCircle },
+const KYC_STATUS_CONFIG: Record<KycStatus, { label: string; color: string; bg: string; border: string; icon: any }> = {
+  UNVERIFIED: { label: 'Unverified', color: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200', icon: Clock },
+  PENDING_REVIEW: { label: 'Pending Review', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle },
+  VERIFIED: { label: 'Verified', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle },
+  REJECTED: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: XCircle },
 };
 
 export default function KycReviewsPage() {
@@ -65,16 +62,31 @@ export default function KycReviewsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
+  // KYC Stats
+  const [kycStats, setKycStats] = useState<{ pendingReview: number; verifiedToday: number; rejectedToday: number; totalUnverified: number } | null>(null);
+
   // Review dialog state
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [reviewAction, setReviewAction] = useState<'approve' | 'reject'>('approve');
   const [reviewNotes, setReviewNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [clientDocuments, setClientDocuments] = useState<any[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
 
   useEffect(() => {
     loadClients();
+    loadKycStats();
   }, [page, statusFilter]);
+
+  const loadKycStats = async () => {
+    try {
+      const stats = await clientService.getKycStats();
+      setKycStats(stats);
+    } catch (err) {
+      console.error('Failed to load KYC stats', err);
+    }
+  };
 
   const loadClients = async () => {
     try {
@@ -101,11 +113,23 @@ export default function KycReviewsPage() {
     loadClients();
   };
 
-  const handleReview = (client: Client, action: 'approve' | 'reject') => {
+  const handleReview = async (client: Client, action: 'approve' | 'reject') => {
     setSelectedClient(client);
     setReviewAction(action);
     setReviewNotes('');
+    setClientDocuments([]);
     setShowReviewDialog(true);
+    
+    // Load client documents
+    try {
+      setLoadingDocs(true);
+      const docs = await clientService.getDocuments(client.id);
+      setClientDocuments(docs);
+    } catch (err) {
+      console.error('Failed to load documents', err);
+    } finally {
+      setLoadingDocs(false);
+    }
   };
 
   const handleSubmitReview = async () => {
@@ -136,13 +160,11 @@ export default function KycReviewsPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">KYC Reviews</h1>
-          <p className="text-sm text-slate-600">
-            Review and verify client KYC documents
-          </p>
+          <p className="text-sm text-slate-600">Review and verify client KYC documents</p>
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="border-slate-100">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
@@ -150,8 +172,8 @@ export default function KycReviewsPage() {
             <AlertTriangle className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-amber-600">{total}</p>
-            <p className="text-xs text-muted-foreground">Awaiting verification</p>
+            <p className="text-2xl font-bold text-amber-600">{kycStats?.pendingReview ?? total}</p>
+            <p className="text-xs text-muted-foreground">Needs action</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -160,8 +182,8 @@ export default function KycReviewsPage() {
             <CheckCircle className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-emerald-600">—</p>
-            <p className="text-xs text-muted-foreground">Not available</p>
+            <p className="text-2xl font-bold text-emerald-600">{kycStats?.verifiedToday ?? 0}</p>
+            <p className="text-xs text-muted-foreground">Approved</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -170,18 +192,18 @@ export default function KycReviewsPage() {
             <XCircle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-red-600">—</p>
-            <p className="text-xs text-muted-foreground">Not available</p>
+            <p className="text-2xl font-bold text-red-600">{kycStats?.rejectedToday ?? 0}</p>
+            <p className="text-xs text-muted-foreground">Declined</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Avg. Review Time</CardTitle>
-            <Clock className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium">Unverified</CardTitle>
+            <Clock className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">—</p>
-            <p className="text-xs text-muted-foreground">Hours to complete</p>
+            <p className="text-2xl font-bold">{kycStats?.totalUnverified ?? 0}</p>
+            <p className="text-xs text-muted-foreground">Not started</p>
           </CardContent>
         </Card>
       </div>
@@ -192,67 +214,48 @@ export default function KycReviewsPage() {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Table */}
       <Card className="border-slate-100">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Filter Reviews</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle>KYC Review Queue</CardTitle>
+              <CardDescription>{total} clients matching filters</CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Search by name, ID, or phone..."
+                  placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pl-9"
+                  className="pl-9 w-[180px]"
                 />
               </div>
-            </div>
-            <div className="w-full md:w-48">
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="KYC Status" />
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All Statuses</SelectItem>
-                  <SelectItem value="PENDING_REVIEW">Pending Review</SelectItem>
+                  <SelectItem value="ALL">All Status</SelectItem>
+                  <SelectItem value="PENDING_REVIEW">Pending</SelectItem>
                   <SelectItem value="UNVERIFIED">Unverified</SelectItem>
                   <SelectItem value="VERIFIED">Verified</SelectItem>
                   <SelectItem value="REJECTED">Rejected</SelectItem>
                 </SelectContent>
               </Select>
+              <Button onClick={handleSearch} className="bg-emerald-600 hover:bg-emerald-700">
+                <Search className="h-4 w-4" />
+              </Button>
             </div>
-            <Button onClick={handleSearch}>
-              <Search className="h-4 w-4 mr-2" />
-              Search
-            </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Reviews Table */}
-      <Card className="border-slate-100">
-        <CardHeader>
-          <CardTitle>KYC Review Queue</CardTitle>
-          <CardDescription>
-            {total} client(s) matching current filters
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">
-              Loading clients...
-            </p>
+            <p className="text-sm text-muted-foreground py-8 text-center">Loading clients...</p>
           ) : clients.length === 0 ? (
-            <div className="text-center py-8">
-              <ClipboardCheck className="h-12 w-12 text-emerald-300 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">
-                No clients pending KYC review
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground py-8 text-center">No clients pending review</p>
           ) : (
             <>
               <div className="overflow-x-auto">
@@ -261,7 +264,7 @@ export default function KycReviewsPage() {
                     <TableRow>
                       <TableHead>Client</TableHead>
                       <TableHead>ID Number</TableHead>
-                      <TableHead>Documents</TableHead>
+                      <TableHead>Docs</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Submitted</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -276,52 +279,32 @@ export default function KycReviewsPage() {
                       return (
                         <TableRow key={client.id}>
                           <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center">
-                                <User className="h-4 w-4 text-slate-600" />
-                              </div>
-                              <div>
-                                <p className="font-medium">
-                                  {client.firstName} {client.lastName}
-                                </p>
-                                <p className="text-xs text-slate-500">{client.clientCode}</p>
-                              </div>
+                            <div>
+                              <p className="font-medium">{client.firstName} {client.lastName}</p>
+                              <p className="text-xs text-slate-500">{client.clientCode}</p>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <code className="text-xs font-mono bg-slate-100 px-2 py-1 rounded">
-                              {client.idNumber}
-                            </code>
+                            <span className="font-mono text-sm">{client.idNumber}</span>
                           </TableCell>
+                          <TableCell>{docCount}</TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-slate-400" />
-                              <span className="text-sm">
-                                {docCount} document{docCount !== 1 ? 's' : ''}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={cn('font-medium', statusConfig?.color)}>
+                            <Badge className={cn(statusConfig?.bg, statusConfig?.color)}>
                               <StatusIcon className="h-3 w-3 mr-1" />
                               {statusConfig?.label}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2 text-sm text-slate-600">
-                              <Calendar className="h-3 w-3" />
-                              {formatDate(client.createdAt)}
-                            </div>
+                          <TableCell className="text-sm text-slate-500">
+                            {formatDate(client.createdAt)}
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => navigate(`/clients/${client.id}`)}
                               >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
+                                <Eye className="h-4 w-4" />
                               </Button>
                               {client.kycStatus === 'PENDING_REVIEW' && (
                                 <>
@@ -330,17 +313,15 @@ export default function KycReviewsPage() {
                                     onClick={() => handleReview(client, 'approve')}
                                     className="bg-emerald-600 hover:bg-emerald-700"
                                   >
-                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                    Approve
+                                    <CheckCircle className="h-4 w-4" />
                                   </Button>
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleReview(client, 'reject')}
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    className="text-red-600 hover:bg-red-50"
                                   >
-                                    <XCircle className="h-4 w-4 mr-1" />
-                                    Reject
+                                    <XCircle className="h-4 w-4" />
                                   </Button>
                                 </>
                               )}
@@ -356,7 +337,7 @@ export default function KycReviewsPage() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-muted-foreground">
                     Page {page} of {totalPages}
                   </p>
                   <div className="flex gap-2">
@@ -366,8 +347,7 @@ export default function KycReviewsPage() {
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
                     >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
+                      <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
@@ -375,8 +355,7 @@ export default function KycReviewsPage() {
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
                     >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                      <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -417,10 +396,42 @@ export default function KycReviewsPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-600">Documents:</span>
-                  <span>{selectedClient.documents?.length || 0} uploaded</span>
+                  <span>{clientDocuments.length || 0} uploaded</span>
                 </div>
               </div>
             )}
+
+            {/* Document Preview Section */}
+            <div className="space-y-2">
+              <Label>Uploaded Documents</Label>
+              {loadingDocs ? (
+                <p className="text-sm text-muted-foreground">Loading documents...</p>
+              ) : clientDocuments.length === 0 ? (
+                <p className="text-sm text-amber-600">No documents uploaded</p>
+              ) : (
+                <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
+                  {clientDocuments.map((doc: any) => (
+                    <div key={doc.id} className="flex items-center justify-between p-3 hover:bg-slate-50">
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-5 w-5 text-slate-400" />
+                        <div>
+                          <p className="text-sm font-medium">{doc.documentType?.replace(/_/g, ' ')}</p>
+                          <p className="text-xs text-slate-500">{doc.fileName}</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}/clients/${selectedClient?.id}/documents/${doc.id}/download`, '_blank')}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="notes">

@@ -33,17 +33,25 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   fetchNotifications: async () => {
     set({ loading: true });
     try {
-      const response = await api.get<{ notifications: Notification[]; unreadCount?: number }>(
-        '/notifications',
-      );
+      // Fetch staff notifications
+      const [notificationsRes, countRes] = await Promise.all([
+        api.get('/staff-notifications'),
+        api.get<{ count: number }>('/staff-notifications/count'),
+      ]);
 
-      const notifications = response.data.notifications || [];
+      const notifications = (notificationsRes.data || []).map((n: any) => ({
+        id: n.id,
+        type: n.type === 'kyc_review' || n.type === 'loan_application' ? 'info' : n.type,
+        title: n.title,
+        message: n.message,
+        read: n.isRead,
+        createdAt: n.createdAt,
+        link: n.linkUrl,
+      }));
+
       set({
         notifications,
-        unreadCount:
-          typeof response.data.unreadCount === 'number'
-            ? response.data.unreadCount
-            : notifications.filter((n) => !n.read).length,
+        unreadCount: countRes.data.count || 0,
         lastFetched: new Date(),
         loading: false,
       });
@@ -59,7 +67,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
 
   markAsRead: (id) => {
     api
-      .post(`/notifications/${id}/read`)
+      .patch(`/staff-notifications/${id}/read`)
       .then(() => {
         set((state) => {
           const notifications = state.notifications.map((n) =>
@@ -73,13 +81,13 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       })
       .catch((err: any) => {
         const message = err?.response?.data?.message;
-        toast.error(message || 'This action is not available yet.');
+        toast.error(message || 'Failed to mark notification as read.');
       });
   },
 
   markAllAsRead: () => {
     api
-      .post('/notifications/read-all')
+      .patch('/staff-notifications/read-all')
       .then(() => {
         set((state) => ({
           notifications: state.notifications.map((n) => ({ ...n, read: true })),

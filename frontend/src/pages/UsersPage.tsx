@@ -34,8 +34,6 @@ import {
   Shield,
   UserCheck,
   UserX,
-  Mail,
-  Phone,
   Calendar,
 } from 'lucide-react';
 import { userService, type User, type CreateUserDto } from '../services/userService';
@@ -174,19 +172,16 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Users & Roles</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Users</h1>
           <p className="text-sm text-slate-600">Manage system users and their access levels</p>
         </div>
-        <Button
-          onClick={() => setShowCreateDialog(true)}
-          className="bg-emerald-600 hover:bg-emerald-700"
-        >
+        <Button onClick={() => setShowCreateDialog(true)} className="bg-emerald-600 hover:bg-emerald-700">
           <Plus className="h-4 w-4 mr-2" />
           Add User
         </Button>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="border-slate-100">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
@@ -195,15 +190,17 @@ export default function UsersPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{stats.total}</p>
+            <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <CardTitle className="text-sm font-medium">Active</CardTitle>
             <UserCheck className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
+            <p className="text-xs text-muted-foreground">Currently enabled</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -213,6 +210,7 @@ export default function UsersPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{stats.admins}</p>
+            <p className="text-xs text-muted-foreground">Admin users</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -222,6 +220,7 @@ export default function UsersPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{stats.officers}</p>
+            <p className="text-xs text-muted-foreground">Credit & Finance</p>
           </CardContent>
         </Card>
       </div>
@@ -232,57 +231,47 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Filters & Table */}
       <Card className="border-slate-100">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle>System Users</CardTitle>
+              <CardDescription>{filteredUsers.length} users found</CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Search by name or email..."
+                  placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 w-[200px]"
                 />
               </div>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="All Roles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="ADMIN">Administrator</SelectItem>
+                  <SelectItem value="CREDIT_OFFICER">Credit Officer</SelectItem>
+                  <SelectItem value="FINANCE_OFFICER">Finance Officer</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Filter by role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="ADMIN">Administrator</SelectItem>
-                <SelectItem value="CREDIT_OFFICER">Credit Officer</SelectItem>
-                <SelectItem value="FINANCE_OFFICER">Finance Officer</SelectItem>
-                <SelectItem value="CLIENT">Client</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[150px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Users Table */}
-      <Card className="border-slate-100">
-        <CardHeader>
-          <CardTitle>System Users</CardTitle>
-          <CardDescription>
-            {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} found
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -306,36 +295,19 @@ export default function UsersPage() {
                   {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-slate-900">
-                            {user.firstName} {user.lastName}
-                          </span>
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <Mail className="h-3 w-3" />
-                            {user.email}
-                          </div>
-                          {user.phone && (
-                            <div className="flex items-center gap-2 text-xs text-slate-500">
-                              <Phone className="h-3 w-3" />
-                              {user.phone}
-                            </div>
-                          )}
+                        <div>
+                          <p className="font-medium">{user.firstName} {user.lastName}</p>
+                          <p className="text-xs text-slate-500">{user.email}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn('font-medium', ROLE_COLORS[user.role])}
-                        >
+                        <Badge variant="outline" className={cn('font-medium', ROLE_COLORS[user.role])}>
                           {ROLE_LABELS[user.role]}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {user.isActive ? (
-                          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                            <UserCheck className="h-3 w-3 mr-1" />
-                            Active
-                          </Badge>
+                          <Badge className="bg-emerald-100 text-emerald-700">Active</Badge>
                         ) : (
                           <Badge variant="outline" className="text-slate-500">
                             <UserX className="h-3 w-3 mr-1" />

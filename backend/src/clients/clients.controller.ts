@@ -67,6 +67,14 @@ export class ClientsController {
     return this.clientsService.findAll(query);
   }
 
+  @Get('kyc/stats')
+  @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER)
+  @ApiOperation({ summary: 'Get KYC review statistics' })
+  @ApiResponse({ status: 200, description: 'KYC stats retrieved successfully' })
+  getKycStats() {
+    return this.clientsService.getKycStats();
+  }
+
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER, UserRole.FINANCE_OFFICER)
   @ApiOperation({ summary: 'Get client by ID' })
@@ -74,6 +82,14 @@ export class ClientsController {
   @ApiResponse({ status: 404, description: 'Client not found' })
   findOne(@Param('id') id: string) {
     return this.clientsService.findOne(id);
+  }
+
+  @Get(':id/loan-stats')
+  @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER, UserRole.FINANCE_OFFICER)
+  @ApiOperation({ summary: 'Get loan statistics for a client' })
+  @ApiResponse({ status: 200, description: 'Loan stats retrieved successfully' })
+  getLoanStats(@Param('id') id: string) {
+    return this.clientsService.getLoanStats(id);
   }
 
   @Patch(':id')

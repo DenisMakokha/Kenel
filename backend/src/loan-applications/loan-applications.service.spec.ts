@@ -28,7 +28,12 @@ describe('LoanApplicationsService - upsertScore', () => {
       createFromApplication: jest.fn().mockResolvedValue({}),
     };
 
-    service = new LoanApplicationsService(prisma as any, loansService as any);
+    const notificationsService = {
+      notifyApplicationApproved: jest.fn().mockResolvedValue({}),
+      notifyApplicationRejected: jest.fn().mockResolvedValue({}),
+    };
+
+    service = new LoanApplicationsService(prisma as any, loansService as any, notificationsService as any);
   });
 
   it('creates a new score with correct totalScore and grade for SUBMITTED application', async () => {

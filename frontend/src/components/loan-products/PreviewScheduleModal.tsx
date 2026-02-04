@@ -7,6 +7,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { formatCurrency } from '../../lib/utils';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface PreviewScheduleModalProps {
   open: boolean;
@@ -235,13 +236,74 @@ export default function PreviewScheduleModal({
               </div>
             </div>
 
-            {/* Chart Placeholder */}
-            <div className="border rounded-lg p-4">
-              <h3 className="font-semibold mb-2">Payment Breakdown</h3>
-              <div className="h-32 flex items-center justify-center bg-accent rounded">
-                <p className="text-muted-foreground text-sm">
-                  Chart visualization (can be added with recharts)
-                </p>
+            {/* Payment Breakdown Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Pie Chart */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Payment Breakdown</h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Principal', value: schedule.totals.principal, color: '#3b82f6' },
+                          { name: 'Interest', value: schedule.totals.interest, color: '#f59e0b' },
+                          { name: 'Fees', value: schedule.totals.fees, color: '#8b5cf6' },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                      >
+                        <Cell fill="#3b82f6" />
+                        <Cell fill="#f59e0b" />
+                        <Cell fill="#8b5cf6" />
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: number) => [formatCurrency(value, schedule.currency), '']}
+                      />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Bar Chart - Installment Breakdown */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Installment Breakdown</h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={schedule.installments.slice(0, 12).map((inst) => ({
+                        name: `#${inst.number}`,
+                        Principal: inst.principal,
+                        Interest: inst.interest,
+                        Fees: inst.fees,
+                      }))}
+                      margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip 
+                        formatter={(value: number) => [formatCurrency(value, schedule.currency), '']}
+                      />
+                      <Legend />
+                      <Bar dataKey="Principal" stackId="a" fill="#3b82f6" />
+                      <Bar dataKey="Interest" stackId="a" fill="#f59e0b" />
+                      <Bar dataKey="Fees" stackId="a" fill="#8b5cf6" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                {schedule.installments.length > 12 && (
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Showing first 12 of {schedule.installments.length} installments
+                  </p>
+                )}
               </div>
             </div>
           </div>

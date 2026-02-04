@@ -44,6 +44,7 @@ import {
 import { formatCurrency, formatDate } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import { clientService } from '../../services/clientService';
+import { loanService } from '../../services/loanService';
 import type { Client as ApiClient } from '../../types/client';
 import { toast } from 'sonner';
 
@@ -86,13 +87,13 @@ export default function FinanceStatementsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searching, setSearching] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
-  const [selectedClient] = useState<Client | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showStatementDialog, setShowStatementDialog] = useState(false);
-  const [transactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [loanFilter, setLoanFilter] = useState<string>('ALL');
-  const [loadingStatement] = useState(false);
+  const [loadingStatement, setLoadingStatement] = useState(false);
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
@@ -102,28 +103,113 @@ export default function FinanceStatementsPage() {
 
       const response = await clientService.getClients({ search: searchTerm.trim(), page: 1, limit: 20 });
 
-      const mapped: Client[] = response.data.map((c: ApiClient) => ({
-        id: c.id,
-        clientCode: c.clientCode,
-        firstName: c.firstName,
-        lastName: c.lastName,
-        phone: c.phonePrimary,
-        email: c.email ?? '',
-        totalLoans: c._count?.loans ?? 0,
-        activeLoans: 0,
-        totalDisbursed: 0,
-        totalRepaid: 0,
-        currentBalance: 0,
-      }));
+      // Fetch loan stats for each client in parallel
+      const clientsWithStats = await Promise.all(
+        response.data.map(async (c: ApiClient) => {
+          try {
+            const stats = await clientService.getLoanStats(c.id);
+            return {
+              id: c.id,
+              clientCode: c.clientCode,
+              firstName: c.firstName,
+              lastName: c.lastName,
+              phone: c.phonePrimary,
+              email: c.email ?? '',
+              totalLoans: stats.totalLoans,
+              activeLoans: stats.activeLoans,
+              totalDisbursed: stats.totalDisbursed,
+              totalRepaid: stats.totalRepaid,
+              currentBalance: stats.currentBalance,
+            };
+          } catch {
+            return {
+              id: c.id,
+              clientCode: c.clientCode,
+              firstName: c.firstName,
+              lastName: c.lastName,
+              phone: c.phonePrimary,
+              email: c.email ?? '',
+              totalLoans: c._count?.loans ?? 0,
+              activeLoans: 0,
+              totalDisbursed: 0,
+              totalRepaid: 0,
+              currentBalance: 0,
+            };
+          }
+        })
+      );
 
-      setClients(mapped);
+      setClients(clientsWithStats);
     } finally {
       setSearching(false);
     }
   };
 
-  const handleViewStatement = async () => {
-    toast.error('Client statements are not available yet.');
+  const handleViewStatement = async (client: Client) => {
+    setSelectedClient(client);
+    setShowStatementDialog(true);
+    setLoadingStatement(true);
+    setTransactions([]);
+    
+    try {
+      // Fetch client's loans and their repayments
+      const loansResponse = await loanService.getLoans({ clientId: client.id, page: 1, limit: 100 });
+      const allTransactions: Transaction[] = [];
+      let runningBalance = 0;
+      
+      for (const loan of loansResponse.data) {
+        // Add disbursement as transaction
+        if (loan.disbursedAt) {
+          runningBalance += Number(loan.principalAmount) || 0;
+          allTransactions.push({
+            id: `disb-${loan.id}`,
+            date: loan.disbursedAt,
+            type: 'DISBURSEMENT',
+            description: `Loan Disbursement - ${loan.loanNumber}`,
+            reference: loan.loanNumber,
+            debit: Number(loan.principalAmount) || 0,
+            credit: 0,
+            balance: runningBalance,
+            loanNumber: loan.loanNumber,
+          });
+        }
+        
+        // Add repayments
+        if (loan.repayments) {
+          for (const repayment of loan.repayments) {
+            const amount = Number(repayment.amount) || 0;
+            runningBalance -= amount;
+            allTransactions.push({
+              id: repayment.id,
+              date: repayment.transactionDate,
+              type: 'REPAYMENT',
+              description: `Payment - ${repayment.receiptNumber || 'N/A'}`,
+              reference: repayment.receiptNumber || repayment.reference || '',
+              debit: 0,
+              credit: amount,
+              balance: Math.max(0, runningBalance),
+              loanNumber: loan.loanNumber,
+            });
+          }
+        }
+      }
+      
+      // Sort by date
+      allTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      
+      // Recalculate running balance in order
+      let balance = 0;
+      for (const t of allTransactions) {
+        balance += t.debit - t.credit;
+        t.balance = Math.max(0, balance);
+      }
+      
+      setTransactions(allTransactions);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to load statement');
+    } finally {
+      setLoadingStatement(false);
+    }
   };
 
   const handlePrintStatement = () => {
@@ -368,7 +454,7 @@ export default function FinanceStatementsPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={handleViewStatement}>
+                        <Button variant="outline" size="sm" onClick={() => handleViewStatement(client)}>
                           <Eye className="h-4 w-4 mr-1" />
                           Statement
                         </Button>

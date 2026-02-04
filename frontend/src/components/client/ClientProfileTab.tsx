@@ -1,156 +1,177 @@
 import { Client } from '../../types/client';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
 import { formatDate, formatCurrency } from '../../lib/utils';
+import {
+  User,
+  CreditCard,
+  Calendar,
+  Users,
+  Phone,
+  Mail,
+  MapPin,
+  Briefcase,
+  Building,
+  DollarSign,
+  Clock,
+  Hash,
+  Heart,
+} from 'lucide-react';
 
 interface ClientProfileTabProps {
   client: Client;
   onUpdate: () => void;
 }
 
+interface InfoItemProps {
+  icon: React.ElementType;
+  label: string;
+  value: string | null | undefined;
+  mono?: boolean;
+  color?: string;
+}
+
+function InfoItem({ icon: Icon, label, value, mono, color }: InfoItemProps) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+      <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${color || 'bg-slate-200 text-slate-600'}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
+        <p className={`text-sm font-medium text-slate-900 ${mono ? 'font-mono' : ''}`}>{value}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function ClientProfileTab({ client }: ClientProfileTabProps) {
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      {/* Personal Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Personal Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+    <div className="space-y-6">
+      {/* Client Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 text-white">
+        <div className="flex items-center gap-4">
+          <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold">
+            {client.firstName?.[0]}{client.lastName?.[0]}
+          </div>
           <div>
-            <p className="text-sm text-muted-foreground">Full Name</p>
-            <p className="font-medium">
+            <h2 className="text-2xl font-bold">
               {client.firstName} {client.otherNames} {client.lastName}
-            </p>
+            </h2>
+            <p className="text-blue-100 font-mono">{client.clientCode}</p>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground">ID Type</p>
-            <p className="font-medium">{client.idType.replace('_', ' ')}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">ID Number</p>
-            <p className="font-medium font-mono">{client.idNumber}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Date of Birth</p>
-            <p className="font-medium">{formatDate(client.dateOfBirth)}</p>
-          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Badge variant="secondary" className="bg-white/20 text-white border-0">
+            {client.idType?.replace('_', ' ')}
+          </Badge>
           {client.gender && (
-            <div>
-              <p className="text-sm text-muted-foreground">Gender</p>
-              <p className="font-medium">{client.gender}</p>
-            </div>
+            <Badge variant="secondary" className="bg-white/20 text-white border-0">
+              {client.gender}
+            </Badge>
           )}
           {client.maritalStatus && (
-            <div>
-              <p className="text-sm text-muted-foreground">Marital Status</p>
-              <p className="font-medium">{client.maritalStatus}</p>
-            </div>
+            <Badge variant="secondary" className="bg-white/20 text-white border-0">
+              {client.maritalStatus}
+            </Badge>
           )}
-        </CardContent>
-      </Card>
+          <Badge variant="secondary" className="bg-white/20 text-white border-0">
+            {client.createdChannel}
+          </Badge>
+        </div>
+      </div>
 
-      {/* Contact Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Contact Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <p className="text-sm text-muted-foreground">Primary Phone</p>
-            <p className="font-medium">{client.phonePrimary}</p>
-          </div>
-          {client.phoneSecondary && (
-            <div>
-              <p className="text-sm text-muted-foreground">Secondary Phone</p>
-              <p className="font-medium">{client.phoneSecondary}</p>
-            </div>
-          )}
-          {client.email && (
-            <div>
-              <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-medium">{client.email}</p>
-            </div>
-          )}
-          {client.residentialAddress && (
-            <div>
-              <p className="text-sm text-muted-foreground">Residential Address</p>
-              <p className="font-medium">{client.residentialAddress}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Personal Information */}
+        <Card className="border-slate-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="h-5 w-5 text-blue-600" />
+              Personal Information
+            </CardTitle>
+            <CardDescription>Identity and personal details</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <InfoItem icon={CreditCard} label="ID Number" value={client.idNumber} mono color="bg-blue-100 text-blue-600" />
+            <InfoItem icon={Calendar} label="Date of Birth" value={formatDate(client.dateOfBirth)} color="bg-purple-100 text-purple-600" />
+            <InfoItem icon={Users} label="Gender" value={client.gender} color="bg-pink-100 text-pink-600" />
+            <InfoItem icon={Heart} label="Marital Status" value={client.maritalStatus} color="bg-rose-100 text-rose-600" />
+          </CardContent>
+        </Card>
 
-      {/* Employment Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Employment Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {client.employerName ? (
-            <>
-              <div>
-                <p className="text-sm text-muted-foreground">Employer</p>
-                <p className="font-medium">{client.employerName}</p>
+        {/* Contact Information */}
+        <Card className="border-slate-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Phone className="h-5 w-5 text-emerald-600" />
+              Contact Information
+            </CardTitle>
+            <CardDescription>Phone numbers and addresses</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <InfoItem icon={Phone} label="Primary Phone" value={client.phonePrimary} color="bg-emerald-100 text-emerald-600" />
+            <InfoItem icon={Phone} label="Secondary Phone" value={client.phoneSecondary} color="bg-teal-100 text-teal-600" />
+            <InfoItem icon={Mail} label="Email" value={client.email} color="bg-cyan-100 text-cyan-600" />
+            <InfoItem icon={MapPin} label="Residential Address" value={client.residentialAddress} color="bg-green-100 text-green-600" />
+          </CardContent>
+        </Card>
+
+        {/* Employment Information */}
+        <Card className="border-slate-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-amber-600" />
+              Employment Information
+            </CardTitle>
+            <CardDescription>Work and income details</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {client.employerName ? (
+              <div className="space-y-3">
+                <InfoItem icon={Building} label="Employer" value={client.employerName} color="bg-amber-100 text-amber-600" />
+                <InfoItem icon={Briefcase} label="Occupation" value={client.occupation} color="bg-orange-100 text-orange-600" />
+                <InfoItem icon={MapPin} label="Employer Address" value={client.employerAddress} color="bg-yellow-100 text-yellow-700" />
+                <InfoItem icon={Phone} label="Employer Phone" value={client.employerPhone} color="bg-lime-100 text-lime-700" />
+                {client.monthlyIncome && (
+                  <InfoItem icon={DollarSign} label="Monthly Income" value={formatCurrency(parseFloat(client.monthlyIncome))} color="bg-green-100 text-green-600" />
+                )}
               </div>
-              {client.occupation && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Occupation</p>
-                  <p className="font-medium">{client.occupation}</p>
-                </div>
-              )}
-              {client.employerAddress && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Employer Address</p>
-                  <p className="font-medium">{client.employerAddress}</p>
-                </div>
-              )}
-              {client.employerPhone && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Employer Phone</p>
-                  <p className="font-medium">{client.employerPhone}</p>
-                </div>
-              )}
-              {client.monthlyIncome && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Monthly Income</p>
-                  <p className="font-medium">{formatCurrency(parseFloat(client.monthlyIncome))}</p>
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="text-muted-foreground">No employment information provided</p>
-          )}
-        </CardContent>
-      </Card>
+            ) : (
+              <div className="text-center py-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                <Briefcase className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-600 font-medium">No employment information</p>
+                <p className="text-sm text-slate-500 mt-1">Employment details not provided yet</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Additional Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Additional Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <p className="text-sm text-muted-foreground">Created Channel</p>
-            <p className="font-medium">{client.createdChannel}</p>
-          </div>
-          {client.kycLevel && (
-            <div>
-              <p className="text-sm text-muted-foreground">KYC Level</p>
-              <p className="font-medium capitalize">{client.kycLevel}</p>
-            </div>
-          )}
-          {client.notes && (
-            <div>
-              <p className="text-sm text-muted-foreground">Notes</p>
-              <p className="font-medium whitespace-pre-wrap">{client.notes}</p>
-            </div>
-          )}
-          <div>
-            <p className="text-sm text-muted-foreground">Last Updated</p>
-            <p className="font-medium">{formatDate(client.updatedAt)}</p>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Additional Information */}
+        <Card className="border-slate-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Hash className="h-5 w-5 text-slate-600" />
+              Additional Information
+            </CardTitle>
+            <CardDescription>System and account details</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <InfoItem icon={Hash} label="Client Code" value={client.clientCode} mono color="bg-slate-200 text-slate-600" />
+            <InfoItem icon={Hash} label="Created Channel" value={client.createdChannel} color="bg-indigo-100 text-indigo-600" />
+            {client.kycLevel && (
+              <InfoItem icon={User} label="KYC Level" value={client.kycLevel} color="bg-violet-100 text-violet-600" />
+            )}
+            <InfoItem icon={Clock} label="Last Updated" value={formatDate(client.updatedAt)} color="bg-slate-200 text-slate-600" />
+            {client.notes && (
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <p className="text-xs text-amber-700 uppercase tracking-wide mb-1">Notes</p>
+                <p className="text-sm text-amber-900 whitespace-pre-wrap">{client.notes}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

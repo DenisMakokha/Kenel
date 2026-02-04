@@ -1,5 +1,5 @@
 import portalApi from '../lib/portalApi';
-import type { PortalClient, PortalDashboardResponse, PortalLoanSummary } from '../types/portal';
+import type { PortalClient, PortalDashboardResponse, PortalLoanSummary, PortalLoanApplication, PortalNotificationsResponse } from '../types/portal';
 
 interface RegisterData {
   firstName: string;
@@ -52,6 +52,16 @@ export const portalService = {
     return response.data;
   },
 
+  async getLoanApplications(): Promise<PortalLoanApplication[]> {
+    const response = await portalApi.get<PortalLoanApplication[]>('/portal/loan-applications');
+    return response.data;
+  },
+
+  async getLoanApplicationDetail(applicationId: string): Promise<any> {
+    const response = await portalApi.get(`/portal/loan-applications/${applicationId}`);
+    return response.data;
+  },
+
   async createLoanApplication(data: {
     productVersionId: string;
     requestedAmount: number;
@@ -96,6 +106,11 @@ export const portalService = {
 
   async submitLoanApplication(id: string, data?: { notes?: string }) {
     const response = await portalApi.post(`/portal/loan-applications/${id}/submit`, data || {});
+    return response.data;
+  },
+
+  async deleteLoanApplication(id: string) {
+    const response = await portalApi.delete(`/portal/loan-applications/${id}`);
     return response.data;
   },
 
@@ -215,6 +230,55 @@ export const portalService = {
 
   async updateNotificationPreferences(preferences: { paymentReminders?: boolean; emailNotifications?: boolean; smsNotifications?: boolean }) {
     const response = await portalApi.patch('/portal/preferences', preferences);
+    return response.data;
+  },
+
+  // Notifications
+  async getNotifications(): Promise<PortalNotificationsResponse> {
+    const response = await portalApi.get<PortalNotificationsResponse>('/portal/notifications');
+    return response.data;
+  },
+
+  async markNotificationAsRead(notificationId: string) {
+    const response = await portalApi.post(`/portal/notifications/${notificationId}/read`);
+    return response.data;
+  },
+
+  async markAllNotificationsAsRead() {
+    const response = await portalApi.post('/portal/notifications/read-all');
+    return response.data;
+  },
+
+  async deleteNotification(notificationId: string) {
+    const response = await portalApi.delete(`/portal/notifications/${notificationId}`);
+    return response.data;
+  },
+
+  // Document management
+  async uploadDocument(file: File, documentType: string) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('documentType', documentType);
+    const response = await portalApi.post('/portal/me/documents', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  async deleteDocument(documentId: string) {
+    const response = await portalApi.delete(`/portal/me/documents/${documentId}`);
+    return response.data;
+  },
+
+  // Employment update
+  async updateEmployment(data: { employerName?: string; occupation?: string; monthlyIncome?: string }) {
+    const response = await portalApi.patch('/portal/me', data);
+    return response.data;
+  },
+
+  // KYC submission
+  async submitKycForReview() {
+    const response = await portalApi.post('/portal/me/kyc/submit');
     return response.data;
   },
 };

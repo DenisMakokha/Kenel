@@ -41,6 +41,7 @@ import {
 } from '../components/ui/dialog';
 import PreviewScheduleModal from '../components/loan-products/PreviewScheduleModal';
 import { formatDate, mapCreditScoreToGrade } from '../lib/utils';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 export default function LoanApplicationDetailPage() {
   const { id } = useParams();
@@ -86,8 +87,30 @@ export default function LoanApplicationDetailPage() {
   const [creatingLoan, setCreatingLoan] = useState(false);
 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  
+  // Document review state
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [reviewingDoc, setReviewingDoc] = useState<any>(null);
+  const [reviewStatus, setReviewStatus] = useState<'VERIFIED' | 'REJECTED'>('VERIFIED');
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState('');
+  const [showApproveFooter, setShowApproveFooter] = useState(false);
+
+  // Show approve/reject footer when scrolled near bottom
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+      const nearBottom = scrollTop + windowHeight >= docHeight - 200;
+      setShowApproveFooter(nearBottom);
+    };
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Check initial position
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -112,6 +135,16 @@ export default function LoanApplicationDetailPage() {
             recommendation: (score.recommendation as UpsertCreditScoreDto['recommendation']) || 'APPROVE',
           });
         }
+
+        // Pre-fill approve data with application's requested values
+        const rules = (app.productVersion as any)?.rules;
+        const interestRate = rules?.interest?.rate_per_year || 0;
+        setApproveData({
+          approvedPrincipal: Number(app.requestedAmount) || 0,
+          approvedTermMonths: app.requestedTermMonths || 0,
+          approvedInterestRate: interestRate,
+          decisionNotes: '',
+        });
 
         try {
           setAuditLoading(true);
@@ -141,7 +174,7 @@ export default function LoanApplicationDetailPage() {
 
   const canMoveToUnderReview =
     user && application &&
-    user.role === UserRole.ADMIN &&
+    (user.role === UserRole.ADMIN || user.role === UserRole.CREDIT_OFFICER) &&
     application.status === 'SUBMITTED';
 
   const canApproveOrReject =
@@ -204,6 +237,35 @@ export default function LoanApplicationDetailPage() {
       setDocuments(docs);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to delete document');
+    }
+  };
+
+  const openReviewDialog = (doc: any) => {
+    setReviewingDoc(doc);
+    setReviewStatus('VERIFIED');
+    setReviewNotes('');
+    setShowReviewDialog(true);
+  };
+
+  const handleReviewDocument = async () => {
+    if (!id || !reviewingDoc) return;
+    try {
+      setReviewLoading(true);
+      setError('');
+      await loanApplicationService.reviewDocument(id, reviewingDoc.id, reviewStatus, reviewNotes);
+      // Refresh documents and checklist
+      const [docs, app] = await Promise.all([
+        loanApplicationService.getDocuments(id),
+        loanApplicationService.getApplication(id),
+      ]);
+      setDocuments(docs);
+      setChecklist(app.checklistItems || []);
+      setShowReviewDialog(false);
+      setReviewingDoc(null);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to review document');
+    } finally {
+      setReviewLoading(false);
     }
   };
 
@@ -345,115 +407,204 @@ export default function LoanApplicationDetailPage() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="max-w-6xl mx-auto space-y-4 px-4 md:px-6 py-4 pb-48">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">
-            {application.applicationNumber} –{' '}
-            {application.productVersion?.loanProduct?.name || 'Loan Application'}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Client:{' '}
-            {application.client
-              ? `${application.client.firstName} ${application.client.lastName} (${application.client.clientCode})`
-              : application.clientId}
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-xl font-bold text-slate-900">{application.applicationNumber}</h1>
+            {getStatusBadge(application.status)}
+          </div>
+          <p className="text-sm text-slate-600">
+            {application.productVersion?.loanProduct?.name || 'Loan Application'} • {application.client ? `${application.client.firstName} ${application.client.lastName}` : ''}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          {getStatusBadge(application.status)}
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate('/loan-applications')}>
-              Back to List
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate('/loan-applications')}>Back</Button>
+          {canEditDraft && (
+            <Button variant="outline" size="sm" onClick={() => navigate(`/loan-applications/${application.id}/edit`)}>Edit</Button>
+          )}
+          {canSubmit && <Button size="sm" onClick={handleSubmit}>Submit</Button>}
+          {canMoveToUnderReview && (
+            <Button size="sm" onClick={handleMoveToUnderReview} className="bg-emerald-600 hover:bg-emerald-700">Send for Approval</Button>
+          )}
+          {application.loan && (
+            <Button size="sm" variant="outline" onClick={() => navigate(`/loans/${(application.loan as any).id}`)}>View Loan</Button>
+          )}
+          {canCreateLoan && (
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleCreateLoan} disabled={creatingLoan}>
+              {creatingLoan ? 'Creating...' : 'Create Loan'}
             </Button>
-            {canEditDraft && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(`/loan-applications/${application.id}/edit`)}
-              >
-                Edit Draft
-              </Button>
-            )}
-            {canSubmit && (
-              <Button size="sm" onClick={handleSubmit}>
-                Submit
-              </Button>
-            )}
-            {canMoveToUnderReview && (
-              <Button size="sm" onClick={handleMoveToUnderReview}>
-                Move to Under Review
-              </Button>
-            )}
-            {application.loan && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(`/loans/${(application.loan as any).id}`)}
-              >
-                View Loan
-              </Button>
-            )}
-            {canCreateLoan && (
-              <Button size="sm" onClick={handleCreateLoan} disabled={creatingLoan}>
-                {creatingLoan ? 'Creating Loan...' : 'Create Loan'}
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
       {error && (
-        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded">
-          {error}
+        <div className="rounded-md border border-destructive bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>
+      )}
+
+      {/* Progress Steps - Simplified */}
+      {(user?.role === UserRole.CREDIT_OFFICER || user?.role === UserRole.ADMIN) && (
+        <Card className="border-slate-100">
+          <CardContent className="pt-4">
+            {(() => {
+              const docsVerified = documents.filter(d => d.reviewStatus === 'VERIFIED').length;
+              const allDocsVerified = documents.length >= 6 && docsVerified >= 6;
+              const hasScore = Boolean(application.creditScore);
+              const isVerificationComplete = (allDocsVerified || docsVerified >= documents.length) && hasScore;
+              
+              const steps = [
+                { key: 'submitted', label: 'Submitted' },
+                { key: 'verified', label: 'Verified' },
+                { key: 'under_review', label: 'Review' },
+                { key: 'decision', label: 'Decision' },
+              ];
+              
+              return (
+                <div className="flex items-center gap-2">
+                  {steps.map((step, index) => {
+                    const isCompleted = 
+                      (step.key === 'submitted' && ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'].includes(application.status)) ||
+                      (step.key === 'verified' && (isVerificationComplete || ['UNDER_REVIEW', 'APPROVED', 'REJECTED'].includes(application.status))) ||
+                      (step.key === 'under_review' && ['UNDER_REVIEW', 'APPROVED', 'REJECTED'].includes(application.status)) ||
+                      (step.key === 'decision' && ['APPROVED', 'REJECTED'].includes(application.status));
+                    const isCurrent = 
+                      (step.key === 'submitted' && application.status === 'SUBMITTED' && !isVerificationComplete) ||
+                      (step.key === 'verified' && application.status === 'SUBMITTED' && isVerificationComplete) ||
+                      (step.key === 'under_review' && application.status === 'UNDER_REVIEW');
+                  
+                    return (
+                      <div key={step.key} className="flex items-center gap-2 flex-1">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                          isCompleted ? 'bg-emerald-500 text-white' : 
+                          isCurrent ? 'bg-blue-500 text-white' : 
+                          'bg-slate-200 text-slate-500'
+                        }`}>
+                          {isCompleted ? '✓' : index + 1}
+                        </div>
+                        <span className={`text-xs font-medium ${isCompleted ? 'text-emerald-600' : isCurrent ? 'text-blue-600' : 'text-slate-400'}`}>
+                          {step.label}
+                        </span>
+                        {index < 3 && <div className={`flex-1 h-0.5 ${isCompleted ? 'bg-emerald-300' : 'bg-slate-200'}`} />}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Stats */}
+      {(application.status === 'SUBMITTED' || application.status === 'UNDER_REVIEW') && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card className="border-slate-100">
+            <CardContent className="pt-3 pb-3">
+              <p className="text-xs text-muted-foreground">Request</p>
+              <p className="text-lg font-bold text-emerald-600">KES {Number(application.requestedAmount).toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">{application.requestedTermMonths} months</p>
+            </CardContent>
+          </Card>
+          <Card className="border-slate-100">
+            <CardContent className="pt-3 pb-3">
+              <p className="text-xs text-muted-foreground">Documents</p>
+              <p className={`text-lg font-bold ${documents.length >= 6 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {documents.length}/6
+              </p>
+              <p className="text-xs text-muted-foreground">{documents.filter(d => d.reviewStatus === 'VERIFIED').length} verified</p>
+            </CardContent>
+          </Card>
+          <Card className="border-slate-100">
+            <CardContent className="pt-3 pb-3">
+              <p className="text-xs text-muted-foreground">Checklist</p>
+              <p className={`text-lg font-bold ${checklist.filter(c => c.status === 'COMPLETED').length === checklist.length ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {checklist.filter(c => c.status === 'COMPLETED').length}/{checklist.length}
+              </p>
+              <p className="text-xs text-muted-foreground">{checklist.filter(c => c.status === 'PENDING').length} pending</p>
+            </CardContent>
+          </Card>
+          <Card className="border-slate-100">
+            <CardContent className="pt-3 pb-3">
+              <p className="text-xs text-muted-foreground">Credit Score</p>
+              {application.creditScore ? (
+                <>
+                  <p className={`text-lg font-bold ${Number(application.creditScore.totalScore) >= 16 ? 'text-emerald-600' : Number(application.creditScore.totalScore) >= 12 ? 'text-amber-600' : 'text-red-600'}`}>
+                    {application.creditScore.totalScore}/20
+                  </p>
+                  <p className="text-xs text-muted-foreground">{application.creditScore.grade}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg font-bold text-slate-400">—</p>
+                  <p className="text-xs text-muted-foreground">Not scored</p>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
+      {/* Quick Summary Card */}
       <Card>
-        <CardHeader>
-          <CardTitle>Overview</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Request Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 text-sm">
             <div>
-              <p className="text-muted-foreground">Requested</p>
-              <p className="font-semibold">
-                {application.requestedAmount} over {application.requestedTermMonths} months
-              </p>
+              <p className="text-muted-foreground text-xs">Amount</p>
+              <p className="font-semibold">KES {Number(application.requestedAmount).toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Approved</p>
-              {application.approvedPrincipal ? (
-                <p className="font-semibold">
-                  {application.approvedPrincipal} over {application.approvedTermMonths} months @{' '}
-                  {application.approvedInterestRate}%
-                </p>
-              ) : (
-                <p className="text-muted-foreground">Not yet approved</p>
-              )}
+              <p className="text-muted-foreground text-xs">Term</p>
+              <p className="font-semibold">{application.requestedTermMonths} months</p>
             </div>
             <div>
-              <p className="text-muted-foreground">KYC & Risk at Application</p>
-              <p className="font-semibold">
-                KYC: {application.kycStatusSnapshot || 'N/A'} / Risk:{' '}
-                {application.riskRatingSnapshot || 'N/A'}
-              </p>
+              <p className="text-muted-foreground text-xs">Purpose</p>
+              <p className="font-semibold">{application.purpose || 'Not specified'}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Channel</p>
+              <p className="font-semibold">{application.channel || 'ONLINE'}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">KYC Status</p>
+              <Badge variant={(application.client?.kycStatus || application.kycStatusSnapshot) === 'VERIFIED' ? 'default' : 'secondary'}>
+                {application.client?.kycStatus || application.kycStatusSnapshot || 'N/A'}
+              </Badge>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Submitted</p>
+              <p className="font-semibold">{application.submittedAt ? formatDate(application.submittedAt) : 'Draft'}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="scoring">Scoring</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule Preview</TabsTrigger>
-          <TabsTrigger value="checklist">Checklist</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="events">Timeline</TabsTrigger>
-          <TabsTrigger value="audit">Audit</TabsTrigger>
+      <Tabs defaultValue="client">
+        <TabsList className="w-full justify-start border-b rounded-none bg-transparent p-0 h-auto">
+          <TabsTrigger value="client" className="rounded-none border-b-2 border-transparent data-[state=active]:border-emerald-600 data-[state=active]:text-emerald-600 px-4 py-2 text-sm">
+            Client
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="rounded-none border-b-2 border-transparent data-[state=active]:border-emerald-600 data-[state=active]:text-emerald-600 px-4 py-2 text-sm">
+            Documents
+          </TabsTrigger>
+          <TabsTrigger value="scoring" className="rounded-none border-b-2 border-transparent data-[state=active]:border-emerald-600 data-[state=active]:text-emerald-600 px-4 py-2 text-sm">
+            Scoring
+          </TabsTrigger>
+          <TabsTrigger value="schedule" className="rounded-none border-b-2 border-transparent data-[state=active]:border-emerald-600 data-[state=active]:text-emerald-600 px-4 py-2 text-sm">
+            Schedule
+          </TabsTrigger>
+          <TabsTrigger value="events" className="rounded-none border-b-2 border-transparent data-[state=active]:border-emerald-600 data-[state=active]:text-emerald-600 px-4 py-2 text-sm">
+            Timeline
+          </TabsTrigger>
+          <TabsTrigger value="audit" className="rounded-none border-b-2 border-transparent data-[state=active]:border-emerald-600 data-[state=active]:text-emerald-600 px-4 py-2 text-sm">
+            Audit
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview">
+        <TabsContent value="client">
           <div className="space-y-4 mt-4">
             {/* Application Details */}
             <Card>
@@ -584,105 +735,7 @@ export default function LoanApplicationDetailPage() {
             )}
           </div>
 
-          {canApproveOrReject && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Approve Application</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <Label htmlFor="approvedPrincipal">Principal</Label>
-                      <Input
-                        id="approvedPrincipal"
-                        type="number"
-                        value={approveData.approvedPrincipal}
-                        onChange={(e) =>
-                          setApproveData((prev) => ({
-                            ...prev,
-                            approvedPrincipal: Number(e.target.value),
-                          }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="approvedTerm">Term (months)</Label>
-                      <Input
-                        id="approvedTerm"
-                        type="number"
-                        value={approveData.approvedTermMonths}
-                        onChange={(e) =>
-                          setApproveData((prev) => ({
-                            ...prev,
-                            approvedTermMonths: Number(e.target.value),
-                          }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="approvedRate">Interest Rate %</Label>
-                      <Input
-                        id="approvedRate"
-                        type="number"
-                        value={approveData.approvedInterestRate}
-                        onChange={(e) =>
-                          setApproveData((prev) => ({
-                            ...prev,
-                            approvedInterestRate: Number(e.target.value),
-                          }))
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="decisionNotes">Decision Notes</Label>
-                    <textarea
-                      id="decisionNotes"
-                      className="w-full min-h-[80px] px-3 py-2 rounded-md border border-input bg-background"
-                      value={approveData.decisionNotes || ''}
-                      onChange={(e) =>
-                        setApproveData((prev) => ({ ...prev, decisionNotes: e.target.value }))
-                      }
-                    />
-                  </div>
-                  <Button onClick={handleApprove}>Approve Application</Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Reject Application</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <Label htmlFor="rejectReason">Reason</Label>
-                    <Input
-                      id="rejectReason"
-                      value={rejectData.reason}
-                      onChange={(e) =>
-                        setRejectData((prev) => ({ ...prev, reason: e.target.value }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="rejectNotes">Notes</Label>
-                    <textarea
-                      id="rejectNotes"
-                      className="w-full min-h-[80px] px-3 py-2 rounded-md border border-input bg-background"
-                      value={rejectData.notes || ''}
-                      onChange={(e) =>
-                        setRejectData((prev) => ({ ...prev, notes: e.target.value }))
-                      }
-                    />
-                  </div>
-                  <Button variant="destructive" onClick={handleReject}>
-                    Reject Application
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          {/* Approve/Reject forms moved to sticky footer */}
         </TabsContent>
 
         <TabsContent value="audit">
@@ -924,6 +977,11 @@ export default function LoanApplicationDetailPage() {
                           </span>
                           <span className="text-muted-foreground">{formatDate(evt.createdAt)}</span>
                         </div>
+                        {evt.user && (
+                          <p className="text-muted-foreground text-xs mt-1">
+                            Scored by {evt.user.firstName} {evt.user.lastName}
+                          </p>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -938,7 +996,7 @@ export default function LoanApplicationDetailPage() {
             <CardHeader>
               <CardTitle>Repayment Schedule Preview</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {!application.productVersion?.loanProduct ? (
                 <p className="text-sm text-muted-foreground">
                   Schedule preview will be available once a loan product version is set.
@@ -967,9 +1025,140 @@ export default function LoanApplicationDetailPage() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Payment Breakdown Chart */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card className="border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Payment Breakdown</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {(() => {
+                          const principal = Number(application.approvedPrincipal ?? application.requestedAmount);
+                          const productInterestRate = (application.productVersion as any)?.rules?.interest?.rate_per_year ?? 0;
+                          const interestRate = Number(application.approvedInterestRate ?? productInterestRate);
+                          const term = Number(application.approvedTermMonths ?? application.requestedTermMonths);
+                          const totalInterest = (principal * interestRate * term) / 1200;
+                          
+                          // Get processing fee from product rules, default to 0 if not configured
+                          const feeRules = application.productVersion?.rules?.fees;
+                          const processingFeeRate = feeRules?.processing_fee_type === 'PERCENTAGE' 
+                            ? (feeRules.processing_fee_value / 100) 
+                            : 0;
+                          const processingFeeFixed = feeRules?.processing_fee_type === 'FIXED' 
+                            ? feeRules.processing_fee_value 
+                            : 0;
+                          let processingFee = feeRules?.processing_fee_type === 'PERCENTAGE' 
+                            ? principal * processingFeeRate 
+                            : processingFeeFixed;
+                          if (feeRules?.processing_fee_cap && processingFee > feeRules.processing_fee_cap) {
+                            processingFee = feeRules.processing_fee_cap;
+                          }
+                          
+                          const chartData = [
+                            { name: 'Principal', value: principal, color: '#3b82f6' },
+                            { name: 'Interest', value: totalInterest, color: '#f59e0b' },
+                            ...(processingFee > 0 ? [{ name: 'Processing Fee', value: processingFee, color: '#8b5cf6' }] : []),
+                          ];
+                          
+                          return (
+                            <div className="h-64">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                  <Pie
+                                    data={chartData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={50}
+                                    outerRadius={80}
+                                    paddingAngle={2}
+                                    dataKey="value"
+                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                    labelLine={false}
+                                  >
+                                    {chartData.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip 
+                                    formatter={(value: number) => [`KES ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, '']}
+                                  />
+                                  <Legend />
+                                </PieChart>
+                              </ResponsiveContainer>
+                            </div>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Payment Summary</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {(() => {
+                          const principal = Number(application.approvedPrincipal ?? application.requestedAmount);
+                          const productInterestRate = (application.productVersion as any)?.rules?.interest?.rate_per_year ?? 0;
+                          const interestRate = Number(application.approvedInterestRate ?? productInterestRate);
+                          const term = Number(application.approvedTermMonths ?? application.requestedTermMonths);
+                          const totalInterest = (principal * interestRate * term) / 1200;
+                          
+                          // Get processing fee from product rules
+                          const feeRules = application.productVersion?.rules?.fees;
+                          const processingFeeRate = feeRules?.processing_fee_type === 'PERCENTAGE' 
+                            ? (feeRules.processing_fee_value / 100) 
+                            : 0;
+                          const processingFeeFixed = feeRules?.processing_fee_type === 'FIXED' 
+                            ? feeRules.processing_fee_value 
+                            : 0;
+                          let processingFee = feeRules?.processing_fee_type === 'PERCENTAGE' 
+                            ? principal * processingFeeRate 
+                            : processingFeeFixed;
+                          if (feeRules?.processing_fee_cap && processingFee > feeRules.processing_fee_cap) {
+                            processingFee = feeRules.processing_fee_cap;
+                          }
+                          
+                          const totalPayment = principal + totalInterest + processingFee;
+                          const monthlyPayment = totalPayment / term;
+                          const feeLabel = feeRules?.processing_fee_type === 'PERCENTAGE' 
+                            ? `Processing Fee (${feeRules.processing_fee_value}%)`
+                            : 'Processing Fee';
+                          
+                          return (
+                            <div className="space-y-3">
+                              <div className="flex justify-between py-2 border-b">
+                                <span className="text-muted-foreground">Principal Amount</span>
+                                <span className="font-semibold">KES {principal.toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between py-2 border-b">
+                                <span className="text-muted-foreground">Total Interest ({interestRate}% p.a.)</span>
+                                <span className="font-semibold text-amber-600">KES {totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              </div>
+                              {processingFee > 0 && (
+                                <div className="flex justify-between py-2 border-b">
+                                  <span className="text-muted-foreground">{feeLabel}</span>
+                                  <span className="font-semibold">KES {processingFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between py-3 bg-slate-50 rounded-lg px-3 -mx-3">
+                                <span className="font-semibold">Total Repayment</span>
+                                <span className="font-bold text-lg">KES {totalPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              </div>
+                              <div className="flex justify-between py-2 border-t mt-2">
+                                <span className="text-muted-foreground">Monthly Payment (est.)</span>
+                                <span className="font-semibold text-blue-600">KES {monthlyPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
+                  </div>
+
                   <div className="flex justify-end">
                     <Button onClick={() => setShowSchedulePreview(true)}>
-                      Open Schedule Preview
+                      Open Full Schedule Preview
                     </Button>
                   </div>
                 </>
@@ -978,7 +1167,7 @@ export default function LoanApplicationDetailPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="checklist">
+        <TabsContent value="checklist-legacy">
           <Card className="mt-4">
             <CardHeader>
               <CardTitle>Checklist</CardTitle>
@@ -1072,54 +1261,140 @@ export default function LoanApplicationDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {documents.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No documents uploaded.</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>File Name</TableHead>
-                      <TableHead>Size</TableHead>
-                      <TableHead>Uploaded At</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {documents.map((doc) => (
-                      <TableRow key={doc.id}>
-                        <TableCell>{String(doc.documentType).replace('_', ' ')}</TableCell>
-                        <TableCell>{doc.fileName}</TableCell>
-                        <TableCell>
-                          {doc.fileSize
-                            ? `${(doc.fileSize / 1024).toFixed(2)} KB`
-                            : ''}
-                        </TableCell>
-                        <TableCell>{formatDate(doc.uploadedAt)}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}/loan-applications/${application.id}/documents/${doc.id}/download`, '_blank')}
-                            >
-                              View/Download
-                            </Button>
-                            {canDeleteDocuments && (
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeleteDocument(doc.id)}
-                              >
-                                Delete
-                              </Button>
+              {/* Required Documents Checklist with Status */}
+              <div className="border rounded-lg p-4 bg-muted/50 mb-6">
+                <p className="text-sm font-medium mb-3">Required Documents Status:</p>
+                <div className="grid gap-3">
+                  {[
+                    { type: 'BANK_STATEMENT', altTypes: [], label: 'Bank statement for the latest three months (stamped at bank)' },
+                    { type: 'KRA_PIN', altTypes: [], label: 'Copy of KRA PIN certificate' },
+                    { type: 'NATIONAL_ID', altTypes: [], label: 'Copy of ID' },
+                    { type: 'EMPLOYMENT_CONTRACT', altTypes: ['EMPLOYMENT_LETTER', 'CONTRACT'], label: 'Copy of Employment Contract' },
+                    { type: 'LOAN_APPLICATION_FORM', altTypes: [], label: 'Duly-filled KENELS BUREAU Loan Application form' },
+                    { type: 'PROOF_OF_RESIDENCE', altTypes: [], label: 'Utility Bill (proof of address)' },
+                  ].map((req) => {
+                    const uploadedDoc = documents.find((d) => d.documentType === req.type || req.altTypes.includes(d.documentType));
+                    const isUploaded = Boolean(uploadedDoc);
+                    return (
+                      <div key={req.type} className={`flex items-center justify-between p-3 rounded-lg border ${isUploaded ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                        <div className="flex items-center gap-3">
+                          {isUploaded ? (
+                            <div className="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center">
+                              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          ) : (
+                            <div className="h-6 w-6 rounded-full bg-amber-500 flex items-center justify-center">
+                              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+                              </svg>
+                            </div>
+                          )}
+                          <div>
+                            <p className={`text-sm font-medium ${isUploaded ? 'text-green-800' : 'text-amber-800'}`}>{req.label}</p>
+                            {isUploaded && uploadedDoc && (
+                              <p className="text-xs text-green-600">
+                                {uploadedDoc.fileName} • Uploaded {formatDate(uploadedDoc.uploadedAt)}
+                              </p>
                             )}
                           </div>
-                        </TableCell>
+                        </div>
+                        {isUploaded && uploadedDoc && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-green-700 border-green-300 hover:bg-green-100"
+                            onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}/loan-applications/${application.id}/documents/${uploadedDoc.id}/download`, '_blank')}
+                          >
+                            View
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 flex items-center gap-4 text-xs">
+                  <span className="flex items-center gap-1 text-green-600">
+                    <div className="h-3 w-3 rounded-full bg-green-500" /> Uploaded
+                  </span>
+                  <span className="flex items-center gap-1 text-amber-600">
+                    <div className="h-3 w-3 rounded-full bg-amber-500" /> Missing
+                  </span>
+                </div>
+              </div>
+
+              {/* All Uploaded Documents Table */}
+              {documents.length > 0 && (
+                <>
+                  <p className="text-sm font-medium mb-3">All Uploaded Documents ({documents.length})</p>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Type</TableHead>
+                        <TableHead>File Name</TableHead>
+                        <TableHead>Size</TableHead>
+                        <TableHead>Review Status</TableHead>
+                        <TableHead>Uploaded At</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {documents.map((doc) => (
+                        <TableRow key={doc.id}>
+                          <TableCell className="font-medium whitespace-nowrap">{String(doc.documentType).replace(/_/g, ' ')}</TableCell>
+                          <TableCell className="max-w-[200px] break-words text-xs">{doc.fileName}</TableCell>
+                          <TableCell>
+                            {doc.fileSize
+                              ? `${(doc.fileSize / 1024).toFixed(2)} KB`
+                              : ''}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={doc.reviewStatus === 'APPROVED' ? 'default' : doc.reviewStatus === 'REJECTED' ? 'destructive' : 'secondary'}>
+                              {doc.reviewStatus || 'PENDING'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{formatDate(doc.uploadedAt)}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => window.open(`${import.meta.env.VITE_API_URL || ''}/loan-applications/${application.id}/documents/${doc.id}/download`, '_blank')}
+                              >
+                                View/Download
+                              </Button>
+                              {canManageChecklist && doc.reviewStatus !== 'VERIFIED' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-green-600 border-green-300 hover:bg-green-50"
+                                  onClick={() => openReviewDialog(doc)}
+                                >
+                                  Review
+                                </Button>
+                              )}
+                              {doc.reviewStatus === 'VERIFIED' && (
+                                <Badge variant="default" className="bg-green-600">
+                                  ✓ Verified
+                                </Badge>
+                              )}
+                              {canDeleteDocuments && (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDeleteDocument(doc.id)}
+                                >
+                                  Delete
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </>
               )}
             </CardContent>
           </Card>
@@ -1180,12 +1455,15 @@ export default function LoanApplicationDetailPage() {
                 value={documentType}
                 onChange={(e) => setDocumentType(e.target.value as DocumentType | 'OTHER')}
               >
+                <option value="BANK_STATEMENT">Bank Statement</option>
+                <option value="KRA_PIN">KRA PIN Certificate</option>
                 <option value="NATIONAL_ID">National ID</option>
+                <option value="EMPLOYMENT_CONTRACT">Employment Contract</option>
+                <option value="LOAN_APPLICATION_FORM">Loan Application Form</option>
+                <option value="PROOF_OF_RESIDENCE">Proof of Residence / Utility Bill</option>
                 <option value="PASSPORT">Passport</option>
                 <option value="PASSPORT_PHOTO">Passport Photo</option>
-                <option value="PROOF_OF_RESIDENCE">Proof of Residence</option>
                 <option value="PAYSLIP">Payslip</option>
-                <option value="BANK_STATEMENT">Bank Statement</option>
                 <option value="EMPLOYMENT_LETTER">Employment Letter</option>
                 <option value="OTHER">Other</option>
               </select>
@@ -1227,6 +1505,121 @@ export default function LoanApplicationDetailPage() {
           )}
           defaultTermMonths={application.approvedTermMonths ?? application.requestedTermMonths}
         />
+      )}
+
+      {/* Document Review Dialog */}
+      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Review Document</DialogTitle>
+            <DialogDescription>
+              {reviewingDoc && (
+                <span className="block mt-2">
+                  <strong>{String(reviewingDoc.documentType).replace(/_/g, ' ')}</strong>
+                  <br />
+                  <span className="text-xs">{reviewingDoc.fileName}</span>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Review Decision</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={reviewStatus === 'VERIFIED' ? 'default' : 'outline'}
+                  className={reviewStatus === 'VERIFIED' ? 'bg-green-600 hover:bg-green-700' : ''}
+                  onClick={() => setReviewStatus('VERIFIED')}
+                >
+                  ✓ Approve
+                </Button>
+                <Button
+                  type="button"
+                  variant={reviewStatus === 'REJECTED' ? 'destructive' : 'outline'}
+                  onClick={() => setReviewStatus('REJECTED')}
+                >
+                  ✗ Reject
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reviewNotes">Notes (optional)</Label>
+              <Input
+                id="reviewNotes"
+                placeholder="Add any notes about this document..."
+                value={reviewNotes}
+                onChange={(e) => setReviewNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReviewDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReviewDocument}
+              disabled={reviewLoading}
+              className={reviewStatus === 'VERIFIED' ? 'bg-green-600 hover:bg-green-700' : ''}
+            >
+              {reviewLoading ? 'Saving...' : reviewStatus === 'VERIFIED' ? 'Approve Document' : 'Reject Document'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sticky Action Bar - Shows when verification is complete */}
+      {(() => {
+        const docsVerified = documents.filter(d => d.reviewStatus === 'VERIFIED').length;
+        const allDocsVerified = documents.length >= 6 && docsVerified >= 6;
+        const hasScore = Boolean(application.creditScore);
+        const isVerificationComplete = (allDocsVerified || docsVerified >= documents.length) && hasScore;
+        
+        if (canMoveToUnderReview && isVerificationComplete) {
+          return (
+            <div className="fixed bottom-0 left-0 right-0 bg-emerald-600 shadow-lg border-t z-50">
+              <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+                <p className="text-white text-sm">✓ Verification complete. Ready to submit for approval.</p>
+                <Button size="sm" onClick={handleMoveToUnderReview} className="bg-white text-emerald-700 hover:bg-emerald-50">
+                  Submit for Approval →
+                </Button>
+              </div>
+            </div>
+          );
+        }
+        return null;
+      })()}
+
+      {/* Approve/Reject Footer for Admin */}
+      {canApproveOrReject && showApproveFooter && (
+        <div className="fixed bottom-0 left-0 md:left-60 right-0 z-10 shadow-lg border-t">
+          <div className="grid grid-cols-1 md:grid-cols-2">
+            {/* Approve Section */}
+            <div className="p-4 pb-6 bg-emerald-100 border-r border-emerald-200">
+              <p className="text-sm font-semibold text-emerald-800 mb-3">Approve Application</p>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <Input type="number" placeholder="Principal" value={approveData.approvedPrincipal} onChange={(e) => setApproveData(prev => ({ ...prev, approvedPrincipal: Number(e.target.value) }))} className="h-9 text-sm bg-white" />
+                <Input type="number" placeholder="Term" value={approveData.approvedTermMonths} onChange={(e) => setApproveData(prev => ({ ...prev, approvedTermMonths: Number(e.target.value) }))} className="h-9 text-sm bg-white" />
+                <Input type="number" placeholder="Rate %" value={approveData.approvedInterestRate} onChange={(e) => setApproveData(prev => ({ ...prev, approvedInterestRate: Number(e.target.value) }))} className="h-9 text-sm bg-white" />
+              </div>
+              <div className="flex gap-2">
+                <Input placeholder="Notes" value={approveData.decisionNotes || ''} onChange={(e) => setApproveData(prev => ({ ...prev, decisionNotes: e.target.value }))} className="h-9 text-sm flex-1 bg-white" />
+                <Button onClick={handleApprove} className="bg-emerald-600 hover:bg-emerald-700 h-9">Approve</Button>
+              </div>
+            </div>
+            {/* Reject Section */}
+            <div className="p-4 pb-6 bg-red-100">
+              <p className="text-sm font-semibold text-red-800 mb-3">Reject Application</p>
+              <div className="flex gap-2 mb-3">
+                <Input placeholder="Reason *" value={rejectData.reason} onChange={(e) => setRejectData(prev => ({ ...prev, reason: e.target.value }))} className="h-9 text-sm flex-1 bg-white" />
+              </div>
+              <div className="flex gap-2">
+                <Input placeholder="Notes" value={rejectData.notes || ''} onChange={(e) => setRejectData(prev => ({ ...prev, notes: e.target.value }))} className="h-9 text-sm flex-1 bg-white" />
+                <Button variant="destructive" onClick={handleReject} disabled={!rejectData.reason} className="h-9">Reject</Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

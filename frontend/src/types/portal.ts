@@ -63,3 +63,34 @@ export interface PortalDashboardResponse {
   };
   activeLoans: PortalLoanSummary[];
 }
+
+export interface PortalLoanApplication {
+  id: string;
+  status: 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'DISBURSED' | 'CANCELLED';
+  requestedAmount: number;
+  requestedTermMonths: number;
+  purpose: string | null;
+  productName: string;
+  createdAt: string;
+  submittedAt: string | null;
+  rejectionReason: string | null;
+  loanId: string | null;
+  loanStatus: string | null;
+}
+
+export interface PortalNotification {
+  id: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  category: 'loan_application' | 'payment' | 'loan' | 'system';
+  title: string;
+  message: string;
+  actionUrl: string | null;
+  actionLabel: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface PortalNotificationsResponse {
+  notifications: PortalNotification[];
+  unreadCount: number;
+}

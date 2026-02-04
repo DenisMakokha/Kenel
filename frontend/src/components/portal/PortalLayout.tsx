@@ -13,15 +13,17 @@ import {
   Menu,
   X,
   ChevronRight,
-  Bell,
+  Shield,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Logo from '../Logo';
+import { NotificationDropdown } from './NotificationDropdown';
 
 const navItems = [
   { path: '/portal/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/portal/loans', label: 'My Loans', icon: CreditCard },
   { path: '/portal/statements', label: 'Statements', icon: FileText },
+  { path: '/portal/kyc', label: 'KYC & Documents', icon: Shield },
   { path: '/portal/profile', label: 'My Profile', icon: User },
 ];
 
@@ -80,10 +82,7 @@ export default function PortalLayout() {
           {/* Right side */}
           <div className="flex items-center gap-2">
             {/* Notifications */}
-            <button className="p-2 rounded-lg hover:bg-slate-100 relative">
-              <Bell className="h-5 w-5 text-slate-600" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-            </button>
+            <NotificationDropdown />
 
             {/* User info */}
             {client && (

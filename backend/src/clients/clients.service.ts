@@ -4,8 +4,11 @@ import {
   BadRequestException,
   ConflictException,
   UnauthorizedException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PortalNotificationsService } from '../portal/portal-notifications.service';
 import * as argon2 from 'argon2';
 import { DocumentType } from '@prisma/client';
 import {
@@ -25,7 +28,11 @@ import {
 
 @Injectable()
 export class ClientsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => PortalNotificationsService))
+    private portalNotificationsService: PortalNotificationsService,
+  ) {}
 
   /**
    * Generate unique client code
@@ -456,6 +463,13 @@ export class ClientsService {
       },
     });
 
+    // Notify client of KYC approval
+    try {
+      await this.portalNotificationsService.notifyKycApproved(id);
+    } catch {
+      // Notification failure shouldn't break the approval
+    }
+
     return updated;
   }
 
@@ -499,6 +513,13 @@ export class ClientsService {
         },
       },
     });
+
+    // Notify client of KYC rejection
+    try {
+      await this.portalNotificationsService.notifyKycRejected(id, dto.reason);
+    } catch {
+      // Notification failure shouldn't break the rejection
+    }
 
     return updated;
   }
@@ -747,5 +768,94 @@ export class ClientsService {
     ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
     return timeline;
+  }
+
+  /**
+   * Get KYC review statistics
+   */
+  async getKycStats() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [pendingReview, verifiedToday, rejectedToday, totalUnverified] = await Promise.all([
+      this.prisma.client.count({
+        where: { kycStatus: 'PENDING_REVIEW' },
+      }),
+      this.prisma.client.count({
+        where: {
+          kycStatus: 'VERIFIED',
+          updatedAt: { gte: today },
+        },
+      }),
+      this.prisma.client.count({
+        where: {
+          kycStatus: 'REJECTED',
+          updatedAt: { gte: today },
+        },
+      }),
+      this.prisma.client.count({
+        where: { kycStatus: 'UNVERIFIED' },
+      }),
+    ]);
+
+    return {
+      pendingReview,
+      verifiedToday,
+      rejectedToday,
+      totalUnverified,
+    };
+  }
+
+  /**
+   * Get loan statistics for a client
+   */
+  async getLoanStats(clientId: string) {
+    const loans = await this.prisma.loan.findMany({
+      where: { clientId },
+      select: {
+        id: true,
+        status: true,
+        principalAmount: true,
+        totalRepaid: true,
+        outstandingPrincipal: true,
+        outstandingInterest: true,
+        outstandingFees: true,
+        outstandingPenalties: true,
+      },
+    });
+
+    const activeStatuses = ['ACTIVE', 'DUE', 'IN_ARREARS'];
+    const activeLoans = loans.filter((l) => activeStatuses.includes(l.status)).length;
+    const totalLoans = loans.length;
+
+    const totalDisbursed = loans.reduce(
+      (sum, l) => sum + (Number(l.principalAmount) || 0),
+      0,
+    );
+
+    const totalRepaid = loans.reduce(
+      (sum, l) => sum + (Number(l.totalRepaid) || 0),
+      0,
+    );
+
+    const currentBalance = loans
+      .filter((l) => activeStatuses.includes(l.status))
+      .reduce(
+        (sum, l) =>
+          sum +
+          (Number(l.outstandingPrincipal) || 0) +
+          (Number(l.outstandingInterest) || 0) +
+          (Number(l.outstandingFees) || 0) +
+          (Number(l.outstandingPenalties) || 0),
+        0,
+      );
+
+    return {
+      totalLoans,
+      activeLoans,
+      totalDisbursed,
+      totalRepaid,
+      currentBalance,
+    };
   }
 }

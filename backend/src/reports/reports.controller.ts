@@ -31,7 +31,7 @@ export class ReportsController {
   ) {}
 
   @Get('portfolio-summary')
-  @Roles(UserRole.ADMIN, UserRole.FINANCE_OFFICER)
+  @Roles(UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.CREDIT_OFFICER)
   @ApiOperation({ summary: 'Get portfolio summary metrics' })
   @ApiResponse({ status: 200, description: 'Portfolio summary retrieved successfully' })
   getPortfolioSummary(@Query() query: QueryPortfolioSummaryDto) {
@@ -39,7 +39,7 @@ export class ReportsController {
   }
 
   @Get('portfolio-summary/export')
-  @Roles(UserRole.ADMIN, UserRole.FINANCE_OFFICER)
+  @Roles(UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.CREDIT_OFFICER)
   @ApiOperation({ summary: 'Export portfolio summary as CSV or PDF' })
   @ApiResponse({ status: 200, description: 'Portfolio summary export generated successfully' })
   async exportPortfolioSummary(
@@ -166,7 +166,7 @@ export class ReportsController {
   }
 
   @Get('aging')
-  @Roles(UserRole.ADMIN, UserRole.FINANCE_OFFICER)
+  @Roles(UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.CREDIT_OFFICER)
   @ApiOperation({ summary: 'Get aging / PAR summary' })
   @ApiResponse({ status: 200, description: 'Aging summary retrieved successfully' })
   getAging(@Query() query: QueryAgingDto) {
@@ -174,7 +174,7 @@ export class ReportsController {
   }
 
   @Get('aging/export')
-  @Roles(UserRole.ADMIN, UserRole.FINANCE_OFFICER)
+  @Roles(UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.CREDIT_OFFICER)
   @ApiOperation({ summary: 'Export aging / PAR report as CSV or PDF' })
   @ApiResponse({ status: 200, description: 'Aging report export generated successfully' })
   async exportAging(
@@ -317,7 +317,7 @@ export class ReportsController {
   }
 
   @Get('loans-in-bucket')
-  @Roles(UserRole.ADMIN, UserRole.FINANCE_OFFICER)
+  @Roles(UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.CREDIT_OFFICER)
   @ApiOperation({ summary: 'List loans in a specific DPD bucket' })
   @ApiResponse({ status: 200, description: 'Loans in bucket retrieved successfully' })
   getLoansInBucket(@Query() query: QueryLoansInBucketDto) {
@@ -325,7 +325,7 @@ export class ReportsController {
   }
 
   @Get('loans/export')
-  @Roles(UserRole.ADMIN, UserRole.FINANCE_OFFICER)
+  @Roles(UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.CREDIT_OFFICER)
   @ApiOperation({ summary: 'Export loans in a specific DPD bucket as CSV or PDF' })
   @ApiResponse({ status: 200, description: 'Loans export generated successfully' })
   async exportLoans(

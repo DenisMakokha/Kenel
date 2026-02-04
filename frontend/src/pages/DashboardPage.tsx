@@ -9,6 +9,7 @@ import { clientService } from '../services/clientService';
 import { loanService } from '../services/loanService';
 import { loanApplicationService } from '../services/loanApplicationService';
 import { reportService } from '../services/reportService';
+import DashboardAlerts from '../components/admin/DashboardAlerts';
 import type { AgingSummaryResponse, PortfolioSummaryResponse } from '../types/reports';
 import { LoanStatus } from '../types/loan';
 import { LoanApplicationStatus } from '../types/loan-application';
@@ -179,6 +180,9 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 px-4 md:px-6 py-4">
+      {/* Action Required Alerts */}
+      <DashboardAlerts />
+
       {/* Greeting */}
       <section className="mt-1">
         <div className="flex flex-col gap-3 rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50/70 via-emerald-50/40 to-transparent px-5 py-4">

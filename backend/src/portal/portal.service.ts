@@ -27,6 +27,27 @@ export class PortalService {
         referees: {
           orderBy: { createdAt: 'desc' },
         },
+        documents: {
+          select: {
+            id: true,
+            documentType: true,
+            fileName: true,
+            uploadedAt: true,
+          },
+          orderBy: { uploadedAt: 'desc' },
+        },
+        kycEvents: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          select: {
+            id: true,
+            fromStatus: true,
+            toStatus: true,
+            reason: true,
+            notes: true,
+            createdAt: true,
+          },
+        },
       },
     });
 
@@ -39,14 +60,22 @@ export class PortalService {
       clientCode: client.clientCode,
       firstName: client.firstName,
       lastName: client.lastName,
+      otherNames: client.otherNames,
       email: client.email,
       phonePrimary: client.phonePrimary,
       residentialAddress: client.residentialAddress,
+      employerName: client.employerName,
+      occupation: client.occupation,
+      monthlyIncome: client.monthlyIncome,
       kycStatus: client.kycStatus,
+      idNumber: client.idNumber,
+      dateOfBirth: client.dateOfBirth,
       maskedIdNumber: this.maskIdNumber(client.idNumber),
       maskedPhone: this.maskPhone(client.phonePrimary),
       nextOfKin: client.nextOfKin,
       referees: client.referees,
+      documents: client.documents,
+      kycEvents: client.kycEvents,
     };
   }
 
@@ -359,19 +388,37 @@ export class PortalService {
     const totalActiveLoans = activeLoans.length;
     const totalOutstanding = activeLoans.reduce((sum, l) => sum + (l.outstanding || 0), 0);
 
-    // Next payment across all active loans
+    // Next payment across all active loans - find next unpaid installment
     let nextPaymentAmount: number | null = null;
     let nextPaymentDate: Date | null = null;
     let nextPaymentLoanNumber: string | null = null;
 
-    for (const loan of activeLoans) {
-      if (!loan.nextDueDate) continue;
-      const due = new Date(loan.nextDueDate);
-      if (!nextPaymentDate || due < nextPaymentDate) {
-        nextPaymentDate = due;
-        nextPaymentLoanNumber = loan.loanNumber;
-        // We don't have exact installment amount here; use a rough proxy: outstanding / remaining term is out of scope.
-        nextPaymentAmount = null;
+    // Get loan IDs for active loans
+    const activeLoanIds = activeLoans.map(l => l.id);
+    
+    if (activeLoanIds.length > 0) {
+      // Find the next unpaid schedule entry across all active loans
+      const nextSchedule = await this.prisma.loanSchedule.findFirst({
+        where: {
+          loanId: { in: activeLoanIds },
+          isPaid: false,
+        },
+        orderBy: { dueDate: 'asc' },
+        include: {
+          loan: {
+            select: { loanNumber: true },
+          },
+        },
+      });
+
+      if (nextSchedule) {
+        nextPaymentDate = nextSchedule.dueDate;
+        nextPaymentLoanNumber = nextSchedule.loan.loanNumber;
+        // Calculate total due for this installment
+        const principalDue = Number(nextSchedule.principalDue) - Number(nextSchedule.principalPaid || 0);
+        const interestDue = Number(nextSchedule.interestDue) - Number(nextSchedule.interestPaid || 0);
+        const feesDue = Number(nextSchedule.feesDue || 0) - Number(nextSchedule.feesPaid || 0);
+        nextPaymentAmount = principalDue + interestDue + feesDue;
       }
     }
 
@@ -480,6 +527,13 @@ export class PortalService {
       throw new NotFoundException('Client not found');
     }
 
+    // Prevent any profile edits once KYC is fully verified
+    if (client.kycStatus === 'VERIFIED') {
+      throw new BadRequestException(
+        'Your account is fully verified. Profile changes are not allowed. Please contact support if you need to update your information.',
+      );
+    }
+
     const isIdentityChange =
       (typeof data.firstName === 'string' && data.firstName !== client.firstName) ||
       (typeof data.lastName === 'string' && data.lastName !== client.lastName) ||
@@ -557,5 +611,143 @@ export class PortalService {
     });
 
     return updatedPreferences;
+  }
+
+  async uploadDocument(clientId: string, file: Express.Multer.File, documentType: string) {
+    // Verify client exists and get userId
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+    });
+
+    if (!client) {
+      throw new NotFoundException('Client not found');
+    }
+
+    if (!client.userId) {
+      throw new BadRequestException('Client does not have an associated user');
+    }
+
+    // Save document record
+    const document = await this.prisma.clientDocument.create({
+      data: {
+        clientId,
+        documentType: documentType as any,
+        fileName: file.originalname,
+        filePath: file.path,
+        mimeType: file.mimetype,
+        sizeBytes: file.size,
+        uploadedBy: client.userId,
+        uploadedAt: new Date(),
+      },
+    });
+
+    return document;
+  }
+
+  async deleteDocument(clientId: string, documentId: string) {
+    // Find document and verify it belongs to this client
+    const document = await this.prisma.clientDocument.findFirst({
+      where: { id: documentId, clientId },
+    });
+
+    if (!document) {
+      throw new NotFoundException('Document not found');
+    }
+
+    // Delete file from disk if it exists
+    if (document.filePath) {
+      const fs = require('fs');
+      try {
+        if (fs.existsSync(document.filePath)) {
+          fs.unlinkSync(document.filePath);
+        }
+      } catch {
+        // Ignore file deletion errors
+      }
+    }
+
+    // Delete document record
+    await this.prisma.clientDocument.delete({
+      where: { id: documentId },
+    });
+
+    return { success: true };
+  }
+
+  async submitKycForReview(clientId: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      include: {
+        nextOfKin: true,
+        referees: true,
+        documents: true,
+      },
+    });
+
+    if (!client) {
+      throw new NotFoundException('Client not found');
+    }
+
+    if (client.kycStatus === 'VERIFIED') {
+      throw new BadRequestException('KYC is already verified');
+    }
+
+    if (client.kycStatus === 'PENDING_REVIEW') {
+      throw new BadRequestException('KYC is already pending review');
+    }
+
+    // Validate KYC completeness
+    const hasPersonalInfo = !!(client.firstName && client.lastName && client.idNumber);
+    const hasAddress = !!client.residentialAddress;
+    const hasEmployment = !!client.employerName;
+    const hasNextOfKin = client.nextOfKin.length > 0;
+    const hasReferees = client.referees.length >= 2;
+
+    const docs = client.documents;
+    const hasDoc = (type: string) => docs.some((d) => d.documentType === type);
+    const hasNationalId = hasDoc('NATIONAL_ID') || hasDoc('PASSPORT');
+    const hasKraPin = hasDoc('KRA_PIN');
+    const hasBankStatement = hasDoc('BANK_STATEMENT');
+    const hasEmploymentDoc = hasDoc('EMPLOYMENT_CONTRACT') || hasDoc('EMPLOYMENT_LETTER') || hasDoc('CONTRACT');
+    const hasProofOfResidence = hasDoc('PROOF_OF_RESIDENCE');
+
+    const missingItems: string[] = [];
+    if (!hasPersonalInfo) missingItems.push('Personal Information');
+    if (!hasAddress) missingItems.push('Residential Address');
+    if (!hasEmployment) missingItems.push('Employment Information');
+    if (!hasNextOfKin) missingItems.push('Next of Kin');
+    if (!hasReferees) missingItems.push('At least 2 Referees');
+    if (!hasNationalId) missingItems.push('National ID or Passport');
+    if (!hasKraPin) missingItems.push('KRA PIN Certificate');
+    if (!hasBankStatement) missingItems.push('Bank Statement');
+    if (!hasEmploymentDoc) missingItems.push('Employment Contract/Letter');
+    if (!hasProofOfResidence) missingItems.push('Proof of Residence');
+
+    if (missingItems.length > 0) {
+      throw new BadRequestException(`Please complete the following before submitting: ${missingItems.join(', ')}`);
+    }
+
+    if (!client.userId) {
+      throw new BadRequestException('Client does not have an associated user');
+    }
+
+    // Create KYC event
+    await this.prisma.clientKycEvent.create({
+      data: {
+        clientId,
+        fromStatus: client.kycStatus || 'UNVERIFIED',
+        toStatus: 'PENDING_REVIEW',
+        notes: 'Submitted via client portal',
+        performedBy: client.userId,
+      },
+    });
+
+    // Update client status
+    await this.prisma.client.update({
+      where: { id: clientId },
+      data: { kycStatus: 'PENDING_REVIEW' },
+    });
+
+    return { success: true, message: 'KYC submitted for review' };
   }
 }

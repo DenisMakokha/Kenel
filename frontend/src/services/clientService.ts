@@ -151,12 +151,28 @@ export const clientService = {
     return response.data;
   },
 
+  getKycStats: async (): Promise<{ pendingReview: number; verifiedToday: number; rejectedToday: number; totalUnverified: number }> => {
+    const response = await api.get('/clients/kyc/stats');
+    return response.data;
+  },
+
   deleteDocument: async (clientId: string, documentId: string): Promise<void> => {
     await api.delete(`/clients/${clientId}/documents/${documentId}`);
   },
 
   getTimeline: async (clientId: string): Promise<any[]> => {
     const response = await api.get(`/clients/${clientId}/timeline`);
+    return response.data;
+  },
+
+  getLoanStats: async (clientId: string): Promise<{
+    totalLoans: number;
+    activeLoans: number;
+    totalDisbursed: number;
+    totalRepaid: number;
+    currentBalance: number;
+  }> => {
+    const response = await api.get(`/clients/${clientId}/loan-stats`);
     return response.data;
   },
 };

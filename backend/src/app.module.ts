@@ -17,6 +17,7 @@ import { RepaymentsModule } from './repayments/repayments.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { ReportsModule } from './reports/reports.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { StaffNotificationsModule } from './notifications/staff-notifications.module';
 import { DocumentsModule } from './documents/documents.module';
 import { SettingsModule } from './settings/settings.module';
 import { InterestRatesModule } from './interest-rates/interest-rates.module';
@@ -56,6 +57,7 @@ import { FeeTemplatesModule } from './fee-templates/fee-templates.module';
     AuditLogsModule,
     ReportsModule,
     NotificationsModule,
+    StaffNotificationsModule,
     DocumentsModule,
     SettingsModule,
     InterestRatesModule,

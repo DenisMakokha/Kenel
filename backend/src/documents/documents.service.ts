@@ -311,6 +311,35 @@ export class DocumentsService {
       },
     });
 
+    // Auto-complete corresponding checklist item when document is uploaded
+    const docTypeToChecklistKey: Record<string, string> = {
+      'BANK_STATEMENT': 'bank_statement',
+      'KRA_PIN': 'kra_pin_certificate',
+      'NATIONAL_ID': 'id_copy',
+      'EMPLOYMENT_CONTRACT': 'employment_contract',
+      'EMPLOYMENT_LETTER': 'employment_contract',
+      'CONTRACT': 'employment_contract',
+      'LOAN_APPLICATION_FORM': 'loan_application_form',
+      'PROOF_OF_RESIDENCE': 'utility_bill',
+    };
+
+    const checklistKey = docTypeToChecklistKey[documentType];
+    if (checklistKey) {
+      await this.prisma.loanApplicationChecklistItem.updateMany({
+        where: {
+          loanApplicationId: dto.applicationId!,
+          itemKey: checklistKey,
+          status: 'PENDING',
+        },
+        data: {
+          status: 'COMPLETED',
+          completedBy: userId,
+          completedAt: new Date(),
+          notes: 'Auto-completed: Document uploaded',
+        },
+      });
+    }
+
     return { id: this.encodeId('a', created.id) };
   }
 

@@ -24,8 +24,6 @@ import {
   Search,
   Eye,
   Plus,
-  Phone,
-  Mail,
   CheckCircle,
   Clock,
   XCircle,
@@ -40,11 +38,11 @@ import { formatDate } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import { exportClientList } from '../../lib/exportUtils';
 
-const KYC_STATUS_CONFIG: Record<KycStatus, { label: string; color: string; icon: any }> = {
-  UNVERIFIED: { label: 'Unverified', color: 'bg-slate-100 text-slate-700', icon: Clock },
-  PENDING_REVIEW: { label: 'Pending', color: 'bg-amber-100 text-amber-700', icon: AlertTriangle },
-  VERIFIED: { label: 'Verified', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
-  REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: XCircle },
+const KYC_STATUS_CONFIG: Record<KycStatus, { label: string; color: string; bg: string; border: string; icon: any }> = {
+  UNVERIFIED: { label: 'Unverified', color: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200', icon: Clock },
+  PENDING_REVIEW: { label: 'Pending', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle },
+  VERIFIED: { label: 'Verified', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle },
+  REJECTED: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: XCircle },
 };
 
 export default function CreditClientsPage() {
@@ -114,19 +112,14 @@ export default function CreditClientsPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">My Clients</h1>
-          <p className="text-sm text-slate-600">
-            Manage your assigned clients
-          </p>
+          <p className="text-sm text-slate-600">Manage your assigned clients and KYC status</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport}>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button
-            onClick={() => navigate('/clients/new')}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
+          <Button onClick={() => navigate('/clients/new')} className="bg-emerald-600 hover:bg-emerald-700">
             <Plus className="h-4 w-4 mr-2" />
             Add Client
           </Button>
@@ -142,7 +135,7 @@ export default function CreditClientsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{stats.total}</p>
-            <p className="text-xs text-muted-foreground">Assigned to you</p>
+            <p className="text-xs text-muted-foreground">All clients</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -152,7 +145,7 @@ export default function CreditClientsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-emerald-600">{stats.verified}</p>
-            <p className="text-xs text-muted-foreground">Ready for loans</p>
+            <p className="text-xs text-muted-foreground">Ready</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -162,7 +155,7 @@ export default function CreditClientsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
-            <p className="text-xs text-muted-foreground">Awaiting verification</p>
+            <p className="text-xs text-muted-foreground">Needs action</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -172,7 +165,7 @@ export default function CreditClientsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{stats.unverified}</p>
-            <p className="text-xs text-muted-foreground">Need KYC submission</p>
+            <p className="text-xs text-muted-foreground">No KYC</p>
           </CardContent>
         </Card>
       </div>
@@ -183,58 +176,48 @@ export default function CreditClientsPage() {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Table */}
       <Card className="border-slate-100">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Search by name, ID, or phone..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="pl-9"
-              />
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle>Client List</CardTitle>
+              <CardDescription>{total} clients found</CardDescription>
             </div>
-            <div className="w-full md:w-48">
+            <div className="flex flex-wrap gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="pl-9 w-[180px]"
+                />
+              </div>
               <Select value={kycFilter} onValueChange={(v) => { setKycFilter(v); setPage(1); }}>
-                <SelectTrigger>
+                <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="KYC Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All Statuses</SelectItem>
+                  <SelectItem value="ALL">All Status</SelectItem>
                   <SelectItem value="VERIFIED">Verified</SelectItem>
-                  <SelectItem value="PENDING_REVIEW">Pending Review</SelectItem>
+                  <SelectItem value="PENDING_REVIEW">Pending</SelectItem>
                   <SelectItem value="UNVERIFIED">Unverified</SelectItem>
                   <SelectItem value="REJECTED">Rejected</SelectItem>
                 </SelectContent>
               </Select>
+              <Button onClick={handleSearch} className="bg-emerald-600 hover:bg-emerald-700">
+                <Search className="h-4 w-4" />
+              </Button>
             </div>
-            <Button onClick={handleSearch}>
-              <Search className="h-4 w-4 mr-2" />
-              Search
-            </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Clients Table */}
-      <Card className="border-slate-100">
-        <CardHeader>
-          <CardTitle>Client List</CardTitle>
-          <CardDescription>
-            {total} client(s) found
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Loading...</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">Loading clients...</p>
           ) : clients.length === 0 ? (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No clients found</p>
-            </div>
+            <p className="text-sm text-muted-foreground py-8 text-center">No clients found</p>
           ) : (
             <>
               <div className="overflow-x-auto">
@@ -242,7 +225,7 @@ export default function CreditClientsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Client</TableHead>
-                      <TableHead>Contact</TableHead>
+                      <TableHead>Phone</TableHead>
                       <TableHead>ID Number</TableHead>
                       <TableHead>KYC Status</TableHead>
                       <TableHead>Joined</TableHead>
@@ -256,49 +239,23 @@ export default function CreditClientsPage() {
                       return (
                         <TableRow key={client.id}>
                           <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                                <span className="text-emerald-700 font-semibold text-sm">
-                                  {client.firstName?.[0]}{client.lastName?.[0]}
-                                </span>
-                              </div>
-                              <div>
-                                <p className="font-medium">
-                                  {client.firstName} {client.lastName}
-                                </p>
-                                <code className="text-xs text-slate-500">{client.clientCode}</code>
-                              </div>
+                            <div>
+                              <p className="font-medium">{client.firstName} {client.lastName}</p>
+                              <p className="text-xs text-slate-500">{client.clientCode}</p>
                             </div>
                           </TableCell>
+                          <TableCell>{client.phonePrimary}</TableCell>
                           <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-sm">
-                                <Phone className="h-3 w-3 text-slate-400" />
-                                {client.phonePrimary}
-                              </div>
-                              {client.email && (
-                                <div className="flex items-center gap-1 text-xs text-slate-500">
-                                  <Mail className="h-3 w-3" />
-                                  {client.email}
-                                </div>
-                              )}
-                            </div>
+                            <span className="font-mono text-sm">{client.idNumber}</span>
                           </TableCell>
                           <TableCell>
-                            <code className="text-xs font-mono bg-slate-100 px-2 py-1 rounded">
-                              {client.idNumber}
-                            </code>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={cn('font-medium', kycConfig?.color)}>
+                            <Badge className={cn(kycConfig?.bg, kycConfig?.color)}>
                               <KycIcon className="h-3 w-3 mr-1" />
                               {kycConfig?.label}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-slate-600">
-                              {formatDate(client.createdAt)}
-                            </span>
+                          <TableCell className="text-sm text-slate-500">
+                            {formatDate(client.createdAt)}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button
@@ -306,8 +263,7 @@ export default function CreditClientsPage() {
                               size="sm"
                               onClick={() => navigate(`/clients/${client.id}`)}
                             >
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
+                              <Eye className="h-4 w-4" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -319,9 +275,9 @@ export default function CreditClientsPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200">
                   <p className="text-sm text-slate-600">
-                    Page {page} of {totalPages}
+                    Page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span>
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -329,6 +285,7 @@ export default function CreditClientsPage() {
                       size="sm"
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
+                      className="hover:bg-slate-50"
                     >
                       <ChevronLeft className="h-4 w-4 mr-1" />
                       Previous
@@ -338,6 +295,7 @@ export default function CreditClientsPage() {
                       size="sm"
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
+                      className="hover:bg-slate-50"
                     >
                       Next
                       <ChevronRight className="h-4 w-4 ml-1" />

@@ -1,14 +1,16 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { Prisma, LoanStatus, InterestMethod } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoanProductsService } from '../loan-products/loan-products.service';
 import { LoanProductRules } from '../loan-products/interfaces/loan-product-rules.interface';
 import { LoanStatusSyncService } from './loan-status-sync.service';
+import { PortalNotificationsService } from '../portal/portal-notifications.service';
 
 interface QueryLoansDto {
   status?: LoanStatus;
   clientId?: string;
   applicationId?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -19,6 +21,8 @@ export class LoansService {
     private readonly prisma: PrismaService,
     private readonly loanProductsService: LoanProductsService,
     private readonly loanStatusSyncService: LoanStatusSyncService,
+    @Inject(forwardRef(() => PortalNotificationsService))
+    private readonly notificationsService: PortalNotificationsService,
   ) {}
 
   private computeOverdue(dueDate: Date, isPaid: boolean) {
@@ -50,13 +54,23 @@ export class LoansService {
   }
 
   async findAll(query: QueryLoansDto) {
-    const { status, clientId, applicationId, page = 1, limit = 20 } = query;
+    const { status, clientId, applicationId, search, page = 1, limit = 20 } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.LoanWhereInput = {};
     if (status) where.status = status;
     if (clientId) where.clientId = clientId;
     if (applicationId) where.applicationId = applicationId;
+    
+    if (search) {
+      where.OR = [
+        { loanNumber: { contains: search, mode: 'insensitive' } },
+        { client: { firstName: { contains: search, mode: 'insensitive' } } },
+        { client: { lastName: { contains: search, mode: 'insensitive' } } },
+        { client: { phonePrimary: { contains: search, mode: 'insensitive' } } },
+        { client: { clientCode: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
 
     const [loans, total] = await Promise.all([
       this.prisma.loan.findMany({
@@ -279,7 +293,10 @@ export class LoansService {
   }
 
   async disburse(id: string, userId: string) {
-    const loan = await this.prisma.loan.findUnique({ where: { id } });
+    const loan = await this.prisma.loan.findUnique({ 
+      where: { id },
+      include: { client: true },
+    });
 
     if (!loan) {
       throw new NotFoundException('Loan not found');
@@ -289,6 +306,10 @@ export class LoansService {
       throw new BadRequestException('Only PENDING_DISBURSEMENT loans can be disbursed');
     }
 
+    // Get the disbursing user's name
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const disbursedByName = user ? `${user.firstName} ${user.lastName}` : 'Finance Officer';
+
     const updated = await this.prisma.loan.update({
       where: { id },
       data: {
@@ -296,6 +317,35 @@ export class LoansService {
         disbursedAt: new Date(),
       },
     });
+
+    // Log the disbursement event in audit log
+    await this.prisma.auditLog.create({
+      data: {
+        entity: 'loans',
+        entityId: id,
+        action: 'DISBURSE',
+        performedBy: userId,
+        oldValue: { status: LoanStatus.PENDING_DISBURSEMENT },
+        newValue: {
+          status: LoanStatus.ACTIVE,
+          amount: Number(loan.principalAmount),
+          disbursedBy: disbursedByName,
+          disbursedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    // Send notifications to client
+    try {
+      await this.notificationsService.notifyLoanDisbursed(
+        loan.clientId,
+        loan.loanNumber,
+        Number(loan.principalAmount),
+        disbursedByName,
+      );
+    } catch (err) {
+      console.error('Failed to send disbursement notification:', err);
+    }
 
     // Immediately reconcile derived status (ACTIVE/DUE/IN_ARREARS) based on schedules.
     try {

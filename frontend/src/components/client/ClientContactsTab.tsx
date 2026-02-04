@@ -3,13 +3,25 @@ import { Client, CreateNextOfKinDto, CreateRefereeDto } from '../../types/client
 import { clientService } from '../../services/clientService';
 import { useAuthStore } from '../../store/authStore';
 import { UserRole } from '../../types/auth';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
+import {
+  Users,
+  UserPlus,
+  Phone,
+  Mail,
+  MapPin,
+  Trash2,
+  Star,
+  Briefcase,
+  CreditCard,
+  Heart,
+} from 'lucide-react';
 
 interface ClientContactsTabProps {
   client: Client;
@@ -120,102 +132,216 @@ export default function ClientContactsTab({ client, onUpdate }: ClientContactsTa
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      {/* Next of Kin */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Next of Kin</CardTitle>
-            {canManageContacts && (
-              <Button size="sm" onClick={() => setShowNOKDialog(true)}>
-                Add NOK
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {!client.nextOfKin || client.nextOfKin.length === 0 ? (
-            <p className="text-muted-foreground">No next of kin added yet</p>
-          ) : (
-            <div className="space-y-4">
-              {client.nextOfKin.map((nok) => (
-                <div key={nok.id} className="border rounded-lg p-4 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">{nok.fullName}</p>
-                      <p className="text-sm text-muted-foreground">{nok.relation}</p>
-                    </div>
-                    {nok.isPrimary && (
-                      <Badge variant="default" className="text-xs">Primary</Badge>
-                    )}
-                  </div>
-                  <div className="space-y-1 text-sm">
-                    <p><strong>Phone:</strong> {nok.phone}</p>
-                    {nok.email && <p><strong>Email:</strong> {nok.email}</p>}
-                    {nok.address && <p><strong>Address:</strong> {nok.address}</p>}
-                  </div>
-                  {canDelete && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDeleteNOK(nok.id)}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              ))}
+    <div className="space-y-6">
+      {/* Summary Header */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-xl p-5 border border-rose-200">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-rose-100 flex items-center justify-center">
+              <Heart className="h-6 w-6 text-rose-600" />
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div>
+              <p className="text-sm text-rose-600 font-medium">Next of Kin</p>
+              <p className="text-2xl font-bold text-rose-700">{client.nextOfKin?.length || 0}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <Users className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-blue-600 font-medium">Referees</p>
+              <p className="text-2xl font-bold text-blue-700">{client.referees?.length || 0}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Referees */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Referees</CardTitle>
-            {canManageContacts && (
-              <Button size="sm" onClick={() => setShowRefereeDialog(true)}>
-                Add Referee
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {!client.referees || client.referees.length === 0 ? (
-            <p className="text-muted-foreground">No referees added yet</p>
-          ) : (
-            <div className="space-y-4">
-              {client.referees.map((referee) => (
-                <div key={referee.id} className="border rounded-lg p-4 space-y-2">
-                  <div>
-                    <p className="font-medium">{referee.fullName}</p>
-                    {referee.relation && (
-                      <p className="text-sm text-muted-foreground">{referee.relation}</p>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Next of Kin */}
+        <Card className="border-slate-200">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-rose-600" />
+                  Next of Kin
+                </CardTitle>
+                <CardDescription>{client.nextOfKin?.length || 0} emergency contact(s)</CardDescription>
+              </div>
+              {canManageContacts && (
+                <Button size="sm" variant="outline" onClick={() => setShowNOKDialog(true)}>
+                  <UserPlus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {!client.nextOfKin || client.nextOfKin.length === 0 ? (
+              <div className="text-center py-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                <Heart className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-600 font-medium">No next of kin added</p>
+                <p className="text-sm text-slate-500 mt-1">Add emergency contacts for this client</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {client.nextOfKin.map((nok) => (
+                  <div
+                    key={nok.id}
+                    className={`rounded-xl border-2 p-4 transition-all ${
+                      nok.isPrimary ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center text-lg font-bold ${
+                          nok.isPrimary ? 'bg-rose-200 text-rose-700' : 'bg-slate-200 text-slate-600'
+                        }`}>
+                          {nok.fullName?.[0]}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900">{nok.fullName}</p>
+                          <p className="text-sm text-slate-500">{nok.relation}</p>
+                        </div>
+                      </div>
+                      {nok.isPrimary && (
+                        <Badge className="bg-rose-100 text-rose-700 border-rose-200">
+                          <Star className="h-3 w-3 mr-1" />
+                          Primary
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Phone className="h-4 w-4 text-slate-400" />
+                        {nok.phone}
+                      </div>
+                      {nok.email && (
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Mail className="h-4 w-4 text-slate-400" />
+                          {nok.email}
+                        </div>
+                      )}
+                      {nok.address && (
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <MapPin className="h-4 w-4 text-slate-400" />
+                          {nok.address}
+                        </div>
+                      )}
+                    </div>
+                    {canDelete && (
+                      <div className="mt-3 pt-3 border-t border-slate-200">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteNOK(nok.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
                     )}
                   </div>
-                  <div className="space-y-1 text-sm">
-                    <p><strong>Phone:</strong> {referee.phone}</p>
-                    {referee.idNumber && <p><strong>ID:</strong> {referee.idNumber}</p>}
-                    {referee.employerName && <p><strong>Employer:</strong> {referee.employerName}</p>}
-                    {referee.address && <p><strong>Address:</strong> {referee.address}</p>}
-                  </div>
-                  {canDelete && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDeleteReferee(referee.id)}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Referees */}
+        <Card className="border-slate-200">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-600" />
+                  Referees
+                </CardTitle>
+                <CardDescription>{client.referees?.length || 0} referee(s) - need 2 minimum</CardDescription>
+              </div>
+              {canManageContacts && (
+                <Button size="sm" variant="outline" onClick={() => setShowRefereeDialog(true)}>
+                  <UserPlus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            {!client.referees || client.referees.length === 0 ? (
+              <div className="text-center py-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                <Users className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-600 font-medium">No referees added</p>
+                <p className="text-sm text-slate-500 mt-1">At least 2 referees are required for KYC</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {client.referees.map((referee) => (
+                  <div
+                    key={referee.id}
+                    className="rounded-xl border-2 bg-blue-50 border-blue-200 p-4 transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center text-lg font-bold">
+                          {referee.fullName?.[0]}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900">{referee.fullName}</p>
+                          {referee.relation && (
+                            <p className="text-sm text-slate-500">{referee.relation}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Phone className="h-4 w-4 text-slate-400" />
+                        {referee.phone}
+                      </div>
+                      {referee.idNumber && (
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <CreditCard className="h-4 w-4 text-slate-400" />
+                          ID: {referee.idNumber}
+                        </div>
+                      )}
+                      {referee.employerName && (
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Briefcase className="h-4 w-4 text-slate-400" />
+                          {referee.employerName}
+                        </div>
+                      )}
+                      {referee.address && (
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <MapPin className="h-4 w-4 text-slate-400" />
+                          {referee.address}
+                        </div>
+                      )}
+                    </div>
+                    {canDelete && (
+                      <div className="mt-3 pt-3 border-t border-blue-200">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteReferee(referee.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Add NOK Dialog */}
       <Dialog open={showNOKDialog} onOpenChange={setShowNOKDialog}>

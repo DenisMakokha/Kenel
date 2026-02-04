@@ -25,6 +25,13 @@ export default function PortalLoginPage() {
       localStorage.setItem('portalAccessToken', result.accessToken);
       if (result.client) {
         setClient(result.client);
+        // Check if KYC is incomplete - redirect new clients to KYC page
+        const c = result.client as any;
+        const hasBasicInfo = c?.employerName && (c?.nextOfKin?.length > 0 || c?.referees?.length > 0);
+        if (!hasBasicInfo && c?.kycStatus !== 'VERIFIED') {
+          navigate('/portal/kyc');
+          return;
+        }
       }
       navigate('/portal/dashboard');
     } catch (err: any) {

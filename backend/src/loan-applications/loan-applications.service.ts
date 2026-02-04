@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import {
   Prisma,
   LoanApplicationStatus,
@@ -8,6 +8,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoansService } from '../loans/loans.service';
+import { PortalNotificationsService } from '../portal/portal-notifications.service';
 import {
   ApproveLoanApplicationDto,
   BulkActionResultDto,
@@ -28,6 +29,8 @@ export class LoanApplicationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly loansService: LoansService,
+    @Inject(forwardRef(() => PortalNotificationsService))
+    private readonly notificationsService: PortalNotificationsService,
   ) {}
 
   // ============================================
@@ -123,20 +126,28 @@ export class LoanApplicationsService {
   private async seedDefaultChecklist(applicationId: string) {
     const items = [
       {
-        itemKey: 'kyc_verified',
-        itemLabel: 'Client KYC verified',
+        itemKey: 'bank_statement',
+        itemLabel: 'Bank statement for the latest three months (stamped at bank)',
       },
       {
-        itemKey: 'id_document_uploaded',
-        itemLabel: 'ID document uploaded',
+        itemKey: 'kra_pin_certificate',
+        itemLabel: 'Copy of KRA PIN certificate',
       },
       {
-        itemKey: 'payslip_uploaded',
-        itemLabel: 'Latest payslip uploaded',
+        itemKey: 'id_copy',
+        itemLabel: 'Copy of ID',
       },
       {
-        itemKey: 'employer_confirmed',
-        itemLabel: 'Employer contact verified',
+        itemKey: 'employment_contract',
+        itemLabel: 'Copy of Employment Contract',
+      },
+      {
+        itemKey: 'loan_application_form',
+        itemLabel: 'Duly-filled KENELS BUREAU Loan Application form',
+      },
+      {
+        itemKey: 'utility_bill',
+        itemLabel: 'Utility Bill (proof of address)',
       },
     ];
 
@@ -214,7 +225,18 @@ export class LoanApplicationsService {
 
     const where: Prisma.LoanApplicationWhereInput = {};
 
-    if (status) where.status = status;
+    if (status) {
+      where.status = status;
+    } else {
+      // By default, exclude DRAFT applications from ONLINE channel (client portal drafts)
+      // Staff should only see submitted applications from portal, or all statuses for staff-created apps
+      where.NOT = {
+        AND: [
+          { status: 'DRAFT' },
+          { channel: 'ONLINE' },
+        ],
+      };
+    }
     if (clientId) where.clientId = clientId;
     if (productVersionId) where.productVersionId = productVersionId;
     if (officerId) where.createdBy = officerId;
@@ -296,12 +318,18 @@ export class LoanApplicationsService {
       throw new BadRequestException('Application not found for this client');
     }
 
-    if (application.status !== 'DRAFT' && application.status !== 'REJECTED') {
-      throw new BadRequestException('Only DRAFT or REJECTED applications can be updated');
+    // Only DRAFT applications can be edited by the client
+    if (application.status !== 'DRAFT') {
+      throw new BadRequestException('Only draft applications can be edited. Submitted applications cannot be modified.');
+    }
+
+    // Check if client KYC is verified - prevent editing
+    const client = await this.prisma.client.findUnique({ where: { id: portalClientId } });
+    if (client?.kycStatus === 'VERIFIED') {
+      throw new BadRequestException('Your account is fully verified. You cannot edit applications. Please contact support.');
     }
 
     // logEvent requires a User id (not portal user). Use the linked client.userId.
-    const client = await this.prisma.client.findUnique({ where: { id: portalClientId } });
     if (!client?.userId) {
       throw new BadRequestException('Client user not found');
     }
@@ -321,8 +349,8 @@ export class LoanApplicationsService {
       throw new BadRequestException('Application not found for this client');
     }
 
-    if (application.status !== 'DRAFT' && application.status !== 'REJECTED') {
-      throw new BadRequestException('Only DRAFT or REJECTED applications can be submitted');
+    if (application.status !== 'DRAFT') {
+      throw new BadRequestException('Only draft applications can be submitted. Once submitted, applications cannot be modified.');
     }
 
     // Require at least one non-deleted supporting document before submit
@@ -449,6 +477,28 @@ export class LoanApplicationsService {
 
     await this.logEvent(id, userId, 'moved_to_under_review', application.status, updated.status);
 
+    // Send notifications
+    try {
+      // Notify client that their application is under review
+      await this.notificationsService.notifyApplicationUnderReview(
+        application.clientId,
+        application.applicationNumber,
+      );
+
+      // Notify admins about new application for review
+      const clientName = application.client 
+        ? `${application.client.firstName} ${application.client.lastName}`
+        : 'Unknown Client';
+      await this.notificationsService.notifyAdminsNewApplicationForReview(
+        application.applicationNumber,
+        clientName,
+        Number(application.requestedAmount),
+      );
+    } catch (err) {
+      // Notification failures shouldn't break the main flow
+      console.error('Failed to send notifications:', err);
+    }
+
     return this.getApplicationOrThrow(id);
   }
 
@@ -493,6 +543,17 @@ export class LoanApplicationsService {
       await this.loansService.createFromApplication(id, userId);
     } catch {
       // intentionally ignored
+    }
+
+    // Send notification to client
+    try {
+      await this.notificationsService.notifyApplicationApproved(
+        application.clientId,
+        application.applicationNumber,
+        Number(dto.approvedPrincipal),
+      );
+    } catch {
+      // Don't fail the approval if notification fails
     }
 
     return this.getApplicationOrThrow(id);
@@ -581,6 +642,17 @@ export class LoanApplicationsService {
       reason: dto.reason,
       notes: dto.notes,
     });
+
+    // Send notification to client
+    try {
+      await this.notificationsService.notifyApplicationRejected(
+        application.clientId,
+        application.applicationNumber,
+        dto.reason,
+      );
+    } catch {
+      // Don't fail the rejection if notification fails
+    }
 
     return this.getApplicationOrThrow(id);
   }
@@ -784,6 +856,76 @@ export class LoanApplicationsService {
     });
 
     return { message: 'Document deleted successfully' };
+  }
+
+  async reviewDocument(
+    applicationId: string,
+    documentId: string,
+    status: 'VERIFIED' | 'REJECTED',
+    notes: string | undefined,
+    userId: string,
+  ) {
+    await this.getApplicationOrThrow(applicationId);
+
+    const document = await this.prisma.applicationDocument.findFirst({
+      where: { id: documentId, applicationId, isDeleted: false },
+    });
+
+    if (!document) {
+      throw new NotFoundException('Document not found');
+    }
+
+    // Update document review status
+    const updated = await this.prisma.applicationDocument.update({
+      where: { id: documentId },
+      data: {
+        reviewStatus: status,
+        reviewNotes: notes || null,
+        reviewedAt: new Date(),
+        reviewedBy: userId,
+      },
+    });
+
+    // If document is verified, auto-complete the corresponding checklist item
+    if (status === 'VERIFIED') {
+      const docTypeToChecklistKey: Record<string, string> = {
+        'BANK_STATEMENT': 'bank_statement',
+        'KRA_PIN': 'kra_pin_certificate',
+        'NATIONAL_ID': 'id_copy',
+        'EMPLOYMENT_CONTRACT': 'employment_contract',
+        'EMPLOYMENT_LETTER': 'employment_contract',
+        'CONTRACT': 'employment_contract',
+        'LOAN_APPLICATION_FORM': 'loan_application_form',
+        'PROOF_OF_RESIDENCE': 'utility_bill',
+      };
+
+      const checklistKey = docTypeToChecklistKey[document.documentType];
+      if (checklistKey) {
+        await this.prisma.loanApplicationChecklistItem.updateMany({
+          where: {
+            loanApplicationId: applicationId,
+            itemKey: checklistKey,
+            status: 'PENDING',
+          },
+          data: {
+            status: 'COMPLETED',
+            completedBy: userId,
+            completedAt: new Date(),
+            notes: 'Auto-completed: Document verified',
+          },
+        });
+      }
+    }
+
+    // Log event
+    await this.logEvent(applicationId, userId, 'document_reviewed', null, null, {
+      documentId,
+      documentType: document.documentType,
+      reviewStatus: status,
+      reviewNotes: notes,
+    });
+
+    return updated;
   }
 
   // ============================================

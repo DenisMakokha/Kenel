@@ -32,14 +32,13 @@ import {
   Wallet,
   Search,
   Plus,
-  Receipt,
   Calendar,
-  CreditCard,
   ChevronRight,
   CheckCircle,
   Clock,
   XCircle,
   RotateCcw,
+  CreditCard,
 } from 'lucide-react';
 import { loanService } from '../services/loanService';
 import { repaymentService } from '../services/repaymentService';
@@ -174,14 +173,11 @@ export default function RepaymentsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Repayment Management</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Repayments</h1>
           <p className="text-sm text-slate-600">Post and track loan repayments</p>
         </div>
         {selectedLoan && (
-          <Button
-            onClick={() => setShowPostDialog(true)}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
+          <Button onClick={() => setShowPostDialog(true)} className="bg-emerald-600 hover:bg-emerald-700">
             <Plus className="h-4 w-4 mr-2" />
             Post Repayment
           </Button>
@@ -194,60 +190,57 @@ export default function RepaymentsPage() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[350px,1fr]">
+      <div className="grid gap-6 lg:grid-cols-[320px,1fr]">
         {/* Loan Selection Panel */}
-        <div className="space-y-4">
-          <Card className="border-slate-100">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Select Loan</CardTitle>
-              <CardDescription>Choose a loan to manage repayments</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search by loan # or client..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+        <Card className="border-slate-100">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Select Loan</CardTitle>
+            <CardDescription>Choose a loan to manage</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
 
-              {loading ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Loading loans...</p>
-              ) : (
-                <div className="max-h-[400px] overflow-y-auto space-y-2">
-                  {filteredLoans.map((loan) => (
-                    <button
-                      key={loan.id}
-                      onClick={() => setSelectedLoan(loan)}
-                      className={cn(
-                        'w-full text-left p-3 rounded-lg border transition-colors',
-                        selectedLoan?.id === loan.id
-                          ? 'border-emerald-500 bg-emerald-50'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-sm font-medium">{loan.loanNumber}</span>
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
-                      </div>
-                      <p className="text-sm text-slate-600 mt-1">
-                        {loan.client?.firstName} {loan.client?.lastName}
-                      </p>
-                      <div className="flex items-center justify-between mt-2 text-xs">
-                        <span className="text-slate-500">Outstanding:</span>
-                        <span className="font-medium text-slate-900">
-                          {formatCurrency(Number(loan.outstandingPrincipal) + Number(loan.outstandingInterest))}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            {loading ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">Loading loans...</p>
+            ) : filteredLoans.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">No active loans found</p>
+            ) : (
+              <div className="max-h-[400px] overflow-y-auto space-y-2">
+                {filteredLoans.map((loan) => (
+                  <button
+                    key={loan.id}
+                    onClick={() => setSelectedLoan(loan)}
+                    className={cn(
+                      'w-full text-left p-3 rounded-lg border transition-all',
+                      selectedLoan?.id === loan.id
+                        ? 'border-emerald-400 bg-emerald-50'
+                        : 'border-slate-200 hover:border-emerald-200 hover:bg-slate-50'
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono">{loan.loanNumber}</span>
+                      <ChevronRight className={cn('h-4 w-4', selectedLoan?.id === loan.id ? 'text-emerald-500' : 'text-slate-400')} />
+                    </div>
+                    <p className="text-sm font-medium mt-1">
+                      {loan.client?.firstName} {loan.client?.lastName}
+                    </p>
+                    <p className="text-xs text-amber-600 font-semibold mt-1">
+                      {formatCurrency(Number(loan.outstandingPrincipal) + Number(loan.outstandingInterest))} due
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Repayments Panel */}
         <div className="space-y-4">
@@ -258,40 +251,31 @@ export default function RepaymentsPage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-lg">{selectedLoan.loanNumber}</CardTitle>
-                      <CardDescription>
-                        {selectedLoan.client?.firstName} {selectedLoan.client?.lastName}
-                      </CardDescription>
+                      <p className="font-mono text-sm">{selectedLoan.loanNumber}</p>
+                      <p className="font-medium">{selectedLoan.client?.firstName} {selectedLoan.client?.lastName}</p>
                     </div>
                     <Badge className="bg-emerald-100 text-emerald-700">Active</Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide">Principal</p>
-                      <p className="text-lg font-semibold">
-                        {formatCurrency(Number(selectedLoan.principalAmount))}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-slate-50 rounded-md p-3">
+                      <p className="text-xs text-muted-foreground">Principal</p>
+                      <p className="font-bold">{formatCurrency(Number(selectedLoan.principalAmount))}</p>
+                    </div>
+                    <div className="bg-amber-50 rounded-md p-3">
+                      <p className="text-xs text-amber-600">Outstanding</p>
+                      <p className="font-bold text-amber-700">
+                        {formatCurrency(Number(selectedLoan.outstandingPrincipal) + Number(selectedLoan.outstandingInterest))}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide">Outstanding</p>
-                      <p className="text-lg font-semibold text-amber-600">
-                        {formatCurrency(
-                          Number(selectedLoan.outstandingPrincipal) +
-                            Number(selectedLoan.outstandingInterest)
-                        )}
-                      </p>
+                    <div className="bg-emerald-50 rounded-md p-3">
+                      <p className="text-xs text-emerald-600">Total Repaid</p>
+                      <p className="font-bold text-emerald-700">{formatCurrency(Number(selectedLoan.totalRepaid))}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide">Total Repaid</p>
-                      <p className="text-lg font-semibold text-emerald-600">
-                        {formatCurrency(Number(selectedLoan.totalRepaid))}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide">Interest Rate</p>
-                      <p className="text-lg font-semibold">{Number(selectedLoan.interestRate)}%</p>
+                    <div className="bg-blue-50 rounded-md p-3">
+                      <p className="text-xs text-blue-600">Interest Rate</p>
+                      <p className="font-bold text-blue-700">{Number(selectedLoan.interestRate)}%</p>
                     </div>
                   </div>
                 </CardContent>
@@ -302,32 +286,26 @@ export default function RepaymentsPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Payment History</CardTitle>
-                      <CardDescription>
-                        {repayments.length} payment{repayments.length !== 1 ? 's' : ''} recorded
-                      </CardDescription>
+                      <CardTitle className="text-base">Payment History</CardTitle>
+                      <CardDescription>{repayments.length} payments recorded</CardDescription>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-500">Total Collected</p>
-                      <p className="text-lg font-semibold text-emerald-600">
-                        {formatCurrency(totalCollected)}
-                      </p>
+                      <p className="text-xs text-muted-foreground">Collected</p>
+                      <p className="font-bold text-emerald-600">{formatCurrency(totalCollected)}</p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   {repaymentsLoading ? (
-                    <p className="text-sm text-muted-foreground py-8 text-center">
-                      Loading repayments...
-                    </p>
+                    <p className="text-sm text-muted-foreground py-8 text-center">Loading repayments...</p>
                   ) : repayments.length === 0 ? (
-                    <div className="text-center py-8">
+                    <div className="text-center py-12 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
                       <Wallet className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                      <p className="text-sm text-muted-foreground">No repayments recorded yet</p>
+                      <p className="text-slate-600 font-medium">No repayments recorded yet</p>
+                      <p className="text-sm text-slate-500 mt-1 mb-4">Post the first repayment for this loan</p>
                       <Button
-                        variant="outline"
                         size="sm"
-                        className="mt-3"
+                        className="bg-teal-600 hover:bg-teal-700"
                         onClick={() => setShowPostDialog(true)}
                       >
                         <Plus className="h-4 w-4 mr-1" />
@@ -338,13 +316,13 @@ export default function RepaymentsPage() {
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
-                          <TableRow>
-                            <TableHead>Receipt #</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Channel</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Reference</TableHead>
+                          <TableRow className="bg-slate-50">
+                            <TableHead className="font-semibold">Receipt #</TableHead>
+                            <TableHead className="font-semibold">Date</TableHead>
+                            <TableHead className="font-semibold">Amount</TableHead>
+                            <TableHead className="font-semibold">Channel</TableHead>
+                            <TableHead className="font-semibold">Status</TableHead>
+                            <TableHead className="font-semibold">Reference</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -352,36 +330,31 @@ export default function RepaymentsPage() {
                             const statusConfig = STATUS_CONFIG[repayment.status];
                             const StatusIcon = statusConfig?.icon || Clock;
                             return (
-                              <TableRow key={repayment.id}>
+                              <TableRow key={repayment.id} className="hover:bg-slate-50 transition-colors">
                                 <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <Receipt className="h-4 w-4 text-slate-400" />
-                                    <code className="text-xs font-mono">
-                                      {repayment.receiptNumber}
-                                    </code>
-                                  </div>
+                                  <code className="text-xs font-mono bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                                    {repayment.receiptNumber}
+                                  </code>
                                 </TableCell>
                                 <TableCell>
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <Calendar className="h-3 w-3 text-slate-400" />
+                                  <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
                                     {formatDate(repayment.transactionDate)}
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <span className="font-semibold text-emerald-600">
+                                  <span className="font-bold text-emerald-600">
                                     {formatCurrency(Number(repayment.amount))}
                                   </span>
                                 </TableCell>
                                 <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <CreditCard className="h-4 w-4 text-slate-400" />
-                                    <span className="text-sm">
-                                      {CHANNEL_LABELS[repayment.channel] || repayment.channel}
-                                    </span>
-                                  </div>
+                                  <Badge variant="outline" className="font-medium">
+                                    <CreditCard className="h-3 w-3 mr-1 text-slate-400" />
+                                    {CHANNEL_LABELS[repayment.channel] || repayment.channel}
+                                  </Badge>
                                 </TableCell>
                                 <TableCell>
-                                  <Badge className={cn('font-medium', statusConfig?.color)}>
+                                  <Badge className={cn('font-medium border', statusConfig?.color)}>
                                     <StatusIcon className="h-3 w-3 mr-1" />
                                     {statusConfig?.label || repayment.status}
                                   </Badge>
@@ -402,12 +375,14 @@ export default function RepaymentsPage() {
               </Card>
             </>
           ) : (
-            <Card className="border-slate-100">
-              <CardContent className="py-16 text-center">
-                <Wallet className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-900 mb-2">Select a Loan</h3>
-                <p className="text-sm text-slate-500">
-                  Choose a loan from the list to view and manage repayments
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="py-20 text-center">
+                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-teal-50 to-emerald-50 flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-teal-200">
+                  <Wallet className="h-10 w-10 text-teal-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Select a Loan</h3>
+                <p className="text-sm text-slate-500 max-w-xs mx-auto">
+                  Choose a loan from the list on the left to view and manage repayments
                 </p>
               </CardContent>
             </Card>

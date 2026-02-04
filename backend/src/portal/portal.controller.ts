@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import PDFDocument = require('pdfkit');
@@ -11,6 +11,7 @@ import { RepaymentsService } from '../repayments/repayments.service';
 import { CreateNextOfKinDto, CreateRefereeDto, UpdateNextOfKinDto, UpdateRefereeDto } from '../clients/dto';
 import { LoanApplicationsService } from '../loan-applications/loan-applications.service';
 import { DocumentsService } from '../documents/documents.service';
+import { PortalNotificationsService } from './portal-notifications.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UseInterceptors, UploadedFile } from '@nestjs/common';
 import { diskStorage } from 'multer';
@@ -33,11 +34,48 @@ export class PortalController {
     private readonly prisma: PrismaService,
     private readonly loanApplicationsService: LoanApplicationsService,
     private readonly documentsService: DocumentsService,
+    private readonly notificationsService: PortalNotificationsService,
   ) {}
 
   // ============================================
   // PORTAL LOAN APPLICATIONS (CLIENT)
   // ============================================
+
+  @Get('loan-applications')
+  @ApiOperation({ summary: 'Get all loan applications for current portal client' })
+  @ApiResponse({ status: 200, description: 'Loan applications retrieved successfully' })
+  async getLoanApplications(@Req() req: PortalRequest) {
+    const clientId = req.portalClientId as string;
+    
+    const applications = await this.prisma.loanApplication.findMany({
+      where: { clientId },
+      include: {
+        productVersion: {
+          include: {
+            loanProduct: true,
+          },
+        },
+        loan: {
+          select: { id: true, status: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return applications.map((app) => ({
+      id: app.id,
+      status: app.status,
+      requestedAmount: app.requestedAmount,
+      requestedTermMonths: app.requestedTermMonths,
+      purpose: app.purpose,
+      productName: app.productVersion?.loanProduct?.name || 'Unknown Product',
+      createdAt: app.createdAt,
+      submittedAt: app.submittedAt,
+      rejectionReason: app.rejectionReason,
+      loanId: app.loan?.id || null,
+      loanStatus: app.loan?.status || null,
+    }));
+  }
 
   @Post('loan-applications')
   @ApiOperation({ summary: 'Create a loan application draft for current portal client' })
@@ -91,7 +129,132 @@ export class PortalController {
   ) {
     const clientId = req.portalClientId as string;
     const portalUser = (req as any).portalUser as { sub: string } | undefined;
-    return this.loanApplicationsService.submitForPortal(id, { notes: body.notes } as any, clientId, portalUser?.sub);
+    const result = await this.loanApplicationsService.submitForPortal(id, { notes: body.notes } as any, clientId, portalUser?.sub);
+    
+    // Create notification for submission
+    const application = await this.prisma.loanApplication.findUnique({
+      where: { id },
+      include: { productVersion: { include: { loanProduct: true } } },
+    });
+    if (application) {
+      await this.notificationsService.notifyApplicationSubmitted(
+        clientId,
+        application.applicationNumber,
+        application.productVersion?.loanProduct?.name || 'Loan',
+      );
+    }
+    
+    return result;
+  }
+
+  @Get('loan-applications/:id')
+  @ApiOperation({ summary: 'Get loan application detail for current portal client' })
+  @ApiResponse({ status: 200, description: 'Application details retrieved' })
+  async getLoanApplicationDetail(
+    @Req() req: PortalRequest,
+    @Param('id') id: string,
+  ) {
+    const clientId = req.portalClientId as string;
+    
+    const application = await this.prisma.loanApplication.findFirst({
+      where: { id, clientId },
+      include: {
+        productVersion: {
+          include: {
+            loanProduct: true,
+          },
+        },
+        checklistItems: true,
+        documents: {
+          where: { isDeleted: false },
+          orderBy: { uploadedAt: 'desc' },
+        },
+      },
+    });
+
+    if (!application) {
+      throw new Error('Application not found');
+    }
+
+    return {
+      id: application.id,
+      applicationNumber: application.applicationNumber,
+      status: application.status,
+      requestedAmount: application.requestedAmount,
+      requestedTermMonths: application.requestedTermMonths,
+      purpose: application.purpose,
+      productName: application.productVersion?.loanProduct?.name || 'Unknown Product',
+      submittedAt: application.submittedAt,
+      approvedPrincipal: application.approvedPrincipal,
+      approvedTermMonths: application.approvedTermMonths,
+      approvedInterestRate: application.approvedInterestRate,
+      rejectionReason: application.rejectionReason,
+      rejectionNotes: (application as any).rejectionNotes || null,
+      documents: application.documents.map(doc => ({
+        id: doc.id,
+        documentType: doc.documentType,
+        fileName: doc.fileName,
+        uploadedAt: doc.uploadedAt,
+        reviewStatus: doc.reviewStatus,
+      })),
+      checklistItems: application.checklistItems.map(item => ({
+        id: item.id,
+        itemKey: item.itemKey,
+        itemLabel: item.itemLabel,
+        status: item.status,
+      })),
+    };
+  }
+
+  @Delete('loan-applications/:id')
+  @ApiOperation({ summary: 'Delete a draft loan application for current portal client' })
+  @ApiResponse({ status: 200, description: 'Application deleted successfully' })
+  async deleteLoanApplication(
+    @Req() req: PortalRequest,
+    @Param('id') id: string,
+  ) {
+    const clientId = req.portalClientId as string;
+    
+    // Check if client KYC is verified - prevent deletion
+    const client = await this.prisma.client.findUnique({ where: { id: clientId } });
+    if (client?.kycStatus === 'VERIFIED') {
+      throw new Error('Your account is fully verified. You cannot delete applications. Please contact support.');
+    }
+    
+    // Ensure application belongs to this client and is in DRAFT status
+    const application = await this.prisma.loanApplication.findFirst({ 
+      where: { id, clientId } 
+    });
+    
+    if (!application) {
+      throw new Error('Application not found for this client');
+    }
+    
+    if (application.status !== 'DRAFT') {
+      throw new Error('Only draft applications can be deleted');
+    }
+    
+    // Delete associated documents first
+    await this.prisma.applicationDocument.deleteMany({
+      where: { applicationId: id },
+    });
+    
+    // Delete checklist items
+    await this.prisma.loanApplicationChecklistItem.deleteMany({
+      where: { loanApplicationId: id },
+    });
+    
+    // Delete events
+    await this.prisma.loanApplicationEvent.deleteMany({
+      where: { loanApplicationId: id },
+    });
+    
+    // Delete the application
+    await this.prisma.loanApplication.delete({
+      where: { id },
+    });
+    
+    return { message: 'Application deleted successfully' };
   }
 
   @Post('loan-applications/:id/documents')
@@ -228,6 +391,72 @@ export class PortalController {
   async removeNextOfKin(@Req() req: PortalRequest, @Param('nokId') nokId: string) {
     const clientId = req.portalClientId as string;
     return this.portalService.removeNextOfKin(clientId, nokId);
+  }
+
+  @Post('me/documents')
+  @ApiOperation({ summary: 'Upload a document for current portal client' })
+  @ApiResponse({ status: 201, description: 'Document uploaded successfully' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = join(process.cwd(), 'uploads', 'client-documents');
+          if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+          }
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+      fileFilter: (req, file, cb) => {
+        const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+        if (allowedMimes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and PDF are allowed.'), false);
+        }
+      },
+    }),
+  )
+  async uploadDocument(
+    @Req() req: PortalRequest,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('documentType') documentType: string,
+  ) {
+    const clientId = req.portalClientId as string;
+    if (!file) {
+      throw new Error('No file uploaded');
+    }
+    return this.portalService.uploadDocument(clientId, file, documentType);
+  }
+
+  @Delete('me/documents/:documentId')
+  @ApiOperation({ summary: 'Delete a document for current portal client' })
+  @ApiResponse({ status: 200, description: 'Document deleted successfully' })
+  async deleteDocument(
+    @Req() req: PortalRequest,
+    @Param('documentId') documentId: string,
+  ) {
+    const clientId = req.portalClientId as string;
+    return this.portalService.deleteDocument(clientId, documentId);
+  }
+
+  @Post('me/kyc/submit')
+  @ApiOperation({ summary: 'Submit KYC for review' })
+  @ApiResponse({ status: 200, description: 'KYC submitted for review successfully' })
+  @ApiResponse({ status: 400, description: 'KYC incomplete or already submitted' })
+  async submitKycForReview(@Req() req: PortalRequest) {
+    const clientId = req.portalClientId as string;
+    const result = await this.portalService.submitKycForReview(clientId);
+    
+    // Notify credit officers about new KYC submission
+    await this.notificationsService.notifyStaffKycSubmitted(clientId);
+    
+    return result;
   }
 
   @Get('preferences')
@@ -568,5 +797,52 @@ export class PortalController {
 
     addPdfFooter(doc);
     doc.end();
+  }
+
+  // ============================================
+  // NOTIFICATIONS
+  // ============================================
+
+  @Get('notifications')
+  @ApiOperation({ summary: 'Get notifications for current portal client' })
+  @ApiResponse({ status: 200, description: 'Notifications retrieved successfully' })
+  async getNotifications(@Req() req: PortalRequest) {
+    const clientId = req.portalClientId as string;
+    const notifications = await this.notificationsService.getNotifications(clientId);
+    const unreadCount = await this.notificationsService.getUnreadCount(clientId);
+    return { notifications, unreadCount };
+  }
+
+  @Post('notifications/:id/read')
+  @ApiOperation({ summary: 'Mark a notification as read' })
+  @ApiResponse({ status: 200, description: 'Notification marked as read' })
+  async markNotificationAsRead(
+    @Req() req: PortalRequest,
+    @Param('id') notificationId: string,
+  ) {
+    const clientId = req.portalClientId as string;
+    await this.notificationsService.markAsRead(clientId, notificationId);
+    return { message: 'Notification marked as read' };
+  }
+
+  @Post('notifications/read-all')
+  @ApiOperation({ summary: 'Mark all notifications as read' })
+  @ApiResponse({ status: 200, description: 'All notifications marked as read' })
+  async markAllNotificationsAsRead(@Req() req: PortalRequest) {
+    const clientId = req.portalClientId as string;
+    await this.notificationsService.markAllAsRead(clientId);
+    return { message: 'All notifications marked as read' };
+  }
+
+  @Delete('notifications/:id')
+  @ApiOperation({ summary: 'Delete a notification' })
+  @ApiResponse({ status: 200, description: 'Notification deleted' })
+  async deleteNotification(
+    @Req() req: PortalRequest,
+    @Param('id') notificationId: string,
+  ) {
+    const clientId = req.portalClientId as string;
+    await this.notificationsService.deleteNotification(clientId, notificationId);
+    return { message: 'Notification deleted' };
   }
 }

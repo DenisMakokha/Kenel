@@ -42,6 +42,13 @@ interface ArrearsBucket {
   outstandingPrincipal: number;
 }
 
+interface ChannelBreakdown {
+  MOBILE_MONEY: number;
+  BANK_TRANSFER: number;
+  CASH: number;
+  CHEQUE: number;
+}
+
 export default function FinanceDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -56,6 +63,12 @@ export default function FinanceDashboardPage() {
   });
   const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([]);
   const [arrearsBuckets, setArrearsBuckets] = useState<ArrearsBucket[]>([]);
+  const [channelBreakdown, setChannelBreakdown] = useState<ChannelBreakdown>({
+    MOBILE_MONEY: 0,
+    BANK_TRANSFER: 0,
+    CASH: 0,
+    CHEQUE: 0,
+  });
 
   useEffect(() => {
     const load = async () => {
@@ -76,19 +89,23 @@ export default function FinanceDashboardPage() {
           }),
         ]);
 
-        // Calculate arrears metrics from aging summary
-        const loansInArrears = agingSummary.buckets.reduce(
+        // Calculate arrears metrics from aging summary (exclude bucket "0" which is current/not overdue)
+        const arrearsBucketsOnly = agingSummary.buckets.filter(
+          (bucket) => bucket.bucketLabel !== '0'
+        );
+
+        const loansInArrears = arrearsBucketsOnly.reduce(
           (sum, bucket) => sum + bucket.loansInBucket,
           0
         );
 
-        const arrearsValue = agingSummary.buckets.reduce(
+        const arrearsValue = arrearsBucketsOnly.reduce(
           (sum, bucket) => sum + Number(bucket.principalOutstanding || 0),
           0
         );
 
-        // Transform buckets for display
-        const buckets: ArrearsBucket[] = agingSummary.buckets.map((bucket) => ({
+        // Transform buckets for display (only show overdue buckets in arrears snapshot)
+        const buckets: ArrearsBucket[] = arrearsBucketsOnly.map((bucket) => ({
           bucket: bucket.bucketLabel,
           loansCount: bucket.loansInBucket,
           outstandingPrincipal: Number(bucket.principalOutstanding || 0),
@@ -146,6 +163,22 @@ export default function FinanceDashboardPage() {
         });
 
         setRecentPayments(payments);
+
+        // Calculate collections by channel
+        const breakdown: ChannelBreakdown = {
+          MOBILE_MONEY: 0,
+          BANK_TRANSFER: 0,
+          CASH: 0,
+          CHEQUE: 0,
+        };
+        todaysRepayments.data.forEach((r) => {
+          const amount = Number(r.amount) || 0;
+          if (r.channel === 'MOBILE_MONEY') breakdown.MOBILE_MONEY += amount;
+          else if (r.channel === 'BANK_TRANSFER') breakdown.BANK_TRANSFER += amount;
+          else if (r.channel === 'CASH') breakdown.CASH += amount;
+          else if (r.channel === 'CHEQUE') breakdown.CHEQUE += amount;
+        });
+        setChannelBreakdown(breakdown);
       } catch (err: any) {
         setError(
           err?.response?.data?.message ||
@@ -393,6 +426,7 @@ export default function FinanceDashboardPage() {
                             variant="ghost"
                             size="sm"
                             className="h-7 text-xs"
+                            onClick={() => navigate('/finance/receipts')}
                           >
                             View receipt
                           </Button>
@@ -475,7 +509,7 @@ export default function FinanceDashboardPage() {
           <CardDescription>Today's breakdown by payment method</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-4">
               <div className="rounded-full bg-green-100 p-2">
                 <CreditCard className="h-5 w-5 text-green-700" />
@@ -483,7 +517,7 @@ export default function FinanceDashboardPage() {
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wide">M-Pesa</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {formatCurrency((kpis.todaysCollections || 0) * 0.6)}
+                  {formatCurrency(channelBreakdown.MOBILE_MONEY)}
                 </p>
               </div>
             </div>
@@ -494,7 +528,7 @@ export default function FinanceDashboardPage() {
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wide">Bank Transfer</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {formatCurrency((kpis.todaysCollections || 0) * 0.3)}
+                  {formatCurrency(channelBreakdown.BANK_TRANSFER)}
                 </p>
               </div>
             </div>
@@ -505,7 +539,18 @@ export default function FinanceDashboardPage() {
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wide">Cash</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {formatCurrency((kpis.todaysCollections || 0) * 0.1)}
+                  {formatCurrency(channelBreakdown.CASH)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-4">
+              <div className="rounded-full bg-amber-100 p-2">
+                <Receipt className="h-5 w-5 text-amber-700" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wide">Cheque</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {formatCurrency(channelBreakdown.CHEQUE)}
                 </p>
               </div>
             </div>

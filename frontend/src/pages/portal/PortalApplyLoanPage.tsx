@@ -59,8 +59,31 @@ export default function PortalApplyLoanPage() {
   const [term, setTerm] = useState('');
   const [purpose, setPurpose] = useState('');
   
-  // Documents
-  const [documents, setDocuments] = useState<{ name: string; file: File }[]>([]);
+  // Documents - individual fields for each required document
+  const [requiredDocuments, setRequiredDocuments] = useState<{
+    bank_statement: File | null;
+    kra_pin: File | null;
+    id_copy: File | null;
+    employment_contract: File | null;
+    loan_application_form: File | null;
+    utility_bill: File | null;
+  }>({
+    bank_statement: null,
+    kra_pin: null,
+    id_copy: null,
+    employment_contract: null,
+    loan_application_form: null,
+    utility_bill: null,
+  });
+
+  const requiredDocumentLabels: Record<string, string> = {
+    bank_statement: 'Bank statement for the latest three months (stamped at bank)',
+    kra_pin: 'Copy of KRA PIN certificate',
+    id_copy: 'Copy of ID',
+    employment_contract: 'Copy of Employment Contract',
+    loan_application_form: 'Duly-filled KENELS BUREAU Loan Application form',
+    utility_bill: 'Utility Bill (proof of address)',
+  };
   
   // Calculated values
   const [monthlyPayment, setMonthlyPayment] = useState(0);
@@ -163,25 +186,25 @@ export default function PortalApplyLoanPage() {
     setStep('documents');
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newDocs = Array.from(files).map(file => ({
-        name: file.name,
-        file,
-      }));
-      setDocuments([...documents, ...newDocs]);
+  const handleDocumentUpload = (docKey: keyof typeof requiredDocuments, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setRequiredDocuments(prev => ({ ...prev, [docKey]: file }));
     }
     e.target.value = '';
   };
 
-  const handleRemoveDocument = (index: number) => {
-    setDocuments(documents.filter((_, i) => i !== index));
+  const handleRemoveDocument = (docKey: keyof typeof requiredDocuments) => {
+    setRequiredDocuments(prev => ({ ...prev, [docKey]: null }));
   };
 
+  const allDocumentsUploaded = Object.values(requiredDocuments).every(doc => doc !== null);
+  const uploadedCount = Object.values(requiredDocuments).filter(doc => doc !== null).length;
+  const totalRequired = Object.keys(requiredDocuments).length;
+
   const handleDocumentsSubmit = () => {
-    if (documents.length === 0) {
-      toast.warning('Documents required', 'Please upload at least one supporting document');
+    if (!allDocumentsUploaded) {
+      toast.warning('All documents required', 'Please upload all required documents before proceeding');
       return;
     }
     setStep('review');
@@ -196,8 +219,8 @@ export default function PortalApplyLoanPage() {
       toast.error('Missing product', 'Please select a loan product.');
       return;
     }
-    if (documents.length === 0) {
-      toast.warning('Documents required', 'Please upload at least one supporting document');
+    if (!allDocumentsUploaded) {
+      toast.warning('All documents required', 'Please upload all required documents before proceeding');
       return;
     }
 
@@ -218,13 +241,24 @@ export default function PortalApplyLoanPage() {
         return;
       }
 
-      // Upload documents
-      for (const doc of documents) {
-        await portalService.uploadLoanApplicationDocument(appId, {
-          file: doc.file,
-          type: 'OTHER',
-          category: 'KYC',
-        });
+      // Upload all required documents - map to valid Prisma DocumentType values
+      const documentTypeMap: Record<string, string> = {
+        bank_statement: 'BANK_STATEMENT',
+        kra_pin: 'KRA_PIN',
+        id_copy: 'NATIONAL_ID',
+        employment_contract: 'EMPLOYMENT_CONTRACT',
+        loan_application_form: 'LOAN_APPLICATION_FORM',
+        utility_bill: 'PROOF_OF_RESIDENCE',
+      };
+
+      for (const [key, file] of Object.entries(requiredDocuments)) {
+        if (file) {
+          await portalService.uploadLoanApplicationDocument(appId, {
+            file: file,
+            type: documentTypeMap[key] || 'OTHER',
+            category: 'KYC',
+          });
+        }
       }
 
       await portalService.submitLoanApplication(appId, { notes: '' });
@@ -503,95 +537,133 @@ export default function PortalApplyLoanPage() {
       {step === 'documents' && (
         <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="text-lg">Supporting Documents</CardTitle>
+            <CardTitle className="text-lg">Required Documents</CardTitle>
             <CardDescription>
-              Upload documents to support your loan application
+              Upload all required documents to proceed with your application
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg p-8 text-center">
-              <input
-                type="file"
-                id="file-upload"
-                className="hidden"
-                multiple
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={handleFileUpload}
-              />
-              <label
-                htmlFor="file-upload"
-                className="cursor-pointer"
-              >
-                <Upload className="h-10 w-10 text-slate-400 mx-auto mb-3" />
-                <p className="text-sm font-medium text-slate-900">
-                  Click to upload or drag and drop
-                </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  PDF, JPG, PNG up to 10MB each
-                </p>
-              </label>
+            {/* Progress indicator */}
+            <div className="bg-slate-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-700">Upload Progress</span>
+                <span className="text-sm font-semibold text-emerald-600">
+                  {uploadedCount} of {totalRequired} documents
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2">
+                <div 
+                  className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(uploadedCount / totalRequired) * 100}%` }}
+                />
+              </div>
             </div>
 
-            {/* Required documents list */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-slate-700">Required Documents:</p>
-              <ul className="text-sm text-slate-500 space-y-1">
-                <li className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Bank statement for the latest three months (stamped at bank)
-                </li>
-                <li className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Copy of KRA PIN certificate
-                </li>
-                <li className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Copy of ID
-                </li>
-                <li className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Copy of Employment Contract
-                </li>
-                <li className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Duly-filled KENELS BUREAU Loan Application form
-                </li>
-                <li className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Utility Bill(proof of address)
-                </li>
-              </ul>
-            </div>
-
-            {/* Uploaded documents */}
-            {documents.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-700">Uploaded Documents:</p>
-                <div className="space-y-2">
-                  {documents.map((doc, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-slate-500" />
-                        <span className="text-sm text-slate-700">{doc.name}</span>
+            {/* Individual document upload fields */}
+            <div className="space-y-3">
+              {(Object.keys(requiredDocuments) as Array<keyof typeof requiredDocuments>).map((docKey) => (
+                <div
+                  key={docKey}
+                  className={cn(
+                    "border rounded-lg p-4 transition-all",
+                    requiredDocuments[docKey] 
+                      ? "border-emerald-300 bg-emerald-50" 
+                      : "border-slate-200 bg-white"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className={cn(
+                        "h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
+                        requiredDocuments[docKey] 
+                          ? "bg-emerald-100" 
+                          : "bg-slate-100"
+                      )}>
+                        {requiredDocuments[docKey] ? (
+                          <CheckCircle className="h-5 w-5 text-emerald-600" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-slate-400" />
+                        )}
                       </div>
-                      <button
-                        onClick={() => handleRemoveDocument(index)}
-                        className="p-1 hover:bg-slate-200 rounded"
-                      >
-                        <X className="h-4 w-4 text-slate-500" />
-                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn(
+                          "text-sm font-medium",
+                          requiredDocuments[docKey] ? "text-emerald-800" : "text-slate-700"
+                        )}>
+                          {requiredDocumentLabels[docKey]}
+                        </p>
+                        {requiredDocuments[docKey] ? (
+                          <p className="text-xs text-emerald-600 mt-1 truncate">
+                            {requiredDocuments[docKey]?.name}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-slate-500 mt-1">
+                            PDF, JPG, PNG up to 10MB
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  ))}
+                    <div className="flex-shrink-0">
+                      {requiredDocuments[docKey] ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveDocument(docKey)}
+                          className="text-slate-500 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <>
+                          <input
+                            type="file"
+                            id={`file-${docKey}`}
+                            className="hidden"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => handleDocumentUpload(docKey, e)}
+                          />
+                          <label htmlFor={`file-${docKey}`}>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="cursor-pointer"
+                              asChild
+                            >
+                              <span>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Upload
+                              </span>
+                            </Button>
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
+              ))}
+            </div>
+
+            {!allDocumentsUploaded && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-800">
+                  Please upload all {totalRequired} required documents before proceeding. 
+                  Missing documents may delay your application.
+                </p>
               </div>
             )}
 
             <Button
-              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              className={cn(
+                "w-full",
+                allDocumentsUploaded 
+                  ? "bg-emerald-600 hover:bg-emerald-700" 
+                  : "bg-slate-300 cursor-not-allowed"
+              )}
               onClick={handleDocumentsSubmit}
+              disabled={!allDocumentsUploaded}
             >
               Continue to Review
               <ArrowRight className="h-4 w-4 ml-2" />
@@ -655,14 +727,20 @@ export default function PortalApplyLoanPage() {
             {/* Documents */}
             <div>
               <h3 className="text-sm font-semibold text-slate-900 mb-2">
-                Documents ({documents.length})
+                Documents ({uploadedCount})
               </h3>
               <div className="bg-slate-50 rounded-lg p-4">
-                <ul className="space-y-1 text-sm">
-                  {documents.map((doc, index) => (
-                    <li key={index} className="flex items-center gap-2 text-slate-700">
-                      <CheckCircle className="h-4 w-4 text-emerald-600" />
-                      {doc.name}
+                <ul className="space-y-2 text-sm">
+                  {(Object.keys(requiredDocuments) as Array<keyof typeof requiredDocuments>).map((docKey) => (
+                    <li key={docKey} className="flex items-center gap-2 text-slate-700">
+                      {requiredDocuments[docKey] ? (
+                        <CheckCircle className="h-4 w-4 text-emerald-600" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 text-red-500" />
+                      )}
+                      <span className={requiredDocuments[docKey] ? '' : 'text-red-500'}>
+                        {requiredDocumentLabels[docKey]}
+                      </span>
                     </li>
                   ))}
                 </ul>
