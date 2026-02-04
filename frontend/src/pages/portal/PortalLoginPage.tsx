@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { portalService } from '../../services/portalService';
 import { usePortalAuthStore } from '../../store/portalAuthStore';
-import { Home, Eye, EyeOff, Smartphone, CreditCard, FileText, ArrowRight, ExternalLink } from 'lucide-react';
+import { Home, Eye, EyeOff, Smartphone, CreditCard, FileText, ArrowRight, ExternalLink, User, Briefcase } from 'lucide-react';
 import { COMPANY_CONFIG, getCurrentYear } from '../../config/company';
 import Logo from '../../components/Logo';
 
@@ -126,10 +126,16 @@ export default function PortalLoginPage() {
             Back to Home
           </Link>
 
+          {/* Client Portal Badge */}
+          <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 border border-emerald-200">
+            <User className="h-4 w-4 text-emerald-600" />
+            <span className="text-sm font-semibold text-emerald-700">CLIENT PORTAL</span>
+          </div>
+
           {/* Form Header */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome back</h2>
-            <p className="text-slate-500">Sign in to access your loan account</p>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Client Sign In</h2>
+            <p className="text-slate-500">Access your loan account and manage your finances</p>
           </div>
 
           {/* Error Message */}
@@ -212,6 +218,18 @@ export default function PortalLoginPage() {
             >
               Create an account
               <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          {/* Staff Portal Link */}
+          <div className="mt-4 text-center p-3 rounded-lg bg-slate-100 border border-slate-200">
+            <p className="text-xs text-slate-600 mb-2">Are you a staff member?</p>
+            <Link 
+              to="/login"
+              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-xs"
+            >
+              <Briefcase className="h-3 w-3" />
+              Go to Staff Portal
             </Link>
           </div>
 

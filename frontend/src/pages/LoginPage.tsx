@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { authService } from '../services/authService';
 import { useAuthStore } from '../store/authStore';
-import { Home, Shield, Eye, EyeOff, ArrowRight, ExternalLink } from 'lucide-react';
+import { Home, Shield, Eye, EyeOff, ArrowRight, ExternalLink, Briefcase, Users } from 'lucide-react';
 import { COMPANY_CONFIG, getCurrentYear } from '../config/company';
 import Logo from '../components/Logo';
 
@@ -36,11 +36,11 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-20 -left-20 w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-20 -left-20 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-10 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse delay-1000"></div>
         </div>
         
         {/* Content */}
@@ -66,12 +66,12 @@ export default function LoginPage() {
             <div className="space-y-4">
               {[
                 { icon: Shield, text: 'Secure role-based access control' },
-                { icon: Shield, text: 'Complete loan lifecycle management' },
-                { icon: ArrowRight, text: 'Real-time portfolio analytics' },
+                { icon: Briefcase, text: 'Complete loan lifecycle management' },
+                { icon: Users, text: 'Real-time portfolio analytics' },
               ].map((feature, i) => (
                 <div key={i} className="flex items-center gap-3 text-slate-300">
-                  <div className="h-8 w-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                    <feature.icon className="h-4 w-4 text-emerald-400" />
+                  <div className="h-8 w-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                    <feature.icon className="h-4 w-4 text-blue-400" />
                   </div>
                   <span className="text-sm">{feature.text}</span>
                 </div>
@@ -118,10 +118,16 @@ export default function LoginPage() {
             Back to Home
           </Link>
 
+          {/* Staff Portal Badge */}
+          <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 border border-blue-200">
+            <Briefcase className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-semibold text-blue-700">STAFF PORTAL</span>
+          </div>
+
           {/* Form Header */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome back</h2>
-            <p className="text-slate-500">Sign in to your staff account to continue</p>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Staff Sign In</h2>
+            <p className="text-slate-500">For employees and administrators only</p>
           </div>
 
           {/* Error Message */}
@@ -145,7 +151,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
-                className="w-full h-12 px-4 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
+                className="w-full h-12 px-4 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
               />
             </div>
 
@@ -154,7 +160,7 @@ export default function LoginPage() {
                 <label htmlFor="password" className="text-sm font-medium text-slate-700">
                   Password
                 </label>
-                <Link to="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-700">
+                <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700">
                   Forgot password?
                 </Link>
               </div>
@@ -167,7 +173,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="w-full h-12 px-4 pr-12 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
+                  className="w-full h-12 px-4 pr-12 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
                 />
                 <button
                   type="button"
@@ -181,7 +187,7 @@ export default function LoginPage() {
 
             <Button 
               type="submit" 
-              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors"
+              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -203,13 +209,14 @@ export default function LoginPage() {
           </div>
 
           {/* Client Portal Link */}
-          <div className="text-center">
-            <p className="text-sm text-slate-500 mb-3">Are you a loan client?</p>
+          <div className="text-center p-4 rounded-lg bg-emerald-50 border border-emerald-200">
+            <p className="text-sm text-emerald-800 font-medium mb-2">Looking for the Client Portal?</p>
+            <p className="text-xs text-emerald-600 mb-3">If you're a loan customer, use the client portal instead</p>
             <Link 
               to="/portal/login"
-              className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium text-sm"
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors"
             >
-              Access Client Portal
+              Go to Client Portal
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
