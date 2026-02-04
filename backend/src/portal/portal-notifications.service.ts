@@ -223,6 +223,58 @@ export class PortalNotificationsService {
     return notification;
   }
 
+  async notifyApplicationReturned(
+    clientId: string,
+    applicationNumber: string,
+    reason: string,
+    returnedItems: Array<{ type: string; documentType?: string; field?: string; message: string }>,
+  ) {
+    const notification = await this.createNotification({
+      clientId,
+      type: 'warning',
+      category: 'loan_application',
+      title: 'Action Required: Application Needs Correction',
+      message: `Your loan application ${applicationNumber} needs corrections. ${reason}`,
+      actionUrl: `/portal/applications/${applicationNumber}?returned=true`,
+      actionLabel: 'Fix Now',
+      metadata: { applicationNumber, reason, returnedItems },
+    });
+
+    // Send email notification
+    const clientInfo = await this.getClientEmailInfo(clientId);
+    if (clientInfo?.emailEnabled) {
+      try {
+        const itemsHtml = returnedItems
+          .map((item) => `<li><strong>${item.documentType || item.field || 'Item'}:</strong> ${item.message}</li>`)
+          .join('');
+
+        await this.emailService.sendEmail({
+          to: clientInfo.email,
+          subject: `Action Required: Loan Application ${applicationNumber} Needs Correction`,
+          html: `
+            <h2>Loan Application Needs Correction</h2>
+            <p>Dear ${clientInfo.name},</p>
+            <p>Your loan application <strong>${applicationNumber}</strong> has been reviewed and requires some corrections before it can proceed.</p>
+            <p><strong>Reason:</strong> ${reason}</p>
+            <h3>Items Requiring Attention:</h3>
+            <ul>${itemsHtml}</ul>
+            <p>Please log in to your portal and make the necessary corrections.</p>
+            <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal/applications/${applicationNumber}?returned=true" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 16px 0;">Fix Now</a></p>
+            <p>If you have any questions, please contact our support team.</p>
+          `,
+        });
+        await this.prisma.clientNotification.update({
+          where: { id: notification.id },
+          data: { emailSent: true },
+        });
+      } catch {
+        // Email failure shouldn't break the notification
+      }
+    }
+
+    return notification;
+  }
+
   async notifyLoanDisbursed(clientId: string, loanNumber: string, amount: number, disbursedBy: string) {
     const notification = await this.createNotification({
       clientId,
@@ -475,6 +527,68 @@ export class PortalNotificationsService {
             <p><strong>Reason:</strong> ${reason}</p>
             <p>Please log in to your portal, update the required documents, and resubmit for verification.</p>
             <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal/kyc">Update Your Documents</a></p>
+            <p>If you have any questions, please contact our support team.</p>
+          `,
+        });
+        await this.prisma.clientNotification.update({
+          where: { id: notification.id },
+          data: { emailSent: true },
+        });
+      } catch {
+        // Email failure shouldn't break the notification
+      }
+    }
+
+    return notification;
+  }
+
+  async notifyKycReturned(
+    clientId: string,
+    reason: string,
+    returnedItems: Array<{ type: string; documentType?: string; field?: string; message: string }>,
+  ) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+    });
+
+    if (!client) return;
+
+    // Build a summary of items needing correction
+    const itemsSummary = returnedItems
+      .map((item) => `• ${item.message}`)
+      .join('\n');
+
+    const notification = await this.createNotification({
+      clientId,
+      type: 'warning',
+      category: 'system',
+      title: 'Action Required: KYC Needs Correction',
+      message: `Your KYC verification needs corrections. ${reason}`,
+      actionUrl: '/portal/kyc?returned=true',
+      actionLabel: 'Fix Now',
+      metadata: { reason, returnedItems },
+    });
+
+    // Send email notification
+    const clientInfo = await this.getClientEmailInfo(clientId);
+    if (clientInfo?.emailEnabled) {
+      try {
+        const itemsHtml = returnedItems
+          .map((item) => `<li><strong>${item.documentType || item.field || 'Item'}:</strong> ${item.message}</li>`)
+          .join('');
+
+        await this.emailService.sendEmail({
+          to: clientInfo.email,
+          subject: 'Action Required: Your KYC Needs Correction',
+          html: `
+            <h2>KYC Verification Needs Correction</h2>
+            <p>Dear ${clientInfo.name},</p>
+            <p>Your KYC verification has been reviewed and requires some corrections before it can be approved.</p>
+            <p><strong>Reason:</strong> ${reason}</p>
+            <h3>Items Requiring Attention:</h3>
+            <ul>${itemsHtml}</ul>
+            <p>Please log in to your portal and make the necessary corrections.</p>
+            <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal/kyc?returned=true" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 16px 0;">Fix Now</a></p>
             <p>If you have any questions, please contact our support team.</p>
           `,
         });

@@ -68,6 +68,11 @@ export const clientService = {
     return response.data;
   },
 
+  async returnKyc(id: string, data: { reason: string; returnedItems: Array<{ type: string; documentType?: string; field?: string; message: string }> }): Promise<Client> {
+    const response = await api.post<Client>(`${BASE_URL}/${id}/kyc/return`, data);
+    return response.data;
+  },
+
   async getKycHistory(id: string): Promise<KycEvent[]> {
     const response = await api.get<KycEvent[]>(`${BASE_URL}/${id}/kyc/history`);
     return response.data;

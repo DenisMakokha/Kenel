@@ -158,6 +158,19 @@ export class ClientsController {
     return this.clientsService.rejectKyc(id, user.sub, dto);
   }
 
+  @Post(':id/kyc/return')
+  @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER)
+  @ApiOperation({ summary: 'Return KYC to client for corrections' })
+  @ApiResponse({ status: 200, description: 'KYC returned to client' })
+  @ApiResponse({ status: 400, description: 'Invalid status for return' })
+  returnKyc(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() dto: { reason: string; returnedItems: Array<{ type: string; documentType?: string; field?: string; message: string }> },
+  ) {
+    return this.clientsService.returnKyc(id, user.sub, dto);
+  }
+
   @Patch(':id/kyc/profile-edits')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Allow/disallow client profile edits after KYC approval' })

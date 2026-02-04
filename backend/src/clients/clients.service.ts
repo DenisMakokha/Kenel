@@ -530,6 +530,67 @@ export class ClientsService {
   }
 
   /**
+   * Return KYC to client for corrections
+   */
+  async returnKyc(
+    id: string,
+    userId: string,
+    dto: { reason: string; returnedItems: Array<{ type: string; documentType?: string; field?: string; message: string }> },
+  ) {
+    if (!userId) {
+      throw new UnauthorizedException('Missing authenticated user');
+    }
+
+    const client = await this.findOne(id);
+
+    if (client.kycStatus !== 'PENDING_REVIEW') {
+      throw new BadRequestException(
+        `Cannot return client with status: ${client.kycStatus}`,
+      );
+    }
+
+    // Create KYC event
+    await this.prisma.clientKycEvent.create({
+      data: {
+        clientId: id,
+        fromStatus: 'PENDING_REVIEW',
+        toStatus: 'RETURNED',
+        reason: dto.reason,
+        notes: JSON.stringify(dto.returnedItems),
+        performedBy: userId,
+      },
+    });
+
+    // Update client status and return fields
+    const updated = await this.prisma.client.update({
+      where: { id },
+      data: {
+        kycStatus: 'RETURNED',
+        kycReturnReason: dto.reason,
+        kycReturnedAt: new Date(),
+        kycReturnedBy: userId,
+        kycReturnedItems: dto.returnedItems,
+      },
+      include: {
+        user: true,
+        kycEvents: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+      },
+    });
+
+    // Notify client that KYC needs corrections
+    try {
+      await this.portalNotificationsService.notifyKycReturned(id, dto.reason, dto.returnedItems);
+    } catch {
+      // Notification failure shouldn't break the return
+    }
+
+    return updated;
+  }
+
+  /**
    * Get KYC history for a client
    */
   async getKycHistory(id: string) {

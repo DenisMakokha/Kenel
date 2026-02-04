@@ -28,6 +28,7 @@ enum LoanApplicationStatus {
   UNDER_REVIEW
   APPROVED
   REJECTED
+  RETURNED
 }
 
 enum LoanStatus {
@@ -82,6 +83,7 @@ enum KycStatus {
   PENDING_REVIEW
   VERIFIED
   REJECTED
+  RETURNED
 }
 
 enum IdType {
@@ -294,6 +296,12 @@ model Client {
   kycVerifiedBy       String?        @map("kyc_verified_by") @db.Uuid
   allowProfileEditsAfterKyc Boolean   @default(false) @map("allow_profile_edits_after_kyc")
   riskRating          RiskRating?    @map("risk_rating")
+  
+  // KYC Return fields (when sent back to client for corrections)
+  kycReturnReason     String?        @map("kyc_return_reason")
+  kycReturnedAt       DateTime?      @map("kyc_returned_at")
+  kycReturnedBy       String?        @map("kyc_returned_by") @db.Uuid
+  kycReturnedItems    Json?          @map("kyc_returned_items") // Array of items needing correction
   
   // Notes & Metadata
   notes               String?
@@ -533,6 +541,12 @@ model LoanApplication {
   rejectedAt          DateTime?               @map("rejected_at")
   rejectedBy          String?                 @map("rejected_by")
   rejectionReason     String?                 @map("rejection_reason")
+  
+  // Return to client fields (when sent back for corrections)
+  returnReason        String?                 @map("return_reason")
+  returnedAt          DateTime?               @map("returned_at")
+  returnedBy          String?                 @map("returned_by")
+  returnedItems       Json?                   @map("returned_items") // Array of items needing correction
   
   // Approved terms snapshot
   approvedPrincipal    Decimal?               @map("approved_principal") @db.Decimal(15, 2)

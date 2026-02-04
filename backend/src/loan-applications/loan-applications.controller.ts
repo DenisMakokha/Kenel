@@ -147,6 +147,19 @@ export class LoanApplicationsController {
     return this.loanApplicationsService.reject(id, dto, user.sub);
   }
 
+  @Post(':id/return')
+  @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER)
+  @ApiOperation({ summary: 'Return application to client for corrections' })
+  @ApiResponse({ status: 200, description: 'Application returned to client' })
+  @ApiResponse({ status: 400, description: 'Only SUBMITTED or UNDER_REVIEW applications can be returned' })
+  returnToClient(
+    @Param('id') id: string,
+    @Body() dto: { reason: string; returnedItems: Array<{ type: string; documentType?: string; field?: string; message: string }> },
+    @CurrentUser() user: any,
+  ) {
+    return this.loanApplicationsService.returnToClient(id, dto, user.sub);
+  }
+
   @Post('bulk/approve')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Bulk approve applications (ADMIN only)' })

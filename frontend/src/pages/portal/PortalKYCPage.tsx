@@ -30,11 +30,14 @@ import {
 import { usePortalAuthStore } from '../../store/portalAuthStore';
 import { portalService } from '../../services/portalService';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ActionRequiredBanner } from '../../components/portal/ActionRequiredBanner';
 
 export default function PortalKYCPage() {
   const { client, setClient } = usePortalAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isReturned = searchParams.get('returned') === 'true' || (client as any)?.kycStatus === 'RETURNED';
 
   // Document upload state
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -152,8 +155,22 @@ export default function PortalKYCPage() {
 
   const headerColors = getHeaderColors();
 
+  // Get returned items from client data
+  const returnedItems = (client as any)?.kycReturnedItems || [];
+  const returnReason = (client as any)?.kycReturnReason || '';
+
   return (
     <div className="space-y-6 pb-20 md:pb-0">
+      {/* Action Required Banner for Returned KYC */}
+      {isReturned && returnReason && (
+        <ActionRequiredBanner
+          type="kyc"
+          reason={returnReason}
+          returnedItems={returnedItems}
+          actionUrl="/portal/kyc"
+        />
+      )}
+
       {/* Header with Progress */}
       <div className={`${headerColors.bg} rounded-xl p-6 text-white`}>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

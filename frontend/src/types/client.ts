@@ -9,6 +9,7 @@ export enum KycStatus {
   PENDING_REVIEW = 'PENDING_REVIEW',
   VERIFIED = 'VERIFIED',
   REJECTED = 'REJECTED',
+  RETURNED = 'RETURNED',
 }
 
 export enum RiskRating {

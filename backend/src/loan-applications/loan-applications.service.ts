@@ -661,6 +661,48 @@ export class LoanApplicationsService {
     return this.getApplicationOrThrow(id);
   }
 
+  async returnToClient(
+    id: string,
+    dto: { reason: string; returnedItems: Array<{ type: string; documentType?: string; field?: string; message: string }> },
+    userId: string,
+  ) {
+    const application = await this.getApplicationOrThrow(id);
+
+    if (application.status !== 'UNDER_REVIEW' && application.status !== 'SUBMITTED') {
+      throw new BadRequestException('Only SUBMITTED or UNDER_REVIEW applications can be returned to client');
+    }
+
+    const updated = await this.prisma.loanApplication.update({
+      where: { id },
+      data: {
+        status: 'RETURNED',
+        returnReason: dto.reason,
+        returnedAt: new Date(),
+        returnedBy: userId,
+        returnedItems: dto.returnedItems,
+      },
+    });
+
+    await this.logEvent(id, userId, 'application_returned', application.status, updated.status, {
+      reason: dto.reason,
+      returnedItems: dto.returnedItems,
+    });
+
+    // Send notification to client
+    try {
+      await this.notificationsService.notifyApplicationReturned(
+        application.clientId,
+        application.applicationNumber,
+        dto.reason,
+        dto.returnedItems,
+      );
+    } catch {
+      // Don't fail if notification fails
+    }
+
+    return this.getApplicationOrThrow(id);
+  }
+
   // ============================================
   // CREDIT SCORING
   // ============================================

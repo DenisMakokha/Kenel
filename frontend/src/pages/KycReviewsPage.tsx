@@ -39,6 +39,9 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  RotateCcw,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { clientService } from '../services/clientService';
 import type { Client, KycStatus } from '../types/client';
@@ -50,7 +53,15 @@ const KYC_STATUS_CONFIG: Record<KycStatus, { label: string; color: string; bg: s
   PENDING_REVIEW: { label: 'Pending Review', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle },
   VERIFIED: { label: 'Verified', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle },
   REJECTED: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: XCircle },
+  RETURNED: { label: 'Returned', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', icon: RotateCcw },
 };
+
+interface ReturnedItem {
+  type: 'document' | 'field';
+  documentType?: string;
+  field?: string;
+  message: string;
+}
 
 export default function KycReviewsPage() {
   const navigate = useNavigate();
@@ -74,6 +85,15 @@ export default function KycReviewsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [clientDocuments, setClientDocuments] = useState<any[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
+
+  // Return to client dialog state
+  const [showReturnDialog, setShowReturnDialog] = useState(false);
+  const [returnReason, setReturnReason] = useState('');
+  const [returnedItems, setReturnedItems] = useState<ReturnedItem[]>([]);
+  const [newItemType, setNewItemType] = useState<'document' | 'field'>('document');
+  const [newItemDocType, setNewItemDocType] = useState('');
+  const [newItemField, setNewItemField] = useState('');
+  const [newItemMessage, setNewItemMessage] = useState('');
 
   useEffect(() => {
     loadClients();
@@ -130,6 +150,59 @@ export default function KycReviewsPage() {
       console.error('Failed to load documents', err);
     } finally {
       setLoadingDocs(false);
+    }
+  };
+
+  const handleReturnToClient = async (client: Client) => {
+    setSelectedClient(client);
+    setReturnReason('');
+    setReturnedItems([]);
+    setClientDocuments([]);
+    setShowReturnDialog(true);
+    
+    // Load client documents for reference
+    try {
+      setLoadingDocs(true);
+      const docs = await clientService.getDocuments(client.id);
+      setClientDocuments(docs);
+    } catch (err) {
+      console.error('Failed to load documents', err);
+    } finally {
+      setLoadingDocs(false);
+    }
+  };
+
+  const handleAddReturnItem = () => {
+    if (!newItemMessage) return;
+    const item: ReturnedItem = {
+      type: newItemType,
+      message: newItemMessage,
+      ...(newItemType === 'document' && newItemDocType ? { documentType: newItemDocType } : {}),
+      ...(newItemType === 'field' && newItemField ? { field: newItemField } : {}),
+    };
+    setReturnedItems([...returnedItems, item]);
+    setNewItemMessage('');
+    setNewItemDocType('');
+    setNewItemField('');
+  };
+
+  const handleRemoveReturnItem = (index: number) => {
+    setReturnedItems(returnedItems.filter((_, i) => i !== index));
+  };
+
+  const handleSubmitReturn = async () => {
+    if (!selectedClient || !returnReason || returnedItems.length === 0) return;
+
+    try {
+      setSubmitting(true);
+      await clientService.returnKyc(selectedClient.id, { reason: returnReason, returnedItems });
+      setShowReturnDialog(false);
+      setSelectedClient(null);
+      loadClients();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to return KYC to client');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -244,6 +317,7 @@ export default function KycReviewsPage() {
                   <SelectItem value="UNVERIFIED">Unverified</SelectItem>
                   <SelectItem value="VERIFIED">Verified</SelectItem>
                   <SelectItem value="REJECTED">Rejected</SelectItem>
+                  <SelectItem value="RETURNED">Returned</SelectItem>
                 </SelectContent>
               </Select>
               <Button onClick={handleSearch} className="bg-emerald-600 hover:bg-emerald-700">
@@ -315,6 +389,15 @@ export default function KycReviewsPage() {
                                     className="bg-emerald-600 hover:bg-emerald-700"
                                   >
                                     <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleReturnToClient(client)}
+                                    className="text-orange-600 hover:bg-orange-50"
+                                    title="Return to client for corrections"
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
                                   </Button>
                                   <Button
                                     variant="outline"
@@ -481,6 +564,142 @@ export default function KycReviewsPage() {
                 : reviewAction === 'approve'
                 ? 'Confirm Approval'
                 : 'Confirm Rejection'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Return to Client Dialog */}
+      <Dialog open={showReturnDialog} onOpenChange={setShowReturnDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-orange-500" />
+              Return KYC to Client
+            </DialogTitle>
+            <DialogDescription>
+              Specify what needs to be corrected. The client will receive a notification with these details.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {selectedClient && (
+              <div className="rounded-lg bg-orange-50 p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">Client:</span>
+                  <span className="font-medium">{selectedClient.firstName} {selectedClient.lastName}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">ID Number:</span>
+                  <span className="font-mono">{selectedClient.idNumber}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="return-reason">Overall Reason *</Label>
+              <Input
+                id="return-reason"
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+                placeholder="e.g., Some documents need to be re-uploaded"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Items Needing Correction *</Label>
+              <div className="border rounded-lg p-3 space-y-3">
+                {/* Add new item */}
+                <div className="grid grid-cols-12 gap-2">
+                  <Select value={newItemType} onValueChange={(v) => setNewItemType(v as 'document' | 'field')}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="document">Document</SelectItem>
+                      <SelectItem value="field">Field</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {newItemType === 'document' ? (
+                    <Select value={newItemDocType} onValueChange={setNewItemDocType}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Doc type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ID_FRONT">ID Front</SelectItem>
+                        <SelectItem value="ID_BACK">ID Back</SelectItem>
+                        <SelectItem value="PASSPORT_PHOTO">Photo</SelectItem>
+                        <SelectItem value="PAYSLIP">Payslip</SelectItem>
+                        <SelectItem value="BANK_STATEMENT">Bank Statement</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      className="col-span-3"
+                      placeholder="Field name"
+                      value={newItemField}
+                      onChange={(e) => setNewItemField(e.target.value)}
+                    />
+                  )}
+                  <Input
+                    className="col-span-5"
+                    placeholder="What needs to be fixed..."
+                    value={newItemMessage}
+                    onChange={(e) => setNewItemMessage(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddReturnItem}
+                    disabled={!newItemMessage}
+                    className="col-span-1"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* List of items */}
+                {returnedItems.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t">
+                    {returnedItems.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between bg-slate-50 rounded p-2 text-sm">
+                        <div>
+                          <span className="font-medium text-orange-600">
+                            {item.type === 'document' ? item.documentType?.replace(/_/g, ' ') : item.field}:
+                          </span>{' '}
+                          {item.message}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveReturnItem(index)}
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {returnedItems.length === 0 && (
+                  <p className="text-xs text-slate-500 text-center py-2">
+                    Add at least one item that needs correction
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReturnDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitReturn}
+              disabled={submitting || !returnReason || returnedItems.length === 0}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {submitting ? 'Sending...' : 'Return to Client'}
             </Button>
           </DialogFooter>
         </DialogContent>
