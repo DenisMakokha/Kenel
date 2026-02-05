@@ -353,8 +353,8 @@ export class LoanApplicationsService {
       throw new BadRequestException('Application not found for this client');
     }
 
-    if (application.status !== 'DRAFT') {
-      throw new BadRequestException('Only draft applications can be submitted. Once submitted, applications cannot be modified.');
+    if (application.status !== 'DRAFT' && application.status !== 'RETURNED') {
+      throw new BadRequestException('Only DRAFT or RETURNED applications can be submitted.');
     }
 
     // Require at least one non-deleted supporting document before submit
@@ -373,6 +373,11 @@ export class LoanApplicationsService {
       data: {
         status: 'SUBMITTED',
         submittedAt: new Date(),
+        // Clear return fields on resubmission
+        returnReason: null,
+        returnedAt: null,
+        returnedBy: null,
+        returnedItems: Prisma.JsonNull,
       },
     });
 

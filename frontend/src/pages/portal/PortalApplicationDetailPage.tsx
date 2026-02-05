@@ -1,11 +1,36 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { portalService } from '../../services/portalService';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { ArrowLeft, FileText, Clock, CheckCircle, XCircle, Upload, RotateCcw } from 'lucide-react';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../../components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { ArrowLeft, FileText, Clock, CheckCircle, XCircle, Upload, RotateCcw, AlertTriangle, FileWarning, ArrowRight, Loader2 } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
+import { toast } from 'sonner';
+
+interface ReturnedItem {
+  type: 'document' | 'field';
+  documentType?: string;
+  field?: string;
+  message: string;
+}
 
 interface ApplicationDetail {
   id: string;
@@ -15,18 +40,24 @@ interface ApplicationDetail {
   requestedTermMonths: number;
   purpose?: string;
   productName: string;
+  productVersionId?: string;
   submittedAt?: string;
   approvedPrincipal?: number;
   approvedTermMonths?: number;
   approvedInterestRate?: number;
   rejectionReason?: string;
   rejectionNotes?: string;
+  // Return to client fields
+  returnReason?: string;
+  returnedAt?: string;
+  returnedItems?: ReturnedItem[];
   documents?: Array<{
     id: string;
     documentType: string;
     fileName: string;
     uploadedAt: string;
     reviewStatus: string;
+    reviewNotes?: string;
   }>;
   checklistItems?: Array<{
     id: string;
@@ -36,12 +67,37 @@ interface ApplicationDetail {
   }>;
 }
 
+const DOCUMENT_TYPES = [
+  { value: 'NATIONAL_ID', label: 'National ID' },
+  { value: 'PASSPORT', label: 'Passport' },
+  { value: 'KRA_PIN', label: 'KRA PIN Certificate' },
+  { value: 'PAYSLIP', label: 'Payslip' },
+  { value: 'BANK_STATEMENT', label: 'Bank Statement' },
+  { value: 'EMPLOYMENT_LETTER', label: 'Employment Letter' },
+  { value: 'EMPLOYMENT_CONTRACT', label: 'Employment Contract' },
+  { value: 'PROOF_OF_RESIDENCE', label: 'Proof of Residence' },
+  { value: 'OTHER', label: 'Other Document' },
+];
+
 export default function PortalApplicationDetailPage() {
   const { applicationId } = useParams();
   const navigate = useNavigate();
+  // searchParams available for future use (e.g., notification deep links)
+  const [searchParams] = useSearchParams();
+  void searchParams; // Suppress unused warning - kept for notification link handling
+  
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Document upload state
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [documentType, setDocumentType] = useState('');
+  
+  // Resubmit state
+  const [resubmitting, setResubmitting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -93,6 +149,54 @@ export default function PortalApplicationDetailPage() {
       year: 'numeric',
     });
   };
+
+  const refreshApplication = async () => {
+    if (!applicationId) return;
+    try {
+      const data = await portalService.getLoanApplicationDetail(applicationId);
+      setApplication(data);
+    } catch (err: any) {
+      toast.error('Failed to refresh application');
+    }
+  };
+
+  const handleUploadDocument = async () => {
+    if (!applicationId || !selectedFile || !documentType) return;
+    try {
+      setUploading(true);
+      await portalService.uploadLoanApplicationDocument(applicationId, {
+        file: selectedFile,
+        type: documentType,
+      });
+      toast.success('Document uploaded successfully');
+      setShowUploadDialog(false);
+      setSelectedFile(null);
+      setDocumentType('');
+      await refreshApplication();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to upload document');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleResubmit = async () => {
+    if (!applicationId) return;
+    try {
+      setResubmitting(true);
+      await portalService.submitLoanApplication(applicationId);
+      toast.success('Application resubmitted successfully!');
+      await refreshApplication();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to resubmit application');
+    } finally {
+      setResubmitting(false);
+    }
+  };
+
+  // Check if application is in RETURNED status (normalize the check)
+  const isApplicationReturned = application?.status?.toUpperCase() === 'RETURNED' || 
+    application?.status?.toUpperCase() === 'RETURNED_TO_CLIENT';
 
   if (loading) {
     return (
@@ -189,6 +293,77 @@ export default function PortalApplicationDetailPage() {
         </div>
       )}
 
+      {/* RETURNED Status Banner - Action Required */}
+      {isApplicationReturned && (
+        <div className="rounded-lg border-2 border-orange-300 bg-gradient-to-r from-orange-50 to-amber-50 p-4">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+                <RotateCcw className="h-5 w-5 text-orange-600" />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="h-4 w-4 text-orange-600" />
+                <h3 className="font-semibold text-orange-900">Action Required</h3>
+              </div>
+              <p className="text-sm text-orange-800 font-medium mb-2">
+                Your loan application needs correction
+              </p>
+              {application.returnReason && (
+                <p className="text-sm text-orange-700 mb-3">{application.returnReason}</p>
+              )}
+              
+              {/* Returned Items List */}
+              {application.returnedItems && application.returnedItems.length > 0 && (
+                <div className="bg-white/60 rounded-md p-3 mb-3">
+                  <p className="text-xs font-medium text-orange-800 mb-2">Items needing attention:</p>
+                  <ul className="space-y-1">
+                    {application.returnedItems.map((item, index) => (
+                      <li key={index} className="flex items-start gap-2 text-sm text-orange-700">
+                        <FileWarning className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                        <span>
+                          <strong>{item.documentType?.replace(/_/g, ' ') || item.field || 'Item'}:</strong>{' '}
+                          {item.message}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowUploadDialog(true)}
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload New Documents
+                </Button>
+                <Button
+                  onClick={handleResubmit}
+                  disabled={resubmitting}
+                  variant="outline"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                >
+                  {resubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Resubmitting...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                      Resubmit Application
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Application Details */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
@@ -251,29 +426,59 @@ export default function PortalApplicationDetailPage() {
           <CardContent>
             {application.documents && application.documents.length > 0 ? (
               <div className="space-y-2">
-                {application.documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-slate-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-slate-400" />
-                      <div>
-                        <p className="font-medium text-sm">{doc.documentType.replace(/_/g, ' ')}</p>
-                        <p className="text-xs text-slate-500">{doc.fileName}</p>
-                      </div>
-                    </div>
-                    <Badge
-                      variant={doc.reviewStatus === 'VERIFIED' ? 'default' : 'secondary'}
-                      className={doc.reviewStatus === 'VERIFIED' ? 'bg-emerald-600' : ''}
+                {application.documents.map((doc) => {
+                  const isRejected = doc.reviewStatus === 'REJECTED';
+                  const isVerified = doc.reviewStatus === 'VERIFIED';
+                  return (
+                    <div
+                      key={doc.id}
+                      className={`p-3 rounded-lg border ${
+                        isRejected 
+                          ? 'bg-red-50 border-red-200' 
+                          : isVerified 
+                            ? 'bg-emerald-50 border-emerald-200' 
+                            : 'bg-slate-50'
+                      }`}
                     >
-                      {doc.reviewStatus || 'PENDING'}
-                    </Badge>
-                  </div>
-                ))}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <FileText className={`h-5 w-5 ${isRejected ? 'text-red-400' : isVerified ? 'text-emerald-400' : 'text-slate-400'}`} />
+                          <div>
+                            <p className="font-medium text-sm">{doc.documentType.replace(/_/g, ' ')}</p>
+                            <p className="text-xs text-slate-500">{doc.fileName}</p>
+                          </div>
+                        </div>
+                        <Badge
+                          variant={isVerified ? 'default' : isRejected ? 'destructive' : 'secondary'}
+                          className={isVerified ? 'bg-emerald-600' : isRejected ? 'bg-red-600' : ''}
+                        >
+                          {doc.reviewStatus || 'PENDING'}
+                        </Badge>
+                      </div>
+                      {/* Show rejection reason for rejected documents */}
+                      {isRejected && doc.reviewNotes && (
+                        <div className="mt-2 text-sm text-red-700 bg-red-100 p-2 rounded">
+                          <strong>Reason:</strong> {doc.reviewNotes}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-slate-500">No documents uploaded</p>
+            )}
+            
+            {/* Upload button for RETURNED applications */}
+            {isApplicationReturned && (
+              <Button
+                onClick={() => setShowUploadDialog(true)}
+                variant="outline"
+                className="w-full mt-4 border-orange-300 text-orange-700 hover:bg-orange-50"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Replacement Document
+              </Button>
             )}
           </CardContent>
         </Card>
@@ -322,6 +527,78 @@ export default function PortalApplicationDetailPage() {
           </Button>
         </div>
       )}
+
+      {/* Upload Document Dialog */}
+      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+            <DialogDescription>
+              Upload a replacement document to fix the issues identified by our team.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="documentType">Document Type</Label>
+              <Select value={documentType} onValueChange={setDocumentType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select document type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DOCUMENT_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="file">File</Label>
+              <Input
+                id="file"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              />
+              {selectedFile && (
+                <p className="text-sm text-slate-500">
+                  Selected: {selectedFile.name}
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowUploadDialog(false);
+                setSelectedFile(null);
+                setDocumentType('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUploadDocument}
+              disabled={uploading || !selectedFile || !documentType}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
