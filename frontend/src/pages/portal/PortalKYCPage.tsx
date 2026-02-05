@@ -866,30 +866,30 @@ export default function PortalKYCPage() {
                         <p className="text-xs text-emerald-600 mt-3 font-medium">✓ Uploaded</p>
                       ) : (
                         <div className="mt-3">
-                          <input
-                            type="file"
-                            id={`file-${docType.type}`}
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                handleFileUpload(docType.type, file);
-                                e.target.value = '';
-                              }
-                            }}
-                          />
-                          <label
-                            htmlFor={`file-${docType.type}`}
-                            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+                          <Button
+                            size="sm"
+                            disabled={uploadingDoc}
+                            className={`${
                               docType.required
-                                ? 'bg-amber-600 text-white hover:bg-amber-700'
-                                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                            } ${uploadingDoc ? 'opacity-50 pointer-events-none' : ''}`}
+                                ? 'bg-amber-600 hover:bg-amber-700'
+                                : 'bg-slate-500 hover:bg-slate-600'
+                            }`}
+                            onClick={() => {
+                              const input = document.createElement('input');
+                              input.type = 'file';
+                              input.accept = '.pdf,.jpg,.jpeg,.png,image/*';
+                              input.onchange = (e) => {
+                                const file = (e.target as HTMLInputElement).files?.[0];
+                                if (file) {
+                                  handleFileUpload(docType.type, file);
+                                }
+                              };
+                              input.click();
+                            }}
                           >
-                            <Upload className="h-3 w-3" />
+                            <Upload className="h-3 w-3 mr-1" />
                             Upload
-                          </label>
+                          </Button>
                         </div>
                       )}
                     </div>
