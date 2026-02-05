@@ -311,7 +311,7 @@ The database uses UUID primary keys for all tables. Key modules include:
 ### Seeding Sample Data
 
 The seed script will create:
-- Admin user (admin@kenelsbureau.com / Admin@123)
+- Admin user (admin@example.com / <SET_DURING_SEEDING>)
 - Sample clients
 - Loan products
 - Sample applications

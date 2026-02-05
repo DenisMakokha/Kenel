@@ -181,8 +181,8 @@ Use the following test sequence:
 curl -X POST http://localhost:3000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@kenelsbureau.com",
-    "password": "Admin@123",
+    "email": "admin@example.com",
+    "password": "<ADMIN_PASSWORD>",
     "firstName": "Admin",
     "lastName": "User",
     "role": "ADMIN"
@@ -194,8 +194,8 @@ curl -X POST http://localhost:3000/api/v1/auth/register \
 curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@kenelsbureau.com",
-    "password": "Admin@123"
+    "email": "admin@example.com",
+    "password": "<ADMIN_PASSWORD>"
   }'
 ```
 
@@ -222,12 +222,12 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Create admin user
-  const adminPassword = await argon2.hash('Admin@123');
+  const adminPassword = await argon2.hash('<ADMIN_PASSWORD>');
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@kenelsbureau.com' },
+    where: { email: 'admin@example.com' },
     update: {},
     create: {
-      email: 'admin@kenelsbureau.com',
+      email: 'admin@example.com',
       password: adminPassword,
       firstName: 'Admin',
       lastName: 'User',
@@ -240,12 +240,12 @@ async function main() {
   console.log('✅ Admin user created:', admin.email);
 
   // Create credit officer
-  const officerPassword = await argon2.hash('Officer@123');
+  const officerPassword = await argon2.hash('<CREDIT_OFFICER_PASSWORD>');
   const officer = await prisma.user.upsert({
-    where: { email: 'officer@kenelsbureau.com' },
+    where: { email: 'officer@example.com' },
     update: {},
     create: {
-      email: 'officer@kenelsbureau.com',
+      email: 'officer@example.com',
       password: officerPassword,
       firstName: 'Credit',
       lastName: 'Officer',
@@ -258,12 +258,12 @@ async function main() {
   console.log('✅ Credit Officer created:', officer.email);
 
   // Create finance officer
-  const financePassword = await argon2.hash('Finance@123');
+  const financePassword = await argon2.hash('<FINANCE_OFFICER_PASSWORD>');
   const finance = await prisma.user.upsert({
-    where: { email: 'finance@kenelsbureau.com' },
+    where: { email: 'finance@example.com' },
     update: {},
     create: {
-      email: 'finance@kenelsbureau.com',
+      email: 'finance@example.com',
       password: financePassword,
       firstName: 'Finance',
       lastName: 'Officer',
@@ -276,7 +276,7 @@ async function main() {
   console.log('✅ Finance Officer created:', finance.email);
 
   // Create test client
-  const clientPassword = await argon2.hash('Client@123');
+  const clientPassword = await argon2.hash('<CLIENT_PASSWORD>');
   const client = await prisma.user.upsert({
     where: { email: 'client@example.com' },
     update: {},

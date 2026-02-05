@@ -12,7 +12,7 @@ class PortalLoginDto {
   @IsNotEmpty()
   email!: string;
 
-  @ApiProperty({ example: 'PortalClient@123' })
+  @ApiProperty({ example: '<PASSWORD>' })
   @IsString()
   @IsNotEmpty()
   password!: string;

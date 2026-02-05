@@ -61,29 +61,29 @@ You can test the system with these pre-seeded accounts:
 
 ### Admin User
 ```
-Email: admin@kenelsbureau.com
-Password: Admin@123
+Email: admin@example.com
+Password: <SET_DURING_SEEDING>
 Role: ADMIN
 ```
 
 ### Credit Officer
 ```
-Email: officer@kenelsbureau.com
-Password: Officer@123
+Email: officer@example.com
+Password: <SET_DURING_SEEDING>
 Role: CREDIT_OFFICER
 ```
 
 ### Finance Officer
 ```
-Email: finance@kenelsbureau.com
-Password: Finance@123
+Email: finance@example.com
+Password: <SET_DURING_SEEDING>
 Role: FINANCE_OFFICER
 ```
 
 ### Test Client
 ```
 Email: client@example.com
-Password: Client@123
+Password: <SET_DURING_SEEDING>
 Role: CLIENT
 ```
 

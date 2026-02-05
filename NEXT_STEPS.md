@@ -98,9 +98,9 @@ pnpm prisma:seed
 
 **Expected Output**:
 ```
-✅ Admin user created: admin@kenelsbureau.com
-✅ Credit Officer created: officer@kenelsbureau.com
-✅ Finance Officer created: finance@kenelsbureau.com
+✅ Admin user created: admin@example.com
+✅ Credit Officer created: officer@example.com
+✅ Finance Officer created: finance@example.com
 ✅ Test Client created: client@example.com
 
 🎉 Seeding completed!
@@ -154,8 +154,8 @@ VITE v5.x.x  ready in XXX ms
 4. Use credentials:
    ```json
    {
-     "email": "admin@kenelsbureau.com",
-     "password": "Admin@123"
+     "email": "admin@example.com",
+     "password": "<ADMIN_PASSWORD>"
    }
    ```
 5. Click "Execute"
@@ -170,7 +170,7 @@ VITE v5.x.x  ready in XXX ms
 # Login
 curl -X POST http://localhost:3000/api/v1/auth/login ^
   -H "Content-Type: application/json" ^
-  -d "{\"email\":\"admin@kenelsbureau.com\",\"password\":\"Admin@123\"}"
+  -d "{\"email\":\"admin@example.com\",\"password\":\"<ADMIN_PASSWORD>\"}"
 
 # Copy the accessToken from response, then:
 curl -X GET http://localhost:3000/api/v1/auth/me ^
@@ -203,23 +203,23 @@ After completing all steps, verify:
 
 ```
 Admin User:
-  Email: admin@kenelsbureau.com
-  Password: Admin@123
+  Email: admin@example.com
+  Password: <SET_DURING_SEEDING>
   Role: ADMIN
 
 Credit Officer:
-  Email: officer@kenelsbureau.com
-  Password: Officer@123
+  Email: officer@example.com
+  Password: <SET_DURING_SEEDING>
   Role: CREDIT_OFFICER
 
 Finance Officer:
-  Email: finance@kenelsbureau.com
-  Password: Finance@123
+  Email: finance@example.com
+  Password: <SET_DURING_SEEDING>
   Role: FINANCE_OFFICER
 
 Test Client:
   Email: client@example.com
-  Password: Client@123
+  Password: <SET_DURING_SEEDING>
   Role: CLIENT
 ```
 

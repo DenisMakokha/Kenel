@@ -182,10 +182,10 @@ pnpm prisma studio
 ## 📝 Test Credentials (After Seeding)
 
 ```
-Admin:          admin@kenelsbureau.com / Admin@123
-Credit Officer: officer@kenelsbureau.com / Officer@123
-Finance:        finance@kenelsbureau.com / Finance@123
-Client:         client@example.com / Client@123
+Admin:          admin@example.com / <SET_DURING_SEEDING>
+Credit Officer: officer@example.com / <SET_DURING_SEEDING>
+Finance:        finance@example.com / <SET_DURING_SEEDING>
+Client:         client@example.com / <SET_DURING_SEEDING>
 ```
 
 ---

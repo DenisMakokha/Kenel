@@ -165,12 +165,12 @@ async function main() {
   console.log('🌱 Seeding database...');
 
   // Create admin user
-  const adminPassword = await argon2.hash('Admin@123');
+  const adminPassword = await argon2.hash('<ADMIN_PASSWORD>');
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@kenelsbureau.com' },
+    where: { email: 'admin@example.com' },
     update: {},
     create: {
-      email: 'admin@kenelsbureau.com',
+      email: 'admin@example.com',
       password: adminPassword,
       firstName: 'Admin',
       lastName: 'User',
@@ -182,12 +182,12 @@ async function main() {
   console.log('✅ Admin user created:', admin.email);
 
   // Create credit officer
-  const officerPassword = await argon2.hash('Officer@123');
+  const officerPassword = await argon2.hash('<CREDIT_OFFICER_PASSWORD>');
   const officer = await prisma.user.upsert({
-    where: { email: 'officer@kenelsbureau.com' },
+    where: { email: 'officer@example.com' },
     update: {},
     create: {
-      email: 'officer@kenelsbureau.com',
+      email: 'officer@example.com',
       password: officerPassword,
       firstName: 'Credit',
       lastName: 'Officer',
@@ -199,12 +199,12 @@ async function main() {
   console.log('✅ Credit Officer created:', officer.email);
 
   // Create finance officer
-  const financePassword = await argon2.hash('Finance@123');
+  const financePassword = await argon2.hash('<FINANCE_OFFICER_PASSWORD>');
   const finance = await prisma.user.upsert({
-    where: { email: 'finance@kenelsbureau.com' },
+    where: { email: 'finance@example.com' },
     update: {},
     create: {
-      email: 'finance@kenelsbureau.com',
+      email: 'finance@example.com',
       password: financePassword,
       firstName: 'Finance',
       lastName: 'Officer',
@@ -216,7 +216,7 @@ async function main() {
   console.log('✅ Finance Officer created:', finance.email);
 
   // Create test client
-  const clientPassword = await argon2.hash('Client@123');
+  const clientPassword = await argon2.hash('<CLIENT_PASSWORD>');
   const client = await prisma.user.upsert({
     where: { email: 'client@example.com' },
     update: {},
@@ -235,10 +235,10 @@ async function main() {
   console.log('\n🎉 Seeding completed!');
   console.log('\nTest Credentials:');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('Admin:          admin@kenelsbureau.com / Admin@123');
-  console.log('Credit Officer: officer@kenelsbureau.com / Officer@123');
-  console.log('Finance:        finance@kenelsbureau.com / Finance@123');
-  console.log('Client:         client@example.com / Client@123');
+  console.log('Admin:          admin@example.com / <ADMIN_PASSWORD>');
+  console.log('Credit Officer: officer@example.com / <CREDIT_OFFICER_PASSWORD>');
+  console.log('Finance:        finance@example.com / <FINANCE_OFFICER_PASSWORD>');
+  console.log('Client:         client@example.com / <CLIENT_PASSWORD>');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
 
@@ -316,7 +316,7 @@ VITE v5.x.x  ready in XXX ms
 
 1. Open http://localhost:3000/api/docs
 2. Try the `/auth/login` endpoint
-3. Use credentials: `admin@kenelsbureau.com` / `Admin@123`
+3. Use credentials: `admin@example.com` / `<ADMIN_PASSWORD>`
 4. Copy the `accessToken` from response
 5. Click "Authorize" button at top
 6. Paste token and click "Authorize"
@@ -328,7 +328,7 @@ VITE v5.x.x  ready in XXX ms
 # Login
 curl -X POST http://localhost:3000/api/v1/auth/login ^
   -H "Content-Type: application/json" ^
-  -d "{\"email\":\"admin@kenelsbureau.com\",\"password\":\"Admin@123\"}"
+  -d "{\"email\":\"admin@example.com\",\"password\":\"<ADMIN_PASSWORD>\"}"
 
 # Get current user (replace TOKEN with accessToken from login)
 curl -X GET http://localhost:3000/api/v1/auth/me ^

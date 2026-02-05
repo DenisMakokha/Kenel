@@ -10,16 +10,24 @@ import {
   FeeCalculationType,
 } from '@prisma/client';
 import * as argon2 from 'argon2';
+import { randomBytes } from 'crypto';
 
 const prisma = new PrismaClient();
 
-// Strong passwords for each role - CHANGE THESE IN PRODUCTION!
+const shouldPrintCredentials = process.env.PRINT_SEED_CREDENTIALS === 'true';
+
+const getSeedPassword = (envKey: string) => {
+  const fromEnv = process.env[envKey];
+  if (fromEnv && fromEnv.trim()) return fromEnv.trim();
+  return randomBytes(18).toString('base64url');
+};
+
 const SEED_PASSWORDS = {
-  admin: 'Admin123!',
-  creditOfficer: 'Credit123!',
-  financeOfficer: 'Finance123!',
-  client: 'Client123!',
-  portalClient: 'Portal123!',
+  admin: getSeedPassword('SEED_ADMIN_PASSWORD'),
+  creditOfficer: getSeedPassword('SEED_CREDIT_OFFICER_PASSWORD'),
+  financeOfficer: getSeedPassword('SEED_FINANCE_OFFICER_PASSWORD'),
+  client: getSeedPassword('SEED_CLIENT_PASSWORD'),
+  portalClient: getSeedPassword('SEED_PORTAL_CLIENT_PASSWORD'),
 };
 
 async function main() {
@@ -562,25 +570,28 @@ async function main() {
   console.log('─'.repeat(60));
   console.log('\n👑 ADMINISTRATOR');
   console.log('   Email:    admin@kenelsbureau.co.ke');
-  console.log('   Password: ' + SEED_PASSWORDS.admin);
+  console.log('   Password: ' + (shouldPrintCredentials ? SEED_PASSWORDS.admin : '<HIDDEN>'));
   console.log('   Access:   Full system access - all modules');
   console.log('\n📊 CREDIT OFFICER');
   console.log('   Email:    credit@kenelsbureau.co.ke');
-  console.log('   Password: ' + SEED_PASSWORDS.creditOfficer);
+  console.log('   Password: ' + (shouldPrintCredentials ? SEED_PASSWORDS.creditOfficer : '<HIDDEN>'));
   console.log('   Access:   Loan applications, client management, credit scoring');
   console.log('\n💰 FINANCE OFFICER');
   console.log('   Email:    finance@kenelsbureau.co.ke');
-  console.log('   Password: ' + SEED_PASSWORDS.financeOfficer);
+  console.log('   Password: ' + (shouldPrintCredentials ? SEED_PASSWORDS.financeOfficer : '<HIDDEN>'));
   console.log('   Access:   Repayments, disbursements, collections');
   console.log('\n' + '─'.repeat(60));
   console.log('\n📱 CLIENT PORTAL CREDENTIALS (https://kenels.app/portal/login)');
   console.log('─'.repeat(60));
   console.log('\n👤 TEST CLIENT');
   console.log('   Email:    john.doe@example.com');
-  console.log('   Password: ' + SEED_PASSWORDS.portalClient);
+  console.log('   Password: ' + (shouldPrintCredentials ? SEED_PASSWORDS.portalClient : '<HIDDEN>'));
   console.log('   Access:   View loans, make payments, apply for loans');
   console.log('\n' + '═'.repeat(60));
   console.log('⚠️  IMPORTANT: Change these passwords after first login!');
+  if (!shouldPrintCredentials) {
+    console.log('ℹ️  Passwords are hidden by default. Set PRINT_SEED_CREDENTIALS=true to display them during seeding.');
+  }
   console.log('═'.repeat(60) + '\n');
 }
 
