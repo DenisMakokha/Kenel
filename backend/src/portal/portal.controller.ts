@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import PDFDocument = require('pdfkit');
@@ -303,12 +303,12 @@ export class PortalController {
     // Ensure application belongs to this client
     const application = await this.prisma.loanApplication.findFirst({ where: { id, clientId } });
     if (!application) {
-      throw new Error('Application not found for this client');
+      throw new BadRequestException('Application not found for this client');
     }
 
     const client = await this.prisma.client.findUnique({ where: { id: clientId } });
     if (!client?.userId) {
-      throw new Error('Client user not found');
+      throw new BadRequestException('Client user not found');
     }
 
     return this.documentsService.upload(file, client.userId, {

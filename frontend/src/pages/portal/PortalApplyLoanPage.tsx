@@ -264,13 +264,19 @@ export default function PortalApplyLoanPage() {
         utility_bill: 'PROOF_OF_RESIDENCE',
       };
 
+      // Upload documents one by one with error handling
       for (const [key, file] of Object.entries(requiredDocuments)) {
         if (file) {
-          await portalService.uploadLoanApplicationDocument(appId, {
-            file: file,
-            type: documentTypeMap[key] || 'OTHER',
-            category: 'KYC',
-          });
+          try {
+            await portalService.uploadLoanApplicationDocument(appId, {
+              file: file,
+              type: documentTypeMap[key] || 'OTHER',
+              category: 'KYC',
+            });
+          } catch (uploadErr: any) {
+            console.error(`Failed to upload ${key}:`, uploadErr);
+            throw new Error(`Failed to upload ${key}: ${uploadErr?.response?.data?.message || uploadErr.message}`);
+          }
         }
       }
 
@@ -279,7 +285,8 @@ export default function PortalApplyLoanPage() {
       setStep('submitted');
     } catch (err: any) {
       console.error('Submission error:', err);
-      toast.error('Submission failed', err?.response?.data?.message || 'Please try again');
+      const errorMessage = err?.response?.data?.message || err?.message || 'Please try again';
+      toast.error('Submission failed', errorMessage);
     } finally {
       setLoading(false);
     }
