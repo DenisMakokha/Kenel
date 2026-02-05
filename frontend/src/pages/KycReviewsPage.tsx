@@ -367,8 +367,12 @@ export default function KycReviewsPage() {
                   </TableHeader>
                   <TableBody>
                     {clients.map((client) => {
-                      const statusConfig = KYC_STATUS_CONFIG[client.kycStatus];
+                      const rawStatus = (client as any).kycStatus;
+                      const statusKey = typeof rawStatus === 'string' ? rawStatus.toUpperCase() : rawStatus;
+                      const normalizedStatus = statusKey === 'RETURNED_TO_CLIENT' ? 'RETURNED' : statusKey;
+                      const statusConfig = (KYC_STATUS_CONFIG as any)[normalizedStatus];
                       const StatusIcon = statusConfig?.icon || Clock;
+                      const statusLabel = statusConfig?.label || (typeof normalizedStatus === 'string' ? normalizedStatus.replace(/_/g, ' ') : String(normalizedStatus));
                       const docCount = client.documents?.length || 0;
                       
                       return (
@@ -386,7 +390,7 @@ export default function KycReviewsPage() {
                           <TableCell>
                             <Badge className={cn(statusConfig?.bg, statusConfig?.color)}>
                               <StatusIcon className="h-3 w-3 mr-1" />
-                              {statusConfig?.label}
+                              {statusLabel}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm text-slate-500">

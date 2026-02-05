@@ -16,6 +16,7 @@ import {
   Shield,
   ShieldCheck,
   ShieldX,
+  RotateCcw,
   Clock,
   CheckCircle,
   XCircle,
@@ -209,6 +210,8 @@ export default function ClientKYCTab({ client, onUpdate }: ClientKYCTabProps) {
         return { icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', label: 'Pending Review' };
       case KycStatus.REJECTED:
         return { icon: ShieldX, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', label: 'Rejected' };
+      case KycStatus.RETURNED:
+        return { icon: RotateCcw, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', label: 'Returned' };
       default:
         return { icon: Shield, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200', label: 'Unverified' };
     }

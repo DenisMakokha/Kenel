@@ -14,6 +14,7 @@ import {
   FileText,
   Upload,
   ArrowRight,
+  RotateCcw,
 } from 'lucide-react';
 
 interface ClientTimelineTabProps {
@@ -25,6 +26,7 @@ const KYC_STATUS_CONFIG: Record<string, { icon: any; color: string; bg: string; 
   PENDING_REVIEW: { icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100', border: 'border-amber-200' },
   VERIFIED: { icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-100', border: 'border-emerald-200' },
   REJECTED: { icon: ShieldX, color: 'text-red-600', bg: 'bg-red-100', border: 'border-red-200' },
+  RETURNED: { icon: RotateCcw, color: 'text-orange-600', bg: 'bg-orange-100', border: 'border-orange-200' },
 };
 
 export default function ClientTimelineTab({ client }: ClientTimelineTabProps) {

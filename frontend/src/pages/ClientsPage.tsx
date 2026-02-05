@@ -31,6 +31,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  RotateCcw,
   Eye,
   ChevronLeft,
   ChevronRight,
@@ -42,6 +43,7 @@ const KYC_STATUS_CONFIG: Record<KycStatus, { label: string; color: string; bg: s
   PENDING_REVIEW: { label: 'Pending', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle },
   VERIFIED: { label: 'Verified', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle },
   REJECTED: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: XCircle },
+  RETURNED: { label: 'Returned', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', icon: RotateCcw },
 };
 
 const RISK_CONFIG: Record<RiskRating, { label: string; color: string; bg: string; border: string }> = {
@@ -88,12 +90,14 @@ export default function ClientsPage() {
   };
 
   const getKycBadge = (status: KycStatus) => {
-    const config = KYC_STATUS_CONFIG[status];
+    const statusKey = typeof status === 'string' ? status.toUpperCase() : status;
+    const normalizedStatus = (statusKey as any) === 'RETURNED_TO_CLIENT' ? 'RETURNED' : statusKey;
+    const config = (KYC_STATUS_CONFIG as any)[normalizedStatus];
     const StatusIcon = config?.icon || Clock;
     return (
       <Badge className={cn('font-medium border', config?.bg, config?.color, config?.border)}>
         <StatusIcon className="h-3 w-3 mr-1" />
-        {config?.label}
+        {config?.label || (typeof normalizedStatus === 'string' ? normalizedStatus.replace(/_/g, ' ') : String(normalizedStatus))}
       </Badge>
     );
   };
@@ -229,6 +233,7 @@ export default function ClientsPage() {
                   <SelectItem value="PENDING_REVIEW">Pending</SelectItem>
                   <SelectItem value="VERIFIED">Verified</SelectItem>
                   <SelectItem value="REJECTED">Rejected</SelectItem>
+                  <SelectItem value="RETURNED">Returned</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={riskFilter} onValueChange={(v) => { setRiskFilter(v as RiskRating | ''); setPage(1); }}>

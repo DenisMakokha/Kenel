@@ -31,6 +31,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  RotateCcw,
 } from 'lucide-react';
 import { clientService } from '../../services/clientService';
 import type { Client, KycStatus } from '../../types/client';
@@ -43,6 +44,7 @@ const KYC_STATUS_CONFIG: Record<KycStatus, { label: string; color: string; bg: s
   PENDING_REVIEW: { label: 'Pending', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle },
   VERIFIED: { label: 'Verified', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle },
   REJECTED: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: XCircle },
+  RETURNED: { label: 'Returned', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', icon: RotateCcw },
 };
 
 export default function CreditClientsPage() {
@@ -205,6 +207,7 @@ export default function CreditClientsPage() {
                   <SelectItem value="PENDING_REVIEW">Pending</SelectItem>
                   <SelectItem value="UNVERIFIED">Unverified</SelectItem>
                   <SelectItem value="REJECTED">Rejected</SelectItem>
+                  <SelectItem value="RETURNED">Returned</SelectItem>
                 </SelectContent>
               </Select>
               <Button onClick={handleSearch} className="bg-emerald-600 hover:bg-emerald-700">
@@ -234,7 +237,10 @@ export default function CreditClientsPage() {
                   </TableHeader>
                   <TableBody>
                     {clients.map((client) => {
-                      const kycConfig = KYC_STATUS_CONFIG[client.kycStatus];
+                      const rawStatus = (client as any).kycStatus;
+                      const statusKey = typeof rawStatus === 'string' ? rawStatus.toUpperCase() : rawStatus;
+                      const normalizedStatus = statusKey === 'RETURNED_TO_CLIENT' ? 'RETURNED' : statusKey;
+                      const kycConfig = (KYC_STATUS_CONFIG as any)[normalizedStatus];
                       const KycIcon = kycConfig?.icon || Clock;
                       return (
                         <TableRow key={client.id}>
@@ -251,7 +257,7 @@ export default function CreditClientsPage() {
                           <TableCell>
                             <Badge className={cn(kycConfig?.bg, kycConfig?.color)}>
                               <KycIcon className="h-3 w-3 mr-1" />
-                              {kycConfig?.label}
+                              {kycConfig?.label || (typeof normalizedStatus === 'string' ? normalizedStatus.replace(/_/g, ' ') : String(normalizedStatus))}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm text-slate-500">
