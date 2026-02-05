@@ -97,4 +97,30 @@ export const openAuthenticatedFile = async (url: string) => {
   }
 };
 
+export const downloadAuthenticatedFile = async (url: string, fileName?: string) => {
+  const response = await api.get(url, { responseType: 'blob' });
+
+  const contentType = response.headers['content-type'];
+  const blob = new Blob([response.data], { type: contentType });
+  const blobUrl = window.URL.createObjectURL(blob);
+
+  let resolvedName = fileName;
+  if (!resolvedName) {
+    const disposition = response.headers['content-disposition'] as string | undefined;
+    const match = disposition?.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+    const fromHeader = match?.[1] || match?.[2];
+    resolvedName = fromHeader ? decodeURIComponent(fromHeader) : 'document';
+  }
+
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = resolvedName;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
+};
+
 export default api;

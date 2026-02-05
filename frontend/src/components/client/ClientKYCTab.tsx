@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { formatDate } from '../../lib/utils';
-import { openAuthenticatedFile } from '../../lib/api';
+import { downloadAuthenticatedFile, openAuthenticatedFile } from '../../lib/api';
 import { toast } from 'sonner';
 import {
   Shield,
@@ -446,7 +446,6 @@ export default function ClientKYCTab({ client, onUpdate }: ClientKYCTabProps) {
               {documents.map((doc) => {
                 const docConfig = getDocumentTypeConfig(doc.documentType);
                 const DocIcon = docConfig.icon;
-                const isImage = doc.mimeType?.startsWith('image/');
                 return (
                   <div
                     key={doc.id}
@@ -476,7 +475,15 @@ export default function ClientKYCTab({ client, onUpdate }: ClientKYCTabProps) {
                           className="h-8 px-2"
                           onClick={() => openAuthenticatedFile(`/documents/c_${doc.id}/download`)}
                         >
-                          {isImage ? <Eye className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 px-2"
+                          onClick={() => downloadAuthenticatedFile(`/documents/c_${doc.id}/download`, doc.fileName)}
+                        >
+                          <Download className="h-4 w-4" />
                         </Button>
                       </div>
                       {canDeleteDocuments && (
