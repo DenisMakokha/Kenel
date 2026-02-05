@@ -274,7 +274,7 @@ export class PortalController {
           cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
         },
       }),
-      limits: { fileSize: 10 * 1024 * 1024 },
+      limits: { fileSize: 20 * 1024 * 1024 },
       fileFilter: (req, file, cb) => {
         const allowedMimes = [
           'image/jpeg',
@@ -420,7 +420,7 @@ export class PortalController {
           cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
         },
       }),
-      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+      limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit
       fileFilter: (req, file, cb) => {
         const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
         if (allowedMimes.includes(file.mimetype)) {
