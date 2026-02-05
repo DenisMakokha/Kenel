@@ -21,16 +21,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
-import { ArrowLeft, FileText, Clock, CheckCircle, XCircle, Upload, RotateCcw, AlertTriangle, FileWarning, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileText, Clock, CheckCircle, XCircle, Upload, RotateCcw, AlertTriangle, FileWarning, ArrowRight, Loader2, Edit3, DollarSign, Calendar, User, Briefcase } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
 import { toast } from 'sonner';
 
 interface ReturnedItem {
-  type: 'document' | 'field';
+  type: string; // 'document' | 'field' | 'amount' | 'term' | 'purpose' | 'personal_info' | 'employment' | 'other'
   documentType?: string;
   field?: string;
   message: string;
 }
+
+const getReturnedItemIcon = (type: string) => {
+  switch (type) {
+    case 'document': return FileWarning;
+    case 'amount': return DollarSign;
+    case 'term': return Calendar;
+    case 'personal_info': return User;
+    case 'employment': return Briefcase;
+    default: return AlertTriangle;
+  }
+};
+
+const getReturnedItemLabel = (item: ReturnedItem) => {
+  if (item.type === 'document' && item.documentType) {
+    return item.documentType.replace(/_/g, ' ');
+  }
+  if (item.field) {
+    return item.field;
+  }
+  switch (item.type) {
+    case 'amount': return 'Requested Amount';
+    case 'term': return 'Loan Term';
+    case 'purpose': return 'Loan Purpose';
+    case 'personal_info': return 'Personal Information';
+    case 'employment': return 'Employment Details';
+    default: return 'Issue';
+  }
+};
 
 interface ApplicationDetail {
   id: string;
@@ -318,28 +346,55 @@ export default function PortalApplicationDetailPage() {
               {application.returnedItems && application.returnedItems.length > 0 && (
                 <div className="bg-white/60 rounded-md p-3 mb-3">
                   <p className="text-xs font-medium text-orange-800 mb-2">Items needing attention:</p>
-                  <ul className="space-y-1">
-                    {application.returnedItems.map((item, index) => (
-                      <li key={index} className="flex items-start gap-2 text-sm text-orange-700">
-                        <FileWarning className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                        <span>
-                          <strong>{item.documentType?.replace(/_/g, ' ') || item.field || 'Item'}:</strong>{' '}
-                          {item.message}
-                        </span>
-                      </li>
-                    ))}
+                  <ul className="space-y-2">
+                    {application.returnedItems.map((item, index) => {
+                      const ItemIcon = getReturnedItemIcon(item.type);
+                      const isDocumentIssue = item.type === 'document';
+                      return (
+                        <li key={index} className={`flex items-start gap-2 text-sm p-2 rounded ${isDocumentIssue ? 'bg-red-50' : 'bg-amber-50'}`}>
+                          <ItemIcon className={`h-4 w-4 flex-shrink-0 mt-0.5 ${isDocumentIssue ? 'text-red-600' : 'text-amber-600'}`} />
+                          <span className={isDocumentIssue ? 'text-red-700' : 'text-amber-700'}>
+                            <strong>{getReturnedItemLabel(item)}:</strong>{' '}
+                            {item.message}
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
               
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setShowUploadDialog(true)}
-                  className="bg-orange-600 hover:bg-orange-700 text-white"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload New Documents
-                </Button>
+              <div className="flex flex-wrap gap-2">
+                {/* Show Edit Application button if there are non-document issues */}
+                {application.returnedItems?.some(item => item.type !== 'document') && (
+                  <Button
+                    onClick={() => navigate(`/portal/apply?continue=${application.id}`)}
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    Edit Application
+                  </Button>
+                )}
+                {/* Show Upload Documents button if there are document issues */}
+                {application.returnedItems?.some(item => item.type === 'document') && (
+                  <Button
+                    onClick={() => setShowUploadDialog(true)}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload New Documents
+                  </Button>
+                )}
+                {/* Always show Upload if no specific returned items */}
+                {(!application.returnedItems || application.returnedItems.length === 0) && (
+                  <Button
+                    onClick={() => setShowUploadDialog(true)}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Documents
+                  </Button>
+                )}
                 <Button
                   onClick={handleResubmit}
                   disabled={resubmitting}

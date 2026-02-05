@@ -103,6 +103,10 @@ export default function LoanApplicationDetailPage() {
   const [showReturnDialog, setShowReturnDialog] = useState(false);
   const [returnReason, setReturnReason] = useState('');
   const [returnLoading, setReturnLoading] = useState(false);
+  // Custom return items (non-document issues)
+  const [customReturnItems, setCustomReturnItems] = useState<Array<{ type: string; field: string; message: string }>>([
+    { type: 'field', field: '', message: '' }
+  ]);
 
   // Show approve/reject footer when scrolled near bottom
   useEffect(() => {
@@ -342,11 +346,22 @@ export default function LoanApplicationDetailPage() {
     
     // Build return items from rejected documents
     const rejectedDocs = documents.filter(d => d.reviewStatus === 'REJECTED');
-    const returnedItems = rejectedDocs.map(doc => ({
+    const documentItems = rejectedDocs.map(doc => ({
       type: 'document',
       documentType: doc.documentType,
       message: doc.reviewNotes || `${doc.documentType} was rejected`,
     }));
+    
+    // Add custom field/other return items (filter out empty ones)
+    const validCustomItems = customReturnItems
+      .filter(item => item.field.trim() && item.message.trim())
+      .map(item => ({
+        type: item.type,
+        field: item.field.trim(),
+        message: item.message.trim(),
+      }));
+    
+    const returnedItems = [...documentItems, ...validCustomItems];
     
     try {
       setReturnLoading(true);
@@ -357,6 +372,7 @@ export default function LoanApplicationDetailPage() {
       });
       setShowReturnDialog(false);
       setReturnReason('');
+      setCustomReturnItems([{ type: 'field', field: '', message: '' }]);
       await refreshApplication();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to return application to client');
@@ -1634,25 +1650,100 @@ export default function LoanApplicationDetailPage() {
 
       {/* Return to Client Dialog */}
       <Dialog open={showReturnDialog} onOpenChange={setShowReturnDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-red-700">Return Application to Client</DialogTitle>
             <DialogDescription>
               The client will be notified to correct the following issues and resubmit their application.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
             {/* Show rejected documents */}
+            {documents.filter(d => d.reviewStatus === 'REJECTED').length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Rejected Documents:</Label>
+                <div className="space-y-1">
+                  {documents.filter(d => d.reviewStatus === 'REJECTED').map(doc => (
+                    <div key={doc.id} className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-sm">
+                      <span className="text-red-600">✗</span>
+                      <span className="font-medium">{doc.documentType?.replace(/_/g, ' ')}</span>
+                      {doc.reviewNotes && <span className="text-slate-500">- {doc.reviewNotes}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Additional Issues (non-document) */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Rejected Documents:</Label>
-              <div className="space-y-1">
-                {documents.filter(d => d.reviewStatus === 'REJECTED').map(doc => (
-                  <div key={doc.id} className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-sm">
-                    <span className="text-red-600">✗</span>
-                    <span className="font-medium">{doc.documentType?.replace(/_/g, ' ')}</span>
-                    {doc.reviewNotes && <span className="text-slate-500">- {doc.reviewNotes}</span>}
+              <Label className="text-sm font-medium">Additional Issues (optional):</Label>
+              <p className="text-xs text-slate-500">Add any other issues with the application that need correction (e.g., amount, term, personal info).</p>
+              <div className="space-y-2">
+                {customReturnItems.map((item, index) => (
+                  <div key={index} className="flex gap-2 items-start">
+                    <select
+                      className="w-32 p-2 border rounded-md text-sm"
+                      value={item.type}
+                      onChange={(e) => {
+                        const updated = [...customReturnItems];
+                        updated[index].type = e.target.value;
+                        setCustomReturnItems(updated);
+                      }}
+                    >
+                      <option value="field">Field Issue</option>
+                      <option value="amount">Amount Issue</option>
+                      <option value="term">Term Issue</option>
+                      <option value="purpose">Purpose Issue</option>
+                      <option value="personal_info">Personal Info</option>
+                      <option value="employment">Employment</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <input
+                      type="text"
+                      className="w-28 p-2 border rounded-md text-sm"
+                      placeholder="Field name"
+                      value={item.field}
+                      onChange={(e) => {
+                        const updated = [...customReturnItems];
+                        updated[index].field = e.target.value;
+                        setCustomReturnItems(updated);
+                      }}
+                    />
+                    <input
+                      type="text"
+                      className="flex-1 p-2 border rounded-md text-sm"
+                      placeholder="What needs to be fixed..."
+                      value={item.message}
+                      onChange={(e) => {
+                        const updated = [...customReturnItems];
+                        updated[index].message = e.target.value;
+                        setCustomReturnItems(updated);
+                      }}
+                    />
+                    {customReturnItems.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 px-2"
+                        onClick={() => {
+                          setCustomReturnItems(customReturnItems.filter((_, i) => i !== index));
+                        }}
+                      >
+                        ✕
+                      </Button>
+                    )}
                   </div>
                 ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-sm"
+                  onClick={() => setCustomReturnItems([...customReturnItems, { type: 'field', field: '', message: '' }])}
+                >
+                  + Add Another Issue
+                </Button>
               </div>
             </div>
             

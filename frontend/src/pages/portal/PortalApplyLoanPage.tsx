@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -44,10 +44,14 @@ interface LoanProduct {
 
 export default function PortalApplyLoanPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const continueApplicationId = searchParams.get('continue');
   const { toast } = useToast();
   const { client } = usePortalAuthStore();
 
   const [products, setProducts] = useState<LoanProduct[]>([]);
+  const [existingApplicationId, setExistingApplicationId] = useState<string | null>(null);
+  const [isEditingReturned, setIsEditingReturned] = useState(false);
   const [productsLoading, setProductsLoading] = useState(true);
   
   const [step, setStep] = useState<ApplicationStep>('select-product');
@@ -137,6 +141,57 @@ export default function PortalApplyLoanPage() {
 
     loadProducts();
   }, []);
+
+  // Load existing application if continuing/editing
+  useEffect(() => {
+    const loadExistingApplication = async () => {
+      if (!continueApplicationId) return;
+      
+      try {
+        setLoading(true);
+        const app = await portalService.getLoanApplicationDetail(continueApplicationId);
+        
+        // Only allow editing DRAFT or RETURNED applications
+        if (app.status !== 'DRAFT' && app.status !== 'RETURNED') {
+          toast.error('Cannot Edit', 'This application cannot be edited.');
+          navigate('/portal/dashboard');
+          return;
+        }
+        
+        setExistingApplicationId(app.id);
+        setIsEditingReturned(app.status === 'RETURNED');
+        
+        // Pre-fill form data
+        setAmount(String(app.requestedAmount || ''));
+        setTerm(String(app.requestedTermMonths || ''));
+        setPurpose(app.purpose || '');
+        
+        // Find and set the product
+        if (products.length > 0 && app.productVersionId) {
+          const product = products.find(p => p.versionId === app.productVersionId);
+          if (product) {
+            setSelectedProduct(product);
+          }
+        }
+        
+        // Skip to loan-details step for editing
+        setStep('loan-details');
+        
+        if (app.status === 'RETURNED') {
+          toast.info('Edit Application', 'Make your corrections and resubmit when ready.');
+        }
+      } catch (err: any) {
+        toast.error('Failed to load application', err?.response?.data?.message || 'Please try again');
+        navigate('/portal/dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (products.length > 0) {
+      loadExistingApplication();
+    }
+  }, [continueApplicationId, products]);
 
   useEffect(() => {
     if (selectedProduct && amount && term) {
@@ -241,16 +296,28 @@ export default function PortalApplyLoanPage() {
       const requestedAmount = parseFloat(amount);
       const requestedTermMonths = parseInt(term);
 
-      const application = await portalService.createLoanApplication({
-        productVersionId: selectedProduct.versionId,
-        requestedAmount,
-        requestedTermMonths,
-        purpose: purpose.trim(),
-      });
+      let appId = existingApplicationId;
 
-      const appId = application?.id;
+      if (existingApplicationId) {
+        // Update existing application (DRAFT or RETURNED)
+        await portalService.updateLoanApplication(existingApplicationId, {
+          requestedAmount,
+          requestedTermMonths,
+          purpose: purpose.trim(),
+        });
+      } else {
+        // Create new application
+        const application = await portalService.createLoanApplication({
+          productVersionId: selectedProduct.versionId,
+          requestedAmount,
+          requestedTermMonths,
+          purpose: purpose.trim(),
+        });
+        appId = application?.id;
+      }
+
       if (!appId) {
-        toast.error('Failed to create application', 'Could not create loan application.');
+        toast.error('Failed to process application', 'Could not create/update loan application.');
         return;
       }
 
@@ -281,7 +348,12 @@ export default function PortalApplyLoanPage() {
       }
 
       await portalService.submitLoanApplication(appId, { notes: '' });
-      toast.success('Submitted', 'Your loan application has been submitted successfully.');
+      toast.success(
+        isEditingReturned ? 'Resubmitted' : 'Submitted', 
+        isEditingReturned 
+          ? 'Your corrected application has been resubmitted for review.' 
+          : 'Your loan application has been submitted successfully.'
+      );
       setStep('submitted');
     } catch (err: any) {
       console.error('Submission error:', err);
@@ -341,6 +413,19 @@ export default function PortalApplyLoanPage() {
           </p>
         </div>
       </div>
+
+      {/* Editing Returned Application Banner */}
+      {isEditingReturned && step !== 'submitted' && (
+        <div className="rounded-lg border-2 border-orange-300 bg-gradient-to-r from-orange-50 to-amber-50 p-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-orange-900">Editing Returned Application</p>
+              <p className="text-sm text-orange-700">Make the requested corrections and resubmit when ready.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Progress Steps */}
       {step !== 'submitted' && (

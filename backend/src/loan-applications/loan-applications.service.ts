@@ -322,15 +322,15 @@ export class LoanApplicationsService {
       throw new BadRequestException('Application not found for this client');
     }
 
-    // Only DRAFT applications can be edited by the client
-    if (application.status !== 'DRAFT') {
-      throw new BadRequestException('Only draft applications can be edited. Submitted applications cannot be modified.');
+    // Only DRAFT or RETURNED applications can be edited by the client
+    if (application.status !== 'DRAFT' && application.status !== 'RETURNED') {
+      throw new BadRequestException('Only draft or returned applications can be edited.');
     }
 
-    // Check if client KYC is verified - prevent editing
+    // Check if client KYC is verified - prevent editing DRAFT (but allow RETURNED)
     const client = await this.prisma.client.findUnique({ where: { id: portalClientId } });
-    if (client?.kycStatus === 'VERIFIED') {
-      throw new BadRequestException('Your account is fully verified. You cannot edit applications. Please contact support.');
+    if (application.status === 'DRAFT' && client?.kycStatus === 'VERIFIED') {
+      throw new BadRequestException('Your account is fully verified. You cannot edit draft applications. Please contact support.');
     }
 
     // logEvent requires a User id (not portal user). Use the linked client.userId.
