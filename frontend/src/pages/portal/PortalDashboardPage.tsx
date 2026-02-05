@@ -19,6 +19,7 @@ import {
   HelpCircle,
   CheckCircle,
   XCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { portalService } from '../../services/portalService';
 import { usePortalAuthStore } from '../../store/portalAuthStore';
@@ -72,7 +73,7 @@ export default function PortalDashboardPage() {
 
 
   const pendingApplications = applications.filter(app => 
-    ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'].includes(app.status)
+    ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'RETURNED'].includes(app.status)
   );
 
   const getGreeting = () => {
@@ -289,6 +290,8 @@ export default function PortalDashboardPage() {
                       return { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-100', label: 'Approved' };
                     case 'REJECTED':
                       return { icon: XCircle, color: 'text-red-600', bg: 'bg-red-100', label: 'Rejected' };
+                    case 'RETURNED':
+                      return { icon: RotateCcw, color: 'text-orange-600', bg: 'bg-orange-100', label: 'Returned' };
                     default:
                       return { icon: FileText, color: 'text-slate-500', bg: 'bg-slate-100', label: status };
                   }

@@ -23,6 +23,7 @@ import {
   CheckCircle,
   XCircle,
   FileText,
+  RotateCcw,
   Pencil,
   Trash2,
   Banknote,
@@ -163,8 +164,8 @@ export default function PortalLoansPage() {
         </div>
       )}
 
-      {/* Pending Applications Section - only show DRAFT, SUBMITTED, UNDER_REVIEW */}
-      {!loading && applications.filter(app => ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW'].includes(app.status)).length > 0 && (
+      {/* Pending Applications Section - show DRAFT, SUBMITTED, UNDER_REVIEW, RETURNED */}
+      {!loading && applications.filter(app => ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'RETURNED'].includes(app.status)).length > 0 && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
             <FileText className="h-5 w-5 text-blue-600" />
@@ -172,7 +173,7 @@ export default function PortalLoansPage() {
           </h2>
           <div className="space-y-3">
             {applications
-              .filter(app => ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW'].includes(app.status))
+              .filter(app => ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'RETURNED'].includes(app.status))
               .map((app) => {
                 const getStatusConfig = (status: string) => {
                   switch (status) {
@@ -186,6 +187,8 @@ export default function PortalLoansPage() {
                       return { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-100', label: 'Approved' };
                     case 'REJECTED':
                       return { icon: XCircle, color: 'text-red-600', bg: 'bg-red-100', label: 'Rejected' };
+                    case 'RETURNED':
+                      return { icon: RotateCcw, color: 'text-orange-600', bg: 'bg-orange-100', label: 'Returned' };
                     default:
                       return { icon: FileText, color: 'text-slate-500', bg: 'bg-slate-100', label: status };
                   }
