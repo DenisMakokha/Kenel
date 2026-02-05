@@ -156,11 +156,18 @@ export class PortalController {
   ) {
     const clientId = req.portalClientId as string;
 
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
     const application = await this.prisma.loanApplication.findFirst({
-      where: {
-        clientId,
-        OR: [{ id }, { applicationNumber: id }],
-      },
+      where: isUuid
+        ? {
+            clientId,
+            OR: [{ id }, { applicationNumber: id }],
+          }
+        : {
+            clientId,
+            applicationNumber: id,
+          },
       include: {
         productVersion: {
           include: {
