@@ -52,7 +52,7 @@ export default function PortalApplyLoanPage() {
   
   const [step, setStep] = useState<ApplicationStep>('select-product');
   const [selectedProduct, setSelectedProduct] = useState<LoanProduct | null>(null);
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   // Loan details
   const [amount, setAmount] = useState('');
@@ -236,6 +236,7 @@ export default function PortalApplyLoanPage() {
       return;
     }
 
+    setLoading(true);
     try {
       const requestedAmount = parseFloat(amount);
       const requestedTermMonths = parseInt(term);
@@ -277,7 +278,10 @@ export default function PortalApplyLoanPage() {
       toast.success('Submitted', 'Your loan application has been submitted successfully.');
       setStep('submitted');
     } catch (err: any) {
+      console.error('Submission error:', err);
       toast.error('Submission failed', err?.response?.data?.message || 'Please try again');
+    } finally {
+      setLoading(false);
     }
   };
 
