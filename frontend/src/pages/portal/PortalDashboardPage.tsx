@@ -27,6 +27,7 @@ import type { PortalDashboardResponse, PortalLoanApplication } from '../../types
 import { formatCurrency } from '../../lib/utils';
 import { useToast } from '../../hooks/useToast';
 import { NotificationBanner } from '../../components/portal/NotificationBanner';
+import { AlertTriangle } from 'lucide-react';
 
 export default function PortalDashboardPage() {
   const navigate = useNavigate();
@@ -81,6 +82,11 @@ export default function PortalDashboardPage() {
     ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'RETURNED'].includes(normalizeApplicationStatus(app.status))
   );
 
+  // Find returned applications that need action
+  const returnedApplications = applications.filter((app) =>
+    normalizeApplicationStatus(app.status) === 'RETURNED'
+  );
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -130,6 +136,40 @@ export default function PortalDashboardPage() {
 
       {/* Notification Banners */}
       <NotificationBanner maxBanners={2} />
+
+      {/* Action Required: Returned Applications */}
+      {returnedApplications.length > 0 && (
+        <div className="rounded-lg border-2 border-orange-300 bg-gradient-to-r from-orange-50 to-amber-50 p-4">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+                <RotateCcw className="h-5 w-5 text-orange-600" />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="h-4 w-4 text-orange-600" />
+                <h3 className="font-semibold text-orange-900">Action Required</h3>
+              </div>
+              <p className="text-sm text-orange-800 font-medium mb-2">
+                {returnedApplications.length === 1
+                  ? 'Your loan application needs correction'
+                  : `${returnedApplications.length} loan applications need correction`}
+              </p>
+              <p className="text-sm text-orange-700 mb-3">
+                Please review and fix the issues to continue with your application.
+              </p>
+              <Button
+                onClick={() => navigate(`/portal/applications/${returnedApplications[0].id}?returned=true`)}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                <ArrowRight className="h-4 w-4 mr-2" />
+                Fix Now
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Key Stats */}
       <div className="grid gap-4 md:grid-cols-4">
