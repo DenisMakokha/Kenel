@@ -21,6 +21,7 @@ import {
   XCircle,
   AlertTriangle,
   FileText,
+  RotateCcw,
   Plus,
   Download,
 } from 'lucide-react';
@@ -36,6 +37,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   UNDER_REVIEW: { label: 'Under Review', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle },
   APPROVED: { label: 'Approved', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle },
   REJECTED: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: XCircle },
+  RETURNED: { label: 'Returned', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', icon: RotateCcw },
   DISBURSED: { label: 'Disbursed', color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200', icon: CheckCircle },
 };
 
@@ -89,7 +91,11 @@ export default function CreditPipelinePage() {
         { key: 'clientName', header: 'Client Name' },
         { key: 'product', header: 'Product' },
         { key: 'requestedAmount', header: 'Requested Amount', formatter: (v) => v?.toFixed(2) || '0.00' },
-        { key: 'status', header: 'Status', formatter: (v) => STATUS_CONFIG[v]?.label || v },
+        { key: 'status', header: 'Status', formatter: (v) => {
+          const statusKey = typeof v === 'string' ? v.toUpperCase() : v;
+          const normalizedStatus = statusKey === 'RETURNED_TO_CLIENT' ? 'RETURNED' : statusKey;
+          return STATUS_CONFIG[normalizedStatus]?.label || (typeof normalizedStatus === 'string' ? normalizedStatus.replace(/_/g, ' ') : String(normalizedStatus));
+        } },
         { key: 'submittedDate', header: 'Submitted Date', formatter: (v) => v ? formatDate(v) : '' },
         { key: 'createdAt', header: 'Created Date', formatter: (v) => v ? formatDate(v) : '' },
       ],
@@ -216,8 +222,12 @@ export default function CreditPipelinePage() {
                 </TableHeader>
                 <TableBody>
                   {filteredApplications.slice(0, 10).map((app) => {
-                    const statusConfig = STATUS_CONFIG[app.status];
+                    const rawStatus = (app as any).status;
+                    const statusKey = typeof rawStatus === 'string' ? rawStatus.toUpperCase() : rawStatus;
+                    const normalizedStatus = statusKey === 'RETURNED_TO_CLIENT' ? 'RETURNED' : statusKey;
+                    const statusConfig = (STATUS_CONFIG as any)[normalizedStatus];
                     const StatusIcon = statusConfig?.icon || FileText;
+                    const statusLabel = statusConfig?.label || (typeof normalizedStatus === 'string' ? normalizedStatus.replace(/_/g, ' ') : String(normalizedStatus));
                     return (
                       <TableRow key={app.id} className="hover:bg-slate-50 transition-colors">
                         <TableCell>
@@ -246,7 +256,7 @@ export default function CreditPipelinePage() {
                         <TableCell>
                           <Badge className={cn('font-medium border', statusConfig?.bg, statusConfig?.color, statusConfig?.border)}>
                             <StatusIcon className="h-3 w-3 mr-1" />
-                            {statusConfig?.label}
+                            {statusLabel}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-slate-500">

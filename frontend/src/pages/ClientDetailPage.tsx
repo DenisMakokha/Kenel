@@ -47,6 +47,7 @@ export default function ClientDetailPage() {
       PENDING_REVIEW: 'warning',
       VERIFIED: 'success',
       REJECTED: 'destructive',
+      RETURNED: 'warning',
     } as const;
 
     return (

@@ -50,6 +50,7 @@ const PIPELINE_STAGES = [
   { key: 'SUBMITTED', label: 'KYC Pending', color: 'bg-amber-100 text-amber-700' },
   { key: 'UNDER_REVIEW', label: 'Under Review', color: 'bg-blue-100 text-blue-700' },
   { key: 'APPROVED', label: 'Approved', color: 'bg-emerald-100 text-emerald-700' },
+  { key: 'RETURNED', label: 'Returned', color: 'bg-orange-100 text-orange-700' },
 ];
 
 export default function CreditDashboardPage() {
@@ -155,8 +156,20 @@ export default function CreditDashboardPage() {
     return 'Good evening';
   })();
 
+  const normalizeApplicationStatus = (status: string) => {
+    const statusKey = (status || '').toUpperCase();
+    return statusKey === 'RETURNED_TO_CLIENT' ? 'RETURNED' : statusKey;
+  };
+
   const getStageInfo = (status: string) => {
-    return PIPELINE_STAGES.find((s) => s.key === status) || PIPELINE_STAGES[0];
+    const normalizedStatus = normalizeApplicationStatus(status);
+    return (
+      PIPELINE_STAGES.find((s) => s.key === normalizedStatus) || {
+        key: normalizedStatus,
+        label: normalizedStatus ? normalizedStatus.replace(/_/g, ' ') : status,
+        color: 'bg-slate-100 text-slate-700',
+      }
+    );
   };
 
   return (

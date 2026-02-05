@@ -88,6 +88,11 @@ export default function PortalLoansPage() {
   const loansInArrears = loans.filter(l => l.inArrears).length;
   const totalOutstanding = loans.reduce((sum, l) => sum + l.outstanding, 0);
 
+  const normalizeApplicationStatus = (status: string) => {
+    const statusKey = (status || '').toUpperCase();
+    return statusKey === 'RETURNED_TO_CLIENT' ? 'RETURNED' : statusKey;
+  };
+
   return (
     <div className="space-y-6 pb-20 md:pb-0">
       {/* Header */}
@@ -165,7 +170,7 @@ export default function PortalLoansPage() {
       )}
 
       {/* Pending Applications Section - show DRAFT, SUBMITTED, UNDER_REVIEW, RETURNED */}
-      {!loading && applications.filter(app => ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'RETURNED'].includes(app.status)).length > 0 && (
+      {!loading && applications.filter(app => ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'RETURNED'].includes(normalizeApplicationStatus(app.status))).length > 0 && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
             <FileText className="h-5 w-5 text-blue-600" />
@@ -173,10 +178,11 @@ export default function PortalLoansPage() {
           </h2>
           <div className="space-y-3">
             {applications
-              .filter(app => ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'RETURNED'].includes(app.status))
+              .filter(app => ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'RETURNED'].includes(normalizeApplicationStatus(app.status)))
               .map((app) => {
                 const getStatusConfig = (status: string) => {
-                  switch (status) {
+                  const normalizedStatus = normalizeApplicationStatus(status);
+                  switch (normalizedStatus) {
                     case 'DRAFT':
                       return { icon: FileText, color: 'text-slate-500', bg: 'bg-slate-100', label: 'Draft' };
                     case 'SUBMITTED':
@@ -190,7 +196,7 @@ export default function PortalLoansPage() {
                     case 'RETURNED':
                       return { icon: RotateCcw, color: 'text-orange-600', bg: 'bg-orange-100', label: 'Returned' };
                     default:
-                      return { icon: FileText, color: 'text-slate-500', bg: 'bg-slate-100', label: status };
+                      return { icon: FileText, color: 'text-slate-500', bg: 'bg-slate-100', label: normalizedStatus };
                   }
                 };
                 const statusConfig = getStatusConfig(app.status);

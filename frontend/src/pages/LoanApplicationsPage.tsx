@@ -136,13 +136,16 @@ export default function LoanApplicationsPage() {
     loadApplications();
   };
 
-  const getStatusBadge = (status: LoanApplicationStatus) => {
-    const config = STATUS_CONFIG[status];
+  const getStatusBadge = (status: LoanApplicationStatus | string) => {
+    const statusKey = typeof status === 'string' ? status.toUpperCase() : status;
+    const normalizedStatus = statusKey === 'RETURNED_TO_CLIENT' ? 'RETURNED' : statusKey;
+    const config = (STATUS_CONFIG as any)[normalizedStatus];
     const StatusIcon = config?.icon || FileText;
+    const label = config?.label || (typeof normalizedStatus === 'string' ? normalizedStatus.replace(/_/g, ' ') : String(normalizedStatus));
     return (
       <Badge className={cn('font-medium border', config?.bg, config?.color, config?.border)}>
         <StatusIcon className="h-3 w-3 mr-1" />
-        {config?.label}
+        {label}
       </Badge>
     );
   };

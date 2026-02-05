@@ -17,8 +17,6 @@ import {
   FileText,
   Trash2,
   Briefcase,
-  Building,
-  DollarSign,
   Users,
   UserPlus,
   Shield,
@@ -27,11 +25,8 @@ import {
   Clock,
   XCircle,
   MapPin,
-  Home,
-  CreditCard,
   Phone,
   Calendar,
-  Mail,
   Play,
 } from 'lucide-react';
 import { usePortalAuthStore } from '../../store/portalAuthStore';
@@ -133,7 +128,7 @@ export default function PortalKYCPage() {
     return { checklistItems, completed, total, percentage };
   };
 
-  const { checklistItems, completed, total, percentage } = getKycProgress();
+  const { completed, total, percentage } = getKycProgress();
 
   // Determine header colors based on progress
   const getHeaderColors = () => {

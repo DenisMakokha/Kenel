@@ -4,7 +4,7 @@ import { portalService } from '../../services/portalService';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { ArrowLeft, FileText, Clock, CheckCircle, XCircle, Upload } from 'lucide-react';
+import { ArrowLeft, FileText, Clock, CheckCircle, XCircle, Upload, RotateCcw } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
 
 interface ApplicationDetail {
@@ -60,7 +60,9 @@ export default function PortalApplicationDetailPage() {
   }, [applicationId]);
 
   const getStatusConfig = (status: string) => {
-    switch (status) {
+    const statusKey = (status || '').toUpperCase();
+    const normalizedStatus = statusKey === 'RETURNED_TO_CLIENT' ? 'RETURNED' : statusKey;
+    switch (normalizedStatus) {
       case 'DRAFT':
         return { icon: FileText, color: 'text-slate-600', bg: 'bg-slate-100', label: 'Draft' };
       case 'SUBMITTED':
@@ -71,8 +73,15 @@ export default function PortalApplicationDetailPage() {
         return { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-100', label: 'Approved' };
       case 'REJECTED':
         return { icon: XCircle, color: 'text-red-600', bg: 'bg-red-100', label: 'Rejected' };
+      case 'RETURNED':
+        return { icon: RotateCcw, color: 'text-orange-600', bg: 'bg-orange-100', label: 'Returned' };
       default:
-        return { icon: FileText, color: 'text-slate-500', bg: 'bg-slate-100', label: status };
+        return {
+          icon: FileText,
+          color: 'text-slate-500',
+          bg: 'bg-slate-100',
+          label: normalizedStatus ? normalizedStatus.replace(/_/g, ' ') : status,
+        };
     }
   };
 

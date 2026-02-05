@@ -72,8 +72,13 @@ export default function PortalDashboardPage() {
   }, []);
 
 
-  const pendingApplications = applications.filter(app => 
-    ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'RETURNED'].includes(app.status)
+  const normalizeApplicationStatus = (status: string) => {
+    const statusKey = (status || '').toUpperCase();
+    return statusKey === 'RETURNED_TO_CLIENT' ? 'RETURNED' : statusKey;
+  };
+
+  const pendingApplications = applications.filter((app) =>
+    ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'RETURNED'].includes(normalizeApplicationStatus(app.status))
   );
 
   const getGreeting = () => {
@@ -281,7 +286,8 @@ export default function PortalDashboardPage() {
             <div className="space-y-3">
               {pendingApplications.slice(0, 3).map((app) => {
                 const getStatusConfig = (status: string) => {
-                  switch (status) {
+                  const normalizedStatus = normalizeApplicationStatus(status);
+                  switch (normalizedStatus) {
                     case 'SUBMITTED':
                       return { icon: Clock, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Submitted' };
                     case 'UNDER_REVIEW':
@@ -293,7 +299,7 @@ export default function PortalDashboardPage() {
                     case 'RETURNED':
                       return { icon: RotateCcw, color: 'text-orange-600', bg: 'bg-orange-100', label: 'Returned' };
                     default:
-                      return { icon: FileText, color: 'text-slate-500', bg: 'bg-slate-100', label: status };
+                      return { icon: FileText, color: 'text-slate-500', bg: 'bg-slate-100', label: normalizedStatus };
                   }
                 };
                 const statusConfig = getStatusConfig(app.status);
