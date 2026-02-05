@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import PDFDocument = require('pdfkit');
@@ -155,9 +155,12 @@ export class PortalController {
     @Param('id') id: string,
   ) {
     const clientId = req.portalClientId as string;
-    
+
     const application = await this.prisma.loanApplication.findFirst({
-      where: { id, clientId },
+      where: {
+        clientId,
+        OR: [{ id }, { applicationNumber: id }],
+      },
       include: {
         productVersion: {
           include: {
@@ -173,7 +176,7 @@ export class PortalController {
     });
 
     if (!application) {
-      throw new Error('Application not found');
+      throw new NotFoundException('Application not found');
     }
 
     return {

@@ -225,6 +225,7 @@ export class PortalNotificationsService {
 
   async notifyApplicationReturned(
     clientId: string,
+    applicationId: string,
     applicationNumber: string,
     reason: string,
     returnedItems: Array<{ type: string; documentType?: string; field?: string; message: string }>,
@@ -235,9 +236,9 @@ export class PortalNotificationsService {
       category: 'loan_application',
       title: 'Action Required: Application Needs Correction',
       message: `Your loan application ${applicationNumber} needs corrections. ${reason}`,
-      actionUrl: `/portal/applications/${applicationNumber}?returned=true`,
+      actionUrl: `/portal/applications/${applicationId}?returned=true`,
       actionLabel: 'Fix Now',
-      metadata: { applicationNumber, reason, returnedItems },
+      metadata: { applicationId, applicationNumber, reason, returnedItems },
     });
 
     // Send email notification
@@ -259,7 +260,7 @@ export class PortalNotificationsService {
             <h3>Items Requiring Attention:</h3>
             <ul>${itemsHtml}</ul>
             <p>Please log in to your portal and make the necessary corrections.</p>
-            <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal/applications/${applicationNumber}?returned=true" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 16px 0;">Fix Now</a></p>
+            <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal/applications/${applicationId}?returned=true" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 16px 0;">Fix Now</a></p>
             <p>If you have any questions, please contact our support team.</p>
           `,
         });

@@ -692,6 +692,7 @@ export class LoanApplicationsService {
     try {
       await this.notificationsService.notifyApplicationReturned(
         application.clientId,
+        application.id,
         application.applicationNumber,
         dto.reason,
         dto.returnedItems,
