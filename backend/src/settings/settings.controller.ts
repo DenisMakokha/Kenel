@@ -3,13 +3,13 @@ import {
   Get,
   Post,
   Put,
+  Param,
   Body,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { SettingsService, SmtpConfig, SystemSettings } from './settings.service';
-import { CurrentUser, JwtPayload } from '../auth/decorators/current-user.decorator';
+import { SettingsService, SmtpConfig } from './settings.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('settings')
@@ -20,10 +20,17 @@ export class SettingsController {
 
   @Get()
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Get system settings' })
+  @ApiOperation({ summary: 'Get all system settings' })
   @ApiResponse({ status: 200, description: 'System settings' })
   async getSettings() {
     return this.settingsService.getSettings();
+  }
+
+  @Get('smtp/status')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Get SMTP configuration status' })
+  async getSmtpStatus() {
+    return this.settingsService.getSmtpStatus();
   }
 
   @Put('smtp')
@@ -49,7 +56,7 @@ export class SettingsController {
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Update email template settings' })
   @ApiResponse({ status: 200, description: 'Email template settings updated' })
-  async updateEmailTemplates(@Body() templates: SystemSettings['emailTemplates']) {
+  async updateEmailTemplates(@Body() templates: Record<string, boolean>) {
     return this.settingsService.updateEmailTemplates(templates);
   }
 
@@ -57,7 +64,18 @@ export class SettingsController {
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Update general settings' })
   @ApiResponse({ status: 200, description: 'General settings updated' })
-  async updateGeneralSettings(@Body() settings: SystemSettings['general']) {
+  async updateGeneralSettings(@Body() settings: Record<string, string>) {
     return this.settingsService.updateGeneralSettings(settings);
+  }
+
+  @Put('category/:category')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Update settings by category (loans, notifications, security)' })
+  @ApiResponse({ status: 200, description: 'Settings updated' })
+  async updateSettingsByCategory(
+    @Param('category') category: string,
+    @Body() settings: Record<string, string>,
+  ) {
+    return this.settingsService.updateSettingsByCategory(category, settings);
   }
 }

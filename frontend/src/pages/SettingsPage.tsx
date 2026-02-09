@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -188,6 +188,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<SystemSetting[]>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('organization');
 
   // SMTP Configuration
@@ -196,6 +197,60 @@ export default function SettingsPage() {
   const [testingEmail, setTestingEmail] = useState(false);
   const [testEmailAddress, setTestEmailAddress] = useState('');
   const [smtpStatus, setSmtpStatus] = useState<'unconfigured' | 'configured' | 'error'>('unconfigured');
+
+  // Load settings from API on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        setLoading(true);
+        const { data } = await api.get('/settings');
+
+        // Populate SMTP config
+        if (data.smtp) {
+          setSmtpConfig({
+            host: data.smtp.host || '',
+            port: String(data.smtp.port || '587'),
+            secure: data.smtp.secure || false,
+            username: data.smtp.username || '',
+            password: '', // Never returned from API
+            fromEmail: data.smtp.fromEmail || '',
+            fromName: data.smtp.fromName || 'Kenels LMS',
+          });
+          if (data.smtp.host) setSmtpStatus('configured');
+        }
+
+        // Populate general/organization settings
+        setSettings((prev) =>
+          prev.map((s) => {
+            if (s.category === 'organization') {
+              const keyMap: Record<string, string> = {
+                org_name: data.general?.companyName,
+                org_email: data.general?.contactEmail,
+                org_phone: data.general?.contactPhone,
+                org_address: data.general?.address,
+              };
+              return keyMap[s.key] ? { ...s, value: keyMap[s.key] } : s;
+            }
+            if (s.category === 'loans') {
+              return data.loans?.[s.key] ? { ...s, value: data.loans[s.key] } : s;
+            }
+            if (s.category === 'notifications') {
+              return data.notifications?.[s.key] ? { ...s, value: data.notifications[s.key] } : s;
+            }
+            if (s.category === 'security') {
+              return data.security?.[s.key] ? { ...s, value: data.security[s.key] } : s;
+            }
+            return s;
+          })
+        );
+      } catch (err) {
+        console.error('Failed to load settings', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const handleChange = (key: string, value: string) => {
     setSettings((prev) =>
@@ -214,11 +269,53 @@ export default function SettingsPage() {
   };
 
   const handleSave = async () => {
-    toast({
-      title: 'Not available',
-      description: 'System settings save is not available yet.',
-      variant: 'destructive',
-    });
+    setSaving(true);
+    try {
+      // Build payloads by category from current settings
+      const orgSettings = settings.filter((s) => s.category === 'organization');
+      const loanSettings = settings.filter((s) => s.category === 'loans');
+      const notifSettings = settings.filter((s) => s.category === 'notifications');
+      const secSettings = settings.filter((s) => s.category === 'security');
+
+      // Save organization/general
+      const generalPayload: Record<string, string> = {};
+      const orgKeyMap: Record<string, string> = {
+        org_name: 'companyName',
+        org_email: 'contactEmail',
+        org_phone: 'contactPhone',
+        org_address: 'address',
+      };
+      orgSettings.forEach((s) => {
+        generalPayload[orgKeyMap[s.key] || s.key] = s.value;
+      });
+
+      const toMap = (arr: SystemSetting[]) => {
+        const m: Record<string, string> = {};
+        arr.forEach((s) => (m[s.key] = s.value));
+        return m;
+      };
+
+      await Promise.all([
+        api.put('/settings/general', generalPayload),
+        api.put('/settings/category/loans', toMap(loanSettings)),
+        api.put('/settings/category/notifications', toMap(notifSettings)),
+        api.put('/settings/category/security', toMap(secSettings)),
+      ]);
+
+      setSaved(true);
+      toast({
+        title: 'Settings saved',
+        description: 'All system settings have been saved successfully.',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err?.response?.data?.message || 'Failed to save settings. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSmtpChange = (key: keyof SmtpConfig, value: string | boolean) => {
@@ -371,6 +468,12 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+        </div>
+      )}
+
       {/* System Status */}
       <Card className="border-slate-100">
         <CardHeader className="pb-3">
@@ -400,12 +503,14 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center', smtpStatus === 'configured' ? 'bg-emerald-100' : 'bg-amber-100')}>
+                {smtpStatus === 'configured' ? <CheckCircle className="h-5 w-5 text-emerald-600" /> : <AlertTriangle className="h-5 w-5 text-amber-600" />}
               </div>
               <div>
                 <p className="text-sm font-medium">Email Service</p>
-                <p className="text-xs text-amber-600">Not Configured</p>
+                <p className={cn('text-xs', smtpStatus === 'configured' ? 'text-emerald-600' : 'text-amber-600')}>
+                  {smtpStatus === 'configured' ? 'Configured' : 'Not Configured'}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -605,7 +710,7 @@ export default function SettingsPage() {
                 </div>
                 <Button
                   onClick={handleSaveSmtp}
-                  disabled={saving || !smtpConfig.host || !smtpConfig.username}
+                  disabled={saving || !smtpConfig.host}
                   className="bg-emerald-600 hover:bg-emerald-700"
                 >
                   <Save className="h-4 w-4 mr-2" />
