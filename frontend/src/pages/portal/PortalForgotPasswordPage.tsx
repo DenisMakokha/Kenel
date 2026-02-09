@@ -6,6 +6,7 @@ import { Input } from '../../components/ui/input';
 import { ArrowLeft, Mail, CheckCircle, Loader2, Phone } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import Logo from '../../components/Logo';
+import portalApi from '../../lib/portalApi';
 
 type Step = 'method' | 'verify' | 'reset' | 'success';
 type ResetMethod = 'email' | 'phone';
@@ -17,7 +18,7 @@ export default function PortalForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -34,10 +35,21 @@ export default function PortalForgotPasswordPage() {
       return;
     }
 
-    toast.error(
-      'Not available',
-      'Password reset is not available yet. Please contact support to reset your account.'
-    );
+    if (method === 'phone') {
+      toast.error('Not available', 'SMS reset is not available yet. Please use email.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await portalApi.post('/portal/auth/forgot-password', { email });
+      toast.success('Code sent', 'Check your email for the verification code.');
+      setStep('verify');
+    } catch (error: any) {
+      toast.error('Error', error.response?.data?.message || 'Failed to send verification code.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
@@ -48,10 +60,16 @@ export default function PortalForgotPasswordPage() {
       return;
     }
 
-    toast.error(
-      'Not available',
-      'Password reset is not available yet. Please contact support to reset your account.'
-    );
+    setLoading(true);
+    try {
+      await portalApi.post('/portal/auth/verify-otp', { email, otp });
+      toast.success('Verified', 'Code verified successfully.');
+      setStep('reset');
+    } catch (error: any) {
+      toast.error('Invalid code', error.response?.data?.message || 'The verification code is invalid or expired.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -72,10 +90,16 @@ export default function PortalForgotPasswordPage() {
       return;
     }
 
-    toast.error(
-      'Not available',
-      'Password reset is not available yet. Please contact support to reset your account.'
-    );
+    setLoading(true);
+    try {
+      await portalApi.post('/portal/auth/reset-password', { email, otp, newPassword });
+      toast.success('Success', 'Your password has been reset successfully.');
+      setStep('success');
+    } catch (error: any) {
+      toast.error('Error', error.response?.data?.message || 'Failed to reset password.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

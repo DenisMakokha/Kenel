@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { ArrowLeft, Mail, CheckCircle, Loader2 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import Logo from '../components/Logo';
+import api from '../lib/api';
 
 type Step = 'email' | 'sent' | 'reset' | 'success';
 
@@ -13,7 +14,8 @@ export default function ForgotPasswordPage() {
   const { toast } = useToast();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -25,10 +27,36 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    toast.error(
-      'Not available',
-      'Password reset is not available yet. Please contact support to reset your account.'
-    );
+    setLoading(true);
+    try {
+      await api.post('/auth/forgot-password', { email });
+      toast.success('Code sent', 'Check your email for the verification code.');
+      setStep('sent');
+    } catch (error: any) {
+      toast.error('Error', error.response?.data?.message || 'Failed to send verification code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!otp || otp.length !== 6) {
+      toast.error('Invalid code', 'Please enter the 6-digit verification code');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.post('/auth/verify-reset-otp', { email, otp });
+      toast.success('Verified', 'Code verified successfully.');
+      setStep('reset');
+    } catch (error: any) {
+      toast.error('Invalid code', error.response?.data?.message || 'The verification code is invalid or expired.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -49,10 +77,16 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    toast.error(
-      'Not available',
-      'Password reset is not available yet. Please contact support to reset your account.'
-    );
+    setLoading(true);
+    try {
+      await api.post('/auth/reset-password', { email, otp, newPassword });
+      toast.success('Success', 'Your password has been reset successfully.');
+      setStep('success');
+    } catch (error: any) {
+      toast.error('Error', error.response?.data?.message || 'Failed to reset password.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -119,27 +153,55 @@ export default function ForgotPasswordPage() {
           </Card>
         )}
 
-        {/* Email Sent Step */}
+        {/* OTP Verification Step */}
         {step === 'sent' && (
           <Card className="border-slate-200 shadow-lg">
-            <CardContent className="py-8 text-center">
-              <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                <Mail className="h-8 w-8 text-emerald-600" />
-              </div>
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">Check Your Email</h2>
-              <p className="text-slate-500 mb-6">
-                We've sent a password reset link to <strong>{email}</strong>
-              </p>
-              <p className="text-sm text-slate-400 mb-6">
-                Didn't receive the email? Check your spam folder or
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => setStep('email')}
-                className="mb-4"
-              >
-                Try a different email
-              </Button>
+            <CardHeader className="text-center">
+              <CardTitle className="text-xl">Enter Verification Code</CardTitle>
+              <CardDescription>
+                We sent a 6-digit code to <strong>{email}</strong>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleVerifyOTP} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Verification Code</label>
+                  <Input
+                    type="text"
+                    placeholder="000000"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="text-center text-2xl tracking-widest font-mono"
+                    maxLength={6}
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  disabled={loading || otp.length !== 6}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Verify Code'
+                  )}
+                </Button>
+
+                <div className="text-center text-sm text-slate-500">
+                  Didn't receive the code?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setStep('email')}
+                    className="text-emerald-600 hover:text-emerald-700"
+                  >
+                    Resend
+                  </button>
+                </div>
+              </form>
             </CardContent>
           </Card>
         )}

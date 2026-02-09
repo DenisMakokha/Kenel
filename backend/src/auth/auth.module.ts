@@ -7,12 +7,14 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy, LocalStrategy, RefreshTokenStrategy } from './strategies';
 import { JwtAuthGuard, RolesGuard } from './guards';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
     ConfigModule,
     PassportModule,
-    JwtModule.register({}), // Configuration is done in strategies
+    JwtModule.register({}),
+    EmailModule,
   ],
   controllers: [AuthController],
   providers: [

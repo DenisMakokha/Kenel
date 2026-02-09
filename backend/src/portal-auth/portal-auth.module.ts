@@ -5,9 +5,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PortalAuthController } from './portal-auth.controller';
 import { PortalAuthService } from './portal-auth.service';
 import { PortalJwtStrategy } from './portal-jwt.strategy';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [ConfigModule, JwtModule.register({})],
+  imports: [ConfigModule, JwtModule.register({}), EmailModule],
   controllers: [PortalAuthController],
   providers: [PortalAuthService, PortalJwtStrategy, PrismaService],
   exports: [PortalAuthService],

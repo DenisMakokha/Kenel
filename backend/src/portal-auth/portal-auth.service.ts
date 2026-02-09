@@ -2,7 +2,9 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 
 interface RegisterDto {
   firstName: string;
@@ -10,6 +12,7 @@ interface RegisterDto {
   email: string;
   phone: string;
   idNumber: string;
+  dateOfBirth?: string;
   password: string;
 }
 
@@ -25,6 +28,7 @@ export class PortalAuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly emailService: EmailService,
   ) {}
 
   async validateUser(email: string, password: string) {
@@ -177,7 +181,7 @@ export class PortalAuthService {
           lastName: data.lastName,
           idType: 'NATIONAL_ID',
           idNumber: data.idNumber,
-          dateOfBirth: new Date('1990-01-01'), // Default, can be updated later
+          dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : new Date('1990-01-01'),
           phonePrimary: data.phone,
           email: data.email,
           createdChannel: 'ONLINE',
@@ -229,5 +233,99 @@ export class PortalAuthService {
     });
 
     return { message: 'Password changed successfully' };
+  }
+
+  async forgotPassword(email: string) {
+    // Always return success to prevent email enumeration
+    const portalUser = await this.prisma.clientPortalUser.findUnique({ where: { email } });
+    
+    if (portalUser) {
+      // Generate 6-digit OTP
+      const otp = crypto.randomInt(100000, 999999).toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      // Invalidate existing tokens for this email
+      await this.prisma.passwordResetToken.updateMany({
+        where: { email, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+
+      // Store token
+      await this.prisma.passwordResetToken.create({
+        data: { email, token: otp, expiresAt },
+      });
+
+      // Send email
+      await this.emailService.sendEmail({
+        to: email,
+        subject: 'Password Reset Code - Kenels Bureau',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #059669;">Password Reset</h2>
+            <p>You requested a password reset for your Kenels Bureau portal account.</p>
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #6b7280;">Your verification code:</p>
+              <p style="margin: 0; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #059669;">${otp}</p>
+            </div>
+            <p>This code expires in <strong>15 minutes</strong>.</p>
+            <p style="color: #6b7280; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+          </div>
+        `,
+      });
+    }
+
+    return { message: 'If an account exists with this email, a verification code has been sent.' };
+  }
+
+  async verifyResetOtp(email: string, otp: string) {
+    const token = await this.prisma.passwordResetToken.findFirst({
+      where: {
+        email,
+        token: otp,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!token) {
+      throw new BadRequestException('Invalid or expired verification code');
+    }
+
+    return { valid: true, message: 'Code verified successfully' };
+  }
+
+  async resetPassword(email: string, otp: string, newPassword: string) {
+    const token = await this.prisma.passwordResetToken.findFirst({
+      where: {
+        email,
+        token: otp,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!token) {
+      throw new BadRequestException('Invalid or expired verification code');
+    }
+
+    const portalUser = await this.prisma.clientPortalUser.findUnique({ where: { email } });
+    if (!portalUser) {
+      throw new BadRequestException('Account not found');
+    }
+
+    const newPasswordHash = await argon2.hash(newPassword);
+
+    await this.prisma.$transaction([
+      this.prisma.clientPortalUser.update({
+        where: { id: portalUser.id },
+        data: { passwordHash: newPasswordHash },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: token.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    return { message: 'Password reset successfully' };
   }
 }

@@ -2,7 +2,7 @@ import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from '@nestjs/
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiProperty } from '@nestjs/swagger';
 import { Request, Response } from 'express';
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { PortalAuthService } from './portal-auth.service';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -43,6 +43,11 @@ class PortalRegisterDto {
   @IsString()
   @IsNotEmpty()
   idNumber!: string;
+
+  @ApiProperty({ example: '1995-06-15', required: false })
+  @IsOptional()
+  @IsString()
+  dateOfBirth?: string;
 
   @ApiProperty({ example: 'SecurePass123' })
   @IsString()
@@ -143,5 +148,35 @@ export class PortalAuthController {
       throw new Error('Unauthorized');
     }
     return this.portalAuthService.changePassword(portalUser.sub, body.currentPassword, body.newPassword);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 300000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request password reset OTP via email' })
+  @ApiResponse({ status: 200, description: 'OTP sent if account exists' })
+  async forgotPassword(@Body() body: { email: string }) {
+    return this.portalAuthService.forgotPassword(body.email);
+  }
+
+  @Public()
+  @Post('verify-otp')
+  @Throttle({ default: { limit: 5, ttl: 300000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify password reset OTP' })
+  @ApiResponse({ status: 200, description: 'OTP verified' })
+  async verifyOtp(@Body() body: { email: string; otp: string }) {
+    return this.portalAuthService.verifyResetOtp(body.email, body.otp);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @Throttle({ default: { limit: 3, ttl: 300000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password using OTP' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully' })
+  async resetPassword(@Body() body: { email: string; otp: string; newPassword: string }) {
+    return this.portalAuthService.resetPassword(body.email, body.otp, body.newPassword);
   }
 }

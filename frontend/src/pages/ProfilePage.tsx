@@ -198,7 +198,7 @@ export default function ProfilePage() {
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      await api.patch('/users/me', {
+      await api.patch('/auth/me', {
         firstName,
         lastName,
         phone,

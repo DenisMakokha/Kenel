@@ -14,6 +14,7 @@ export default function PortalRegisterPage() {
     email: '',
     phone: '',
     idNumber: '',
+    dateOfBirth: '',
     password: '',
     confirmPassword: '',
   });
@@ -49,6 +50,7 @@ export default function PortalRegisterPage() {
         email: formData.email,
         phone: formData.phone,
         idNumber: formData.idNumber,
+        dateOfBirth: formData.dateOfBirth || undefined,
         password: formData.password,
       });
       setSuccess(true);
@@ -245,6 +247,20 @@ export default function PortalRegisterPage() {
                 className="w-full h-11 px-4 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
                 value={formData.idNumber}
                 onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Date of Birth</label>
+              <input
+                type="date"
+                name="dateOfBirth"
+                className="w-full h-11 px-4 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                value={formData.dateOfBirth}
+                onChange={handleChange}
+                max={new Date().toISOString().split('T')[0]}
+                min="1920-01-01"
                 required
               />
             </div>

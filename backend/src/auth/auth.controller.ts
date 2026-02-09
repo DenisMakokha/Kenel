@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Patch,
   Body,
   HttpCode,
   HttpStatus,
@@ -19,6 +20,9 @@ import { AuditAction } from '@prisma/client';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
+import * as crypto from 'crypto';
+import * as argon2 from 'argon2';
 import { RegisterDto, LoginDto, AuthResponseDto } from './dto';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser, JwtPayload } from './decorators/current-user.decorator';
@@ -27,7 +31,11 @@ import { AuthGuard } from '@nestjs/passport';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService, private prisma: PrismaService) {}
+  constructor(
+    private authService: AuthService,
+    private prisma: PrismaService,
+    private emailService: EmailService,
+  ) {}
 
   @Public()
   @Post('register')
@@ -179,6 +187,34 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Current user information' })
   async getCurrentUser(@CurrentUser() user: JwtPayload) {
     return user;
+  }
+
+  @Patch('me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  async updateCurrentUser(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { firstName?: string; lastName?: string; phone?: string },
+  ) {
+    const updated = await this.prisma.user.update({
+      where: { id: user.sub },
+      data: {
+        ...(body.firstName && { firstName: body.firstName }),
+        ...(body.lastName && { lastName: body.lastName }),
+        ...(body.phone && { phone: body.phone }),
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        role: true,
+        isActive: true,
+      },
+    });
+    return updated;
   }
 
   @Get('sessions')
@@ -379,5 +415,99 @@ export class AuthController {
     });
 
     return { message: 'Password changed successfully' };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 300000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request password reset link via email' })
+  @ApiResponse({ status: 200, description: 'Reset link sent if account exists' })
+  async forgotPassword(@Body() body: { email: string }) {
+    const user = await this.prisma.user.findUnique({ where: { email: body.email } });
+
+    if (user) {
+      const otp = crypto.randomInt(100000, 999999).toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+      await this.prisma.passwordResetToken.updateMany({
+        where: { email: body.email, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+
+      await this.prisma.passwordResetToken.create({
+        data: { email: body.email, token: otp, expiresAt },
+      });
+
+      await this.emailService.sendEmail({
+        to: body.email,
+        subject: 'Password Reset Code - Kenels Bureau',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #059669;">Password Reset</h2>
+            <p>You requested a password reset for your Kenels Bureau staff account.</p>
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #6b7280;">Your verification code:</p>
+              <p style="margin: 0; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #059669;">${otp}</p>
+            </div>
+            <p>This code expires in <strong>15 minutes</strong>.</p>
+            <p style="color: #6b7280; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+          </div>
+        `,
+      });
+    }
+
+    return { message: 'If an account exists with this email, a verification code has been sent.' };
+  }
+
+  @Public()
+  @Post('verify-reset-otp')
+  @Throttle({ default: { limit: 5, ttl: 300000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify password reset OTP' })
+  @ApiResponse({ status: 200, description: 'OTP verified' })
+  async verifyResetOtp(@Body() body: { email: string; otp: string }) {
+    const token = await this.prisma.passwordResetToken.findFirst({
+      where: { email: body.email, token: body.otp, usedAt: null, expiresAt: { gt: new Date() } },
+    });
+    if (!token) {
+      throw new BadRequestException('Invalid or expired verification code');
+    }
+    return { valid: true, message: 'Code verified successfully' };
+  }
+
+  @Public()
+  @Post('reset-password')
+  @Throttle({ default: { limit: 3, ttl: 300000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password using OTP' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully' })
+  async resetPassword(@Body() body: { email: string; otp: string; newPassword: string }) {
+    const token = await this.prisma.passwordResetToken.findFirst({
+      where: { email: body.email, token: body.otp, usedAt: null, expiresAt: { gt: new Date() } },
+    });
+    if (!token) {
+      throw new BadRequestException('Invalid or expired verification code');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { email: body.email } });
+    if (!user) {
+      throw new BadRequestException('Account not found');
+    }
+
+    const hashedPassword = await argon2.hash(body.newPassword);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: token.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    return { message: 'Password reset successfully' };
   }
 }

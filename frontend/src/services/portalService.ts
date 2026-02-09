@@ -7,6 +7,7 @@ interface RegisterData {
   email: string;
   phone: string;
   idNumber: string;
+  dateOfBirth?: string;
   password: string;
 }
 
