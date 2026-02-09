@@ -37,10 +37,14 @@ export class EmailService {
       return null;
     }
 
+    const isLocalhost = smtpConfig.host === 'localhost' || smtpConfig.host === '127.0.0.1';
+
     return nodemailer.createTransport({
       host: smtpConfig.host,
       port: smtpConfig.port,
       secure: smtpConfig.secure,
+      ignoreTLS: isLocalhost,
+      tls: isLocalhost ? { rejectUnauthorized: false } : undefined,
       auth: smtpConfig.username
         ? {
             user: smtpConfig.username,
