@@ -45,7 +45,8 @@ export class EmailService {
       secure: smtpConfig.secure,
       ignoreTLS: isLocalhost,
       tls: isLocalhost ? { rejectUnauthorized: false } : undefined,
-      auth: smtpConfig.username
+      // Skip auth for localhost - local Postfix doesn't need it
+      auth: (!isLocalhost && smtpConfig.username)
         ? {
             user: smtpConfig.username,
             pass: smtpConfig.password,
