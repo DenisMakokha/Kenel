@@ -633,53 +633,63 @@ export default function KycReviewsPage() {
               <Label>Items Needing Correction *</Label>
               <div className="border rounded-lg p-3 space-y-3">
                 {/* Add new item */}
-                <div className="grid grid-cols-12 gap-2">
-                  <Select value={newItemType} onValueChange={(v) => setNewItemType(v as 'document' | 'field')}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="document">Document</SelectItem>
-                      <SelectItem value="field">Field</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {newItemType === 'document' ? (
-                    <Select value={newItemDocType} onValueChange={setNewItemDocType}>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Doc type" />
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Select value={newItemType} onValueChange={(v) => setNewItemType(v as 'document' | 'field')}>
+                      <SelectTrigger className="w-[130px] shrink-0">
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ID_FRONT">ID Front</SelectItem>
-                        <SelectItem value="ID_BACK">ID Back</SelectItem>
-                        <SelectItem value="PASSPORT_PHOTO">Photo</SelectItem>
-                        <SelectItem value="PAYSLIP">Payslip</SelectItem>
-                        <SelectItem value="BANK_STATEMENT">Bank Statement</SelectItem>
-                        <SelectItem value="OTHER">Other</SelectItem>
+                        <SelectItem value="document">Document</SelectItem>
+                        <SelectItem value="field">Field</SelectItem>
                       </SelectContent>
                     </Select>
-                  ) : (
+                    {newItemType === 'document' ? (
+                      <Select value={newItemDocType} onValueChange={setNewItemDocType}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select document type..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NATIONAL_ID">National ID</SelectItem>
+                          <SelectItem value="ID_FRONT">ID Front</SelectItem>
+                          <SelectItem value="ID_BACK">ID Back</SelectItem>
+                          <SelectItem value="PASSPORT">Passport</SelectItem>
+                          <SelectItem value="PASSPORT_PHOTO">Passport Photo</SelectItem>
+                          <SelectItem value="KRA_PIN">KRA PIN Certificate</SelectItem>
+                          <SelectItem value="PAYSLIP">Payslip</SelectItem>
+                          <SelectItem value="BANK_STATEMENT">Bank Statement</SelectItem>
+                          <SelectItem value="EMPLOYMENT_LETTER">Employment Letter</SelectItem>
+                          <SelectItem value="EMPLOYMENT_CONTRACT">Employment Contract</SelectItem>
+                          <SelectItem value="PROOF_OF_RESIDENCE">Proof of Residence</SelectItem>
+                          <SelectItem value="OTHER">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        className="w-full"
+                        placeholder="Field name"
+                        value={newItemField}
+                        onChange={(e) => setNewItemField(e.target.value)}
+                      />
+                    )}
+                  </div>
+                  <div className="flex gap-2">
                     <Input
-                      className="col-span-3"
-                      placeholder="Field name"
-                      value={newItemField}
-                      onChange={(e) => setNewItemField(e.target.value)}
+                      className="flex-1"
+                      placeholder="What needs to be fixed..."
+                      value={newItemMessage}
+                      onChange={(e) => setNewItemMessage(e.target.value)}
                     />
-                  )}
-                  <Input
-                    className="col-span-5"
-                    placeholder="What needs to be fixed..."
-                    value={newItemMessage}
-                    onChange={(e) => setNewItemMessage(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleAddReturnItem}
-                    disabled={!newItemMessage}
-                    className="col-span-1"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleAddReturnItem}
+                      disabled={!newItemMessage}
+                      className="shrink-0 h-9 w-9 p-0"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 {/* List of items */}
