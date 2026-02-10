@@ -500,7 +500,7 @@ export default function ProfilePage() {
                     type="tel"
                     value={phone}
                     onChange={(e) => { setPhone(e.target.value); setSaved(false); }}
-                    placeholder="+254 700 000 000"
+                    placeholder="+254 7XX XXX XXX"
                     className="pl-9"
                   />
                 </div>

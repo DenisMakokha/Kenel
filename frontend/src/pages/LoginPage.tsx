@@ -4,10 +4,12 @@ import { Button } from '../components/ui/button';
 import { authService } from '../services/authService';
 import { useAuthStore } from '../store/authStore';
 import { Home, Shield, Eye, EyeOff, ArrowRight, ExternalLink, Briefcase, Users } from 'lucide-react';
-import { COMPANY_CONFIG, getCurrentYear } from '../config/company';
+import { getCurrentYear } from '../config/company';
+import { useOrgSettings } from '../hooks/useOrgSettings';
 import Logo from '../components/Logo';
 
 export default function LoginPage() {
+  const org = useOrgSettings();
   const navigate = useNavigate();
   const setUser = useAuthStore((state) => state.setUser);
   const [email, setEmail] = useState('');
@@ -146,7 +148,7 @@ export default function LoginPage() {
               <input
                 id="email"
                 type="email"
-                placeholder={`you@${COMPANY_CONFIG.email.split('@')[1]}`}
+                placeholder={`you@${org.contactEmail.split('@')[1]}`}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -224,7 +226,7 @@ export default function LoginPage() {
           {/* Footer */}
           <div className="mt-12 pt-8 border-t border-slate-200">
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>© {getCurrentYear()} {COMPANY_CONFIG.name}</span>
+              <span>© {getCurrentYear()} {org.companyName}</span>
               <a 
                 href="https://neliumsystems.com" 
                 target="_blank" 

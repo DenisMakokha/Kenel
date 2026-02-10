@@ -30,7 +30,7 @@ export class EmailService {
       username: process.env.SMTP_USERNAME || '',
       password: process.env.SMTP_PASSWORD || '',
       fromEmail: process.env.SMTP_FROM_EMAIL || '',
-      fromName: process.env.SMTP_FROM_NAME || 'Kenels LMS',
+      fromName: process.env.SMTP_FROM_NAME || process.env.COMPANY_NAME || 'Kenels Bureau Ltd',
     };
 
     if (!smtpConfig.host || !smtpConfig.port) {
@@ -57,7 +57,7 @@ export class EmailService {
 
   private getFromAddress(config?: SmtpConfig): string {
     const fromEmail = config?.fromEmail || process.env.SMTP_FROM_EMAIL || '';
-    const fromName = config?.fromName || process.env.SMTP_FROM_NAME || 'Kenels LMS';
+    const fromName = config?.fromName || process.env.SMTP_FROM_NAME || process.env.COMPANY_NAME || 'Kenels Bureau Ltd';
     return `"${fromName}" <${fromEmail}>`;
   }
 
@@ -110,16 +110,16 @@ export class EmailService {
       const result = await this.sendEmail(
         {
           to: testEmail,
-          subject: 'Kenels LMS - SMTP Test',
-          text: 'This is a test email from Kenels LMS. If you received this, your SMTP configuration is working correctly.',
+          subject: `${process.env.COMPANY_NAME || 'Kenels Bureau'} - SMTP Test`,
+          text: `This is a test email from ${process.env.COMPANY_NAME || 'Kenels Bureau'}. If you received this, your SMTP configuration is working correctly.`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #2563eb;">Kenels LMS - SMTP Test</h2>
-              <p>This is a test email from Kenels LMS.</p>
+              <h2 style="color: #2563eb;">${process.env.COMPANY_NAME || 'Kenels Bureau'} - SMTP Test</h2>
+              <p>This is a test email from ${process.env.COMPANY_NAME || 'Kenels Bureau'}.</p>
               <p>If you received this, your SMTP configuration is working correctly.</p>
               <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
               <p style="color: #6b7280; font-size: 12px;">
-                This email was sent automatically by Kenels LMS.
+                This email was sent automatically by ${process.env.COMPANY_NAME || 'Kenels Bureau'}.
               </p>
             </div>
           `,
@@ -158,7 +158,7 @@ export class EmailService {
           <p>Please log in to your portal to view the details and complete the disbursement process.</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
           <p style="color: #6b7280; font-size: 12px;">
-            This email was sent by Kenels Bureau LMS. Do not reply to this email.
+            This email was sent by ${process.env.COMPANY_NAME || 'Kenels Bureau'}. Do not reply to this email.
           </p>
         </div>
       `,
@@ -184,7 +184,7 @@ export class EmailService {
           <p>You may submit a new application or contact us for more information.</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
           <p style="color: #6b7280; font-size: 12px;">
-            This email was sent by Kenels Bureau LMS. Do not reply to this email.
+            This email was sent by ${process.env.COMPANY_NAME || 'Kenels Bureau'}. Do not reply to this email.
           </p>
         </div>
       `,
@@ -213,7 +213,7 @@ export class EmailService {
           <p>Please ensure timely payment to avoid penalties.</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
           <p style="color: #6b7280; font-size: 12px;">
-            This email was sent by Kenels Bureau LMS. Do not reply to this email.
+            This email was sent by ${process.env.COMPANY_NAME || 'Kenels Bureau'}. Do not reply to this email.
           </p>
         </div>
       `,
@@ -243,7 +243,7 @@ export class EmailService {
           <p>Please log in to your portal to view the loan details and repayment schedule.</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
           <p style="color: #6b7280; font-size: 12px;">
-            This email was sent by Kenels Bureau LMS. Do not reply to this email.
+            This email was sent by ${process.env.COMPANY_NAME || 'Kenels Bureau'}. Do not reply to this email.
           </p>
         </div>
       `,
@@ -272,7 +272,7 @@ export class EmailService {
           <p>Thank you for your payment.</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
           <p style="color: #6b7280; font-size: 12px;">
-            This email was sent by Kenels Bureau LMS. Do not reply to this email.
+            This email was sent by ${process.env.COMPANY_NAME || 'Kenels Bureau'}. Do not reply to this email.
           </p>
         </div>
       `,

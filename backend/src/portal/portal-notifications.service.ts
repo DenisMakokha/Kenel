@@ -370,8 +370,8 @@ export class PortalNotificationsService {
       clientId,
       type: 'info',
       category: 'system',
-      title: 'Welcome to Kenels Bureau!',
-      message: `Hi ${firstName}, welcome to Kenels Bureau Loan Management System. Complete your profile to get started with your first loan application.`,
+      title: `Welcome to ${process.env.COMPANY_NAME || 'Kenels Bureau'}!`,
+      message: `Hi ${firstName}, welcome to ${process.env.COMPANY_NAME || 'Kenels Bureau'} Loan Management System. Complete your profile to get started with your first loan application.`,
       actionUrl: '/portal/profile',
       actionLabel: 'Complete Profile',
       metadata: { firstName },
@@ -402,7 +402,7 @@ export class PortalNotificationsService {
             <p>Dear ${clientInfo.name},</p>
             <p>Your loan application <strong>${applicationNumber}</strong> has been submitted to our admin team for final review and approval.</p>
             <p>You will receive a notification once a decision has been made.</p>
-            <p>Thank you for choosing Kenels Bureau.</p>
+            <p>Thank you for choosing ${process.env.COMPANY_NAME || 'Kenels Bureau'}.</p>
           `,
         });
         await this.prisma.clientNotification.update({
@@ -474,14 +474,14 @@ export class PortalNotificationsService {
       try {
         await this.emailService.sendEmail({
           to: clientInfo.email,
-          subject: 'Your KYC Has Been Verified - Kenels Bureau',
+          subject: `Your KYC Has Been Verified - ${process.env.COMPANY_NAME || 'Kenels Bureau'}`,
           html: `
             <h2>KYC Verification Successful</h2>
             <p>Dear ${clientInfo.name},</p>
             <p>Great news! Your KYC documents have been reviewed and verified by our team.</p>
             <p>You can now apply for loans through our portal.</p>
             <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal/loans">Apply for a Loan</a></p>
-            <p>Thank you for choosing Kenels Bureau.</p>
+            <p>Thank you for choosing ${process.env.COMPANY_NAME || 'Kenels Bureau'}.</p>
           `,
         });
         await this.prisma.clientNotification.update({

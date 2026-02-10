@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useOrgSettings } from '../../hooks/useOrgSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -79,6 +80,7 @@ const CHANNEL_CONFIG: Record<string, { label: string; color: string; icon: strin
 };
 
 export default function FinanceReceiptsPage() {
+  const org = useOrgSettings();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState('');
@@ -492,7 +494,7 @@ export default function FinanceReceiptsPage() {
                 <div className="footer">
                   <p>Thank you for your payment</p>
                   <p>This is a computer-generated receipt and is valid without signature</p>
-                  <p>For queries, contact: support@kenels.co.ke | +254 700 000 000</p>
+                  <p>For queries, contact: {org.contactEmail} | {org.contactPhone}</p>
                 </div>
               </div>
 

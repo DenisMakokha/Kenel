@@ -1,11 +1,12 @@
 import PDFDocument = require('pdfkit');
 
-// Company branding configuration
+// Company branding configuration — reads from process.env dynamically
+// so that admin settings changes take effect immediately.
 export const PDF_CONFIG = {
-  companyName: process.env.COMPANY_NAME || 'Kenels Bureau Ltd',
-  companyEmail: process.env.COMPANY_EMAIL || 'support@kenelsbureau.co.ke',
-  companyPhone: process.env.COMPANY_PHONE || '+254 759 599 124',
-  companyAddress: process.env.COMPANY_ADDRESS || 'Eaton Place, 2nd Floor, United Nations Crescent, Nairobi-Kenya',
+  get companyName() { return process.env.COMPANY_NAME || 'Kenels Bureau Ltd'; },
+  get companyEmail() { return process.env.COMPANY_EMAIL || 'support@kenelsbureau.co.ke'; },
+  get companyPhone() { return process.env.COMPANY_PHONE || '+254 759 599 124'; },
+  get companyAddress() { return process.env.COMPANY_ADDRESS || 'Eaton Place, 2nd Floor, United Nations Crescent, Nairobi-Kenya'; },
   primaryColor: '#047857',
   secondaryColor: '#1e293b',
   lightGray: '#f8fafc',

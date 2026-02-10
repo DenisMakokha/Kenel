@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { COMPANY_CONFIG } from '../config/company';
+import { useOrgSettings } from '../hooks/useOrgSettings';
 import Logo from '../components/Logo';
 
 export default function PrivacyPolicyPage() {
+  const org = useOrgSettings();
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -127,7 +128,7 @@ export default function PrivacyPolicyPage() {
       {/* Footer */}
       <footer className="bg-slate-900 text-slate-400 py-6">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
-          <p>© {new Date().getFullYear()} {COMPANY_CONFIG.name}. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {org.companyName}. All rights reserved.</p>
         </div>
       </footer>
     </div>

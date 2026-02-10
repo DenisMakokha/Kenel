@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useOrgSettings } from '../../hooks/useOrgSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -81,6 +82,7 @@ const CLOSURE_TYPE_CONFIG: Record<string, { label: string; color: string; icon: 
 
 export default function FinanceClosedLoansPage() {
   const navigate = useNavigate();
+  const org = useOrgSettings();
   const [loans, setLoans] = useState<ClosedLoan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -289,7 +291,7 @@ export default function FinanceClosedLoansPage() {
             
             <div class="disclaimer">
               This certificate is computer-generated and is valid without physical signature when verified through our online portal.
-              <br/>For verification, contact: support@kenels.co.ke | +254 700 000 000
+              <br/>For verification, contact: ${org.contactEmail} | ${org.contactPhone}
             </div>
           </body>
         </html>

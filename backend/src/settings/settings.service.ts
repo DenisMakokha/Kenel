@@ -28,7 +28,32 @@ export class SettingsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
-  ) {}
+  ) {
+    // Load org + SMTP settings from DB into process.env on startup
+    this.loadSettingsIntoEnv().catch((err) =>
+      this.logger.warn('Could not preload settings from DB: ' + err.message),
+    );
+  }
+
+  private async loadSettingsIntoEnv(): Promise<void> {
+    const generalMap = await this.getSettingsByCategory('general');
+    if (generalMap.companyName) process.env.COMPANY_NAME = generalMap.companyName;
+    if (generalMap.contactEmail) process.env.COMPANY_EMAIL = generalMap.contactEmail;
+    if (generalMap.contactPhone) process.env.COMPANY_PHONE = generalMap.contactPhone;
+    if (generalMap.address) process.env.COMPANY_ADDRESS = generalMap.address;
+    if (generalMap.website) process.env.COMPANY_WEBSITE = generalMap.website;
+
+    const smtpMap = await this.getSettingsByCategory('smtp');
+    if (smtpMap.host) process.env.SMTP_HOST = smtpMap.host;
+    if (smtpMap.port) process.env.SMTP_PORT = smtpMap.port;
+    if (smtpMap.secure) process.env.SMTP_SECURE = smtpMap.secure;
+    if (smtpMap.username) process.env.SMTP_USERNAME = smtpMap.username;
+    if (smtpMap.password) process.env.SMTP_PASSWORD = smtpMap.password;
+    if (smtpMap.fromEmail) process.env.SMTP_FROM_EMAIL = smtpMap.fromEmail;
+    if (smtpMap.fromName) process.env.SMTP_FROM_NAME = smtpMap.fromName;
+
+    this.logger.log('Settings loaded from DB into process.env');
+  }
 
   // ── helpers ──────────────────────────────────────────
 
@@ -166,7 +191,12 @@ export class SettingsService {
 
   async updateGeneralSettings(settings: Record<string, string>): Promise<{ success: boolean; message: string }> {
     await this.upsertMany(settings, 'general');
+    // Keep process.env in sync so PDF_CONFIG and email templates pick up changes immediately
     if (settings.companyName) process.env.COMPANY_NAME = settings.companyName;
+    if (settings.contactEmail) process.env.COMPANY_EMAIL = settings.contactEmail;
+    if (settings.contactPhone) process.env.COMPANY_PHONE = settings.contactPhone;
+    if (settings.address) process.env.COMPANY_ADDRESS = settings.address;
+    if (settings.website) process.env.COMPANY_WEBSITE = settings.website;
     return { success: true, message: 'General settings saved' };
   }
 
@@ -181,5 +211,26 @@ export class SettingsService {
   async getSmtpStatus(): Promise<{ configured: boolean }> {
     const host = await this.getSetting('smtp.host');
     return { configured: !!(host || process.env.SMTP_HOST) };
+  }
+
+  /**
+   * Get organization settings (public, no auth required).
+   * Used across emails, PDFs, and frontend.
+   */
+  async getOrgSettings(): Promise<{
+    companyName: string;
+    contactEmail: string;
+    contactPhone: string;
+    address: string;
+    website: string;
+  }> {
+    const generalMap = await this.getSettingsByCategory('general');
+    return {
+      companyName: generalMap.companyName || process.env.COMPANY_NAME || 'Kenels Bureau Ltd',
+      contactEmail: generalMap.contactEmail || process.env.COMPANY_EMAIL || 'support@kenelsbureau.co.ke',
+      contactPhone: generalMap.contactPhone || process.env.COMPANY_PHONE || '+254 759 599 124',
+      address: generalMap.address || process.env.COMPANY_ADDRESS || 'Eaton Place, 2nd Floor, United Nations Crescent, Nairobi-Kenya',
+      website: generalMap.website || process.env.COMPANY_WEBSITE || 'https://kenels.app',
+    };
   }
 }

@@ -4,11 +4,13 @@ import { Button } from '../../components/ui/button';
 import { portalService } from '../../services/portalService';
 import { usePortalAuthStore } from '../../store/portalAuthStore';
 import { Home, Eye, EyeOff, Smartphone, CreditCard, FileText, ArrowRight, ExternalLink, User, Briefcase } from 'lucide-react';
-import { COMPANY_CONFIG, getCurrentYear } from '../../config/company';
+import { getCurrentYear } from '../../config/company';
+import { useOrgSettings } from '../../hooks/useOrgSettings';
 import Logo from '../../components/Logo';
 
 export default function PortalLoginPage() {
   const navigate = useNavigate();
+  const org = useOrgSettings();
   const { setClient } = usePortalAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -236,12 +238,12 @@ export default function PortalLoginPage() {
           <div className="mt-8 p-4 rounded-lg bg-slate-50 border border-slate-100">
             <p className="text-xs text-slate-500 text-center mb-2">Need help? Contact us</p>
             <div className="flex items-center justify-center gap-4 text-sm">
-              <a href={`mailto:${COMPANY_CONFIG.email}`} className="text-emerald-600 hover:text-emerald-700">
-                {COMPANY_CONFIG.email}
+              <a href={`mailto:${org.contactEmail}`} className="text-emerald-600 hover:text-emerald-700">
+                {org.contactEmail}
               </a>
               <span className="text-slate-300">|</span>
-              <a href={`tel:${COMPANY_CONFIG.phoneRaw}`} className="text-emerald-600 hover:text-emerald-700">
-                {COMPANY_CONFIG.phone}
+              <a href={`tel:${org.contactPhone.replace(/\s/g, '')}`} className="text-emerald-600 hover:text-emerald-700">
+                {org.contactPhone}
               </a>
             </div>
           </div>
@@ -249,7 +251,7 @@ export default function PortalLoginPage() {
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-slate-100">
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>© {getCurrentYear()} {COMPANY_CONFIG.name}</span>
+              <span>© {getCurrentYear()} {org.companyName}</span>
               <a 
                 href="https://neliumsystems.com" 
                 target="_blank" 

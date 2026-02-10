@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useOrgSettings } from '../../hooks/useOrgSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -84,6 +85,7 @@ const TRANSACTION_TYPE_CONFIG: Record<string, { label: string; color: string }> 
 };
 
 export default function FinanceStatementsPage() {
+  const org = useOrgSettings();
   const [searchTerm, setSearchTerm] = useState('');
   const [searching, setSearching] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
@@ -321,7 +323,7 @@ export default function FinanceStatementsPage() {
             
             <div class="footer">
               <p>This is a computer-generated statement and does not require a signature.</p>
-              <p>For queries, contact: support@kenels.co.ke | +254 700 000 000</p>
+              <p>For queries, contact: ${org.contactEmail} | ${org.contactPhone}</p>
             </div>
           </body>
         </html>

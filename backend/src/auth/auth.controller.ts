@@ -186,7 +186,22 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user' })
   @ApiResponse({ status: 200, description: 'Current user information' })
   async getCurrentUser(@CurrentUser() user: JwtPayload) {
-    return user;
+    const freshUser = await this.prisma.user.findUnique({
+      where: { id: user.sub },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        role: true,
+        isActive: true,
+      },
+    });
+    if (!freshUser) {
+      throw new NotFoundException('User not found');
+    }
+    return { ...user, ...freshUser, sub: freshUser.id };
   }
 
   @Patch('me')

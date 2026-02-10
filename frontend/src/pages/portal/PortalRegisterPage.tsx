@@ -3,10 +3,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { portalService } from '../../services/portalService';
 import { Eye, EyeOff, CheckCircle, Home, UserPlus, Shield, Zap, ExternalLink, ArrowRight } from 'lucide-react';
-import { COMPANY_CONFIG, getCurrentYear } from '../../config/company';
+import { getCurrentYear } from '../../config/company';
+import { useOrgSettings } from '../../hooks/useOrgSettings';
 import Logo from '../../components/Logo';
 
 export default function PortalRegisterPage() {
+  const org = useOrgSettings();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: '',
@@ -340,7 +342,7 @@ export default function PortalRegisterPage() {
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-slate-100">
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>© {getCurrentYear()} {COMPANY_CONFIG.name}</span>
+              <span>© {getCurrentYear()} {org.companyName}</span>
               <a 
                 href="https://neliumsystems.com" 
                 target="_blank" 

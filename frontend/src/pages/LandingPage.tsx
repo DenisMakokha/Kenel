@@ -16,10 +16,12 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { COMPANY_CONFIG, getCurrentYear } from '../config/company';
+import { useOrgSettings } from '../hooks/useOrgSettings';
 import WhatsAppButton from '../components/WhatsAppButton';
 import Logo from '../components/Logo';
 
 export default function LandingPage() {
+  const org = useOrgSettings();
   return (
     <div className="min-h-screen">
       {/* Navigation */}
@@ -73,7 +75,7 @@ export default function LandingPage() {
                 </span>
               </h1>
               <p className="text-lg sm:text-xl text-slate-300 mb-10 max-w-xl">
-                Need cash for your business, school fees, or emergency? {COMPANY_CONFIG.name}{' '}
+                Need cash for your business, school fees, or emergency? {org.companyName}{' '}
                 offers loans from <span className="text-emerald-400 font-semibold">KES {COMPANY_CONFIG.loans.minAmount.toLocaleString()} to KES {COMPANY_CONFIG.loans.maxAmount.toLocaleString()}</span> with 
                 approval in as little as {COMPANY_CONFIG.loans.approvalTime}. No collateral needed for amounts under KES {COMPANY_CONFIG.loans.collateralFreeLimit.toLocaleString()}.
               </p>
@@ -262,7 +264,7 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-6">
-                Why 5,000+ Kenyans Trust {COMPANY_CONFIG.name}
+                Why 5,000+ Kenyans Trust {org.companyName}
               </h2>
               <p className="text-lg text-slate-600 mb-8">
                 We're not just another lender. We're your financial partner committed to 
@@ -335,15 +337,15 @@ export default function LandingPage() {
                 <MapPin className="h-6 w-6 text-emerald-400" />
               </div>
               <h3 className="font-semibold text-white mb-2">Location</h3>
-              <p className="text-slate-400 text-sm">Eaton Place, 2nd Floor,<br />United Nations Crescent,<br />Nairobi-Kenya</p>
+              <p className="text-slate-400 text-sm">{org.address}</p>
             </div>
             <div className="text-center p-6 rounded-xl bg-slate-800/50">
               <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
                 <Mail className="h-6 w-6 text-emerald-400" />
               </div>
               <h3 className="font-semibold text-white mb-2">Email</h3>
-              <a href={`mailto:${COMPANY_CONFIG.email}`} className="text-emerald-400 hover:text-emerald-300 text-sm">
-                {COMPANY_CONFIG.email}
+              <a href={`mailto:${org.contactEmail}`} className="text-emerald-400 hover:text-emerald-300 text-sm">
+                {org.contactEmail}
               </a>
             </div>
             <div className="text-center p-6 rounded-xl bg-slate-800/50">
@@ -351,8 +353,8 @@ export default function LandingPage() {
                 <Phone className="h-6 w-6 text-emerald-400" />
               </div>
               <h3 className="font-semibold text-white mb-2">Call</h3>
-              <a href={`tel:${COMPANY_CONFIG.phoneRaw}`} className="text-emerald-400 hover:text-emerald-300 text-sm">
-                {COMPANY_CONFIG.phone}
+              <a href={`tel:${org.contactPhone.replace(/\s/g, '')}`} className="text-emerald-400 hover:text-emerald-300 text-sm">
+                {org.contactPhone}
               </a>
             </div>
           </div>
@@ -398,7 +400,7 @@ export default function LandingPage() {
           {/* Bottom Bar */}
           <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm">
-              © {getCurrentYear()} {COMPANY_CONFIG.name}. All rights reserved.
+              © {getCurrentYear()} {org.companyName}. All rights reserved.
             </p>
             <p className="text-xs text-slate-500">
               Powered by <a href="https://neliumsystems.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-emerald-400">Nelium Systems</a>

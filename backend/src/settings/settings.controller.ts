@@ -11,12 +11,21 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SettingsService, SmtpConfig } from './settings.service';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('settings')
 @Controller('settings')
 @ApiBearerAuth()
 export class SettingsController {
   constructor(private settingsService: SettingsService) {}
+
+  @Public()
+  @Get('org')
+  @ApiOperation({ summary: 'Get public organization settings (no auth required)' })
+  @ApiResponse({ status: 200, description: 'Organization settings' })
+  async getOrgSettings() {
+    return this.settingsService.getOrgSettings();
+  }
 
   @Get()
   @Roles('ADMIN')

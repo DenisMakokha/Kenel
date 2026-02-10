@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useOrgSettings } from '../../hooks/useOrgSettings';
 import { portalService } from '../../services/portalService';
 import type { PortalLoanSummary } from '../../types/portal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -29,6 +30,7 @@ interface PaymentReceipt {
 }
 
 export default function PortalStatementsPage() {
+  const org = useOrgSettings();
   const [loans, setLoans] = useState<PortalLoanSummary[]>([]);
   const [loanId, setLoanId] = useState('');
   const [period, setPeriod] = useState<'3m' | '6m' | '12m'>('3m');
@@ -187,7 +189,7 @@ export default function PortalStatementsPage() {
             </div>
             <div class="footer">
               <p>Thank you for your payment!</p>
-              <p>For inquiries, contact support@kenels.co.ke</p>
+              <p>For inquiries, contact ${org.contactEmail}</p>
             </div>
             <div class="actions">
               <button class="btn btn-primary" onclick="window.print()">Print</button>
