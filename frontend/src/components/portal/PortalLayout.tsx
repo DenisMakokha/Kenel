@@ -60,20 +60,20 @@ export default function PortalLayout() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-white shadow-sm">
+      <header className="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Mobile menu button */}
             <button
-              className="md:hidden p-2 rounded-lg hover:bg-slate-100"
+              className="md:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? (
-                <X className="h-5 w-5 text-slate-600" />
+                <X className="h-5 w-5 text-slate-600 dark:text-slate-300" />
               ) : (
-                <Menu className="h-5 w-5 text-slate-600" />
+                <Menu className="h-5 w-5 text-slate-600 dark:text-slate-300" />
               )}
             </button>
 
@@ -90,15 +90,15 @@ export default function PortalLayout() {
 
             {/* User info */}
             {client && (
-              <div className="hidden sm:flex items-center gap-3 pl-3 border-l">
+              <div className="hidden sm:flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-slate-700">
                 <div className="text-right">
-                  <div className="text-sm font-medium text-slate-900">
+                  <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
                     {client.firstName} {client.lastName}
                   </div>
-                  <div className="text-xs text-slate-500">{client.clientCode}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{client.clientCode}</div>
                 </div>
-                <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <span className="text-sm font-semibold text-emerald-700">
+                <div className="h-9 w-9 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                  <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
                     {client.firstName?.[0]}{client.lastName?.[0]}
                   </span>
                 </div>
@@ -110,7 +110,7 @@ export default function PortalLayout() {
               variant="ghost" 
               size="sm" 
               onClick={handleLogout}
-              className="text-slate-600 hover:text-red-600 hover:bg-red-50"
+              className="text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
             >
               <LogOut className="h-4 w-4 mr-1" />
               <span className="hidden sm:inline">Logout</span>
@@ -121,7 +121,7 @@ export default function PortalLayout() {
 
       <div className="flex-1 flex">
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex flex-col w-56 border-r bg-white">
+        <aside className="hidden md:flex flex-col w-56 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
           <nav className="flex-1 p-4 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -133,11 +133,11 @@ export default function PortalLayout() {
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                     active
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
                   )}
                 >
-                  <Icon className={cn('h-5 w-5', active ? 'text-emerald-600' : 'text-slate-400')} />
+                  <Icon className={cn('h-5 w-5', active ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500')} />
                   {item.label}
                   {active && <ChevronRight className="h-4 w-4 ml-auto text-emerald-400" />}
                 </button>
@@ -146,11 +146,11 @@ export default function PortalLayout() {
           </nav>
 
           {/* Sidebar footer */}
-          <div className="p-4 border-t">
-            <div className="rounded-lg bg-slate-50 p-3">
-              <p className="text-xs text-slate-600 font-medium">Need assistance?</p>
-              <p className="text-xs text-slate-500 mt-1">Contact our support team</p>
-              <Button variant="link" className="p-0 h-auto text-xs text-emerald-600 mt-2">
+          <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="rounded-lg bg-slate-50 dark:bg-slate-900 p-3">
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">Need assistance?</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Contact our support team</p>
+              <Button variant="link" className="p-0 h-auto text-xs text-emerald-600 dark:text-emerald-400 mt-2">
                 Get Help →
               </Button>
             </div>
@@ -168,36 +168,36 @@ export default function PortalLayout() {
         {/* Mobile Sidebar */}
         <aside
           className={cn(
-            'fixed top-0 left-0 h-full w-64 bg-white z-50 transform transition-transform duration-200 ease-in-out md:hidden',
+            'fixed top-0 left-0 h-full w-64 bg-white dark:bg-slate-800 z-50 transform transition-transform duration-200 ease-in-out md:hidden',
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           )}
         >
-          <div className="p-4 border-b flex items-center justify-between">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Logo variant="dark" size="sm" />
             </div>
             <button
-              className="p-2 rounded-lg hover:bg-slate-100"
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
               onClick={() => setMobileMenuOpen(false)}
             >
-              <X className="h-5 w-5 text-slate-600" />
+              <X className="h-5 w-5 text-slate-600 dark:text-slate-300" />
             </button>
           </div>
 
           {/* Mobile user info */}
           {client && (
-            <div className="p-4 border-b bg-slate-50">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <span className="text-sm font-semibold text-emerald-700">
+                <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                  <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
                     {client.firstName?.[0]}{client.lastName?.[0]}
                   </span>
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-slate-900">
+                  <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
                     {client.firstName} {client.lastName}
                   </div>
-                  <div className="text-xs text-slate-500">{client.clientCode}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{client.clientCode}</div>
                 </div>
               </div>
             </div>
@@ -214,21 +214,21 @@ export default function PortalLayout() {
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                     active
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
                   )}
                 >
-                  <Icon className={cn('h-5 w-5', active ? 'text-emerald-600' : 'text-slate-400')} />
+                  <Icon className={cn('h-5 w-5', active ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500')} />
                   {item.label}
                 </button>
               );
             })}
           </nav>
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 dark:border-slate-700">
             <Button 
               variant="outline" 
-              className="w-full text-red-600 border-red-200 hover:bg-red-50"
+              className="w-full text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30"
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -246,7 +246,7 @@ export default function PortalLayout() {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t safe-area-inset-bottom">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 safe-area-inset-bottom">
         <div className="flex justify-around py-2">
           {navItems.slice(0, 4).map((item) => {
             const Icon = item.icon;
@@ -257,7 +257,7 @@ export default function PortalLayout() {
                 onClick={() => navigate(item.path)}
                 className={cn(
                   'flex flex-col items-center gap-1 px-3 py-1',
-                  active ? 'text-emerald-600' : 'text-slate-400'
+                  active ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
                 )}
               >
                 <Icon className="h-5 w-5" />

@@ -305,11 +305,112 @@
     @apply border-cyan-700;
   }
 
+  /* --- Semantic text colors (800 → 300) --- */
+  .dark .text-emerald-800 {
+    @apply text-emerald-300;
+  }
+  .dark .text-green-800 {
+    @apply text-green-300;
+  }
+  .dark .text-blue-800 {
+    @apply text-blue-300;
+  }
+  .dark .text-sky-800 {
+    @apply text-sky-300;
+  }
+  .dark .text-amber-800 {
+    @apply text-amber-300;
+  }
+  .dark .text-red-800 {
+    @apply text-red-300;
+  }
+  .dark .text-orange-800 {
+    @apply text-orange-300;
+  }
+  .dark .text-purple-800 {
+    @apply text-purple-300;
+  }
+  .dark .text-cyan-800 {
+    @apply text-cyan-300;
+  }
+
+  /* --- Semantic text colors (600 → 400) --- */
+  .dark .text-emerald-600 {
+    @apply text-emerald-400;
+  }
+  .dark .text-green-600 {
+    @apply text-green-400;
+  }
+  .dark .text-blue-600 {
+    @apply text-blue-400;
+  }
+  .dark .text-sky-600 {
+    @apply text-sky-400;
+  }
+  .dark .text-amber-600 {
+    @apply text-amber-400;
+  }
+  .dark .text-red-600 {
+    @apply text-red-400;
+  }
+  .dark .text-orange-600 {
+    @apply text-orange-400;
+  }
+  .dark .text-purple-600 {
+    @apply text-purple-400;
+  }
+  .dark .text-cyan-600 {
+    @apply text-cyan-400;
+  }
+
+  /* --- Semantic text colors (900 → 200) --- */
+  .dark .text-emerald-900 {
+    @apply text-emerald-200;
+  }
+  .dark .text-green-900 {
+    @apply text-green-200;
+  }
+  .dark .text-blue-900 {
+    @apply text-blue-200;
+  }
+  .dark .text-red-900 {
+    @apply text-red-200;
+  }
+  .dark .text-orange-900 {
+    @apply text-orange-200;
+  }
+
+  /* --- Semantic border colors (300 → 600) --- */
+  .dark .border-red-300 {
+    @apply border-red-600;
+  }
+  .dark .border-blue-300 {
+    @apply border-blue-600;
+  }
+  .dark .border-orange-300 {
+    @apply border-orange-600;
+  }
+  .dark .border-purple-300 {
+    @apply border-purple-600;
+  }
+  .dark .border-cyan-300 {
+    @apply border-cyan-600;
+  }
+  .dark .border-amber-300 {
+    @apply border-amber-600;
+  }
+
   /* --- Hover states --- */
   .dark .hover\:bg-slate-50:hover {
     @apply bg-slate-800;
   }
   .dark .hover\:bg-slate-100:hover {
+    @apply bg-slate-700;
+  }
+  .dark .hover\:bg-slate-200:hover {
+    @apply bg-slate-600;
+  }
+  .dark .hover\:bg-white:hover {
     @apply bg-slate-700;
   }
   .dark .hover\:bg-emerald-50:hover {
@@ -320,6 +421,52 @@
   }
   .dark .hover\:border-emerald-400:hover {
     @apply border-emerald-500;
+  }
+
+  /* --- White with opacity variants --- */
+  .dark .bg-white\/70 {
+    background-color: rgb(30 41 59 / 0.7);
+  }
+  .dark .bg-white\/60 {
+    background-color: rgb(30 41 59 / 0.6);
+  }
+  .dark .bg-white\/50 {
+    background-color: rgb(30 41 59 / 0.5);
+  }
+  .dark .bg-white\/40 {
+    background-color: rgb(30 41 59 / 0.4);
+  }
+  .dark .bg-white\/30 {
+    background-color: rgb(30 41 59 / 0.3);
+  }
+  .dark .bg-white\/80 {
+    background-color: rgb(30 41 59 / 0.8);
+  }
+  .dark .bg-white\/90 {
+    background-color: rgb(30 41 59 / 0.9);
+  }
+
+  /* --- Gradient endpoints --- */
+  .dark .from-white {
+    --tw-gradient-from: rgb(30 41 59);
+  }
+  .dark .to-white {
+    --tw-gradient-to: rgb(30 41 59);
+  }
+  .dark .from-slate-50 {
+    --tw-gradient-from: rgb(15 23 42);
+  }
+  .dark .to-slate-50 {
+    --tw-gradient-to: rgb(15 23 42);
+  }
+  .dark .to-transparent {
+    --tw-gradient-to: transparent;
+  }
+  .dark .from-emerald-50\/70 {
+    --tw-gradient-from: rgb(6 78 59 / 0.3);
+  }
+  .dark .via-emerald-50\/40 {
+    --tw-gradient-stops: var(--tw-gradient-from), rgb(6 78 59 / 0.15), var(--tw-gradient-to);
   }
 
   /* --- Native HTML inputs, selects, textareas in dark mode --- */
@@ -341,18 +488,39 @@
     --tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color);
     box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   }
-
-  /* --- Gradient backgrounds for dark mode --- */
-  .dark .from-emerald-50\/70 {
-    --tw-gradient-from: rgb(6 78 59 / 0.3);
+  .dark .shadow-md {
+    --tw-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --tw-shadow-colored: 0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   }
-  .dark .via-emerald-50\/40 {
-    --tw-gradient-stops: var(--tw-gradient-from), rgb(6 78 59 / 0.15), var(--tw-gradient-to);
+  .dark .shadow-lg {
+    --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   }
 
   /* --- Ring offsets --- */
   .dark .ring-offset-white {
     --tw-ring-offset-color: hsl(222.2 84% 4.9%);
+  }
+
+  /* --- Recharts / chart tooltip dark mode --- */
+  .dark .recharts-default-tooltip {
+    background-color: hsl(222.2 84% 6%) !important;
+    border-color: hsl(217.2 32.6% 20%) !important;
+    color: hsl(210 40% 98%) !important;
+  }
+  .dark .recharts-tooltip-item {
+    color: hsl(210 40% 90%) !important;
+  }
+  .dark .recharts-cartesian-grid line {
+    stroke: hsl(217.2 32.6% 20%);
+  }
+  .dark .recharts-legend-item-text {
+    color: hsl(215 20.2% 65.1%) !important;
+  }
+  .dark .recharts-text {
+    fill: hsl(215 20.2% 65.1%);
   }
 }
 
