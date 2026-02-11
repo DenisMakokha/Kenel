@@ -1,5 +1,5 @@
 import type { ReactNode, ElementType } from 'react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Menu, X, Settings, User, ChevronDown } from 'lucide-react';
 import { Badge } from '../ui/badge';
@@ -17,6 +17,7 @@ import {
 } from '../ui/dropdown-menu';
 import { ThemeToggle } from '../ui/theme-toggle';
 import { NotificationBell } from '../ui/notification-bell';
+import { useInactivityLogout } from '../../hooks/useInactivityLogout';
 
 export interface NavItem {
   label: string;
@@ -68,7 +69,7 @@ export function AppShell({ children, config }: AppShellProps) {
 
   const activeLabel = getActiveItemLabel(location.pathname, config.navSections);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await authService.logout();
     } catch {
@@ -77,7 +78,10 @@ export function AppShell({ children, config }: AppShellProps) {
       logout();
       navigate('/login');
     }
-  };
+  }, [logout, navigate]);
+
+  // Auto-logout after 30 minutes of inactivity for staff
+  useInactivityLogout({ timeoutMinutes: 30, onLogout: handleLogout, enabled: !!user });
 
   const renderNavItem = (item: NavItem) => {
     const Icon = item.icon;

@@ -73,7 +73,9 @@
     max-width: 100vw;
   }
   
-  /* Dark mode overrides for common patterns */
+  /* ===== Dark mode overrides ===== */
+
+  /* --- Backgrounds --- */
   .dark .bg-white {
     @apply bg-slate-800;
   }
@@ -83,12 +85,17 @@
   .dark .bg-slate-100 {
     @apply bg-slate-800;
   }
-  .dark .border-slate-100 {
-    @apply border-slate-700;
+  .dark .bg-slate-200 {
+    @apply bg-slate-700;
   }
-  .dark .border-slate-200 {
-    @apply border-slate-700;
+  .dark .bg-gray-50 {
+    @apply bg-slate-900;
   }
+  .dark .bg-gray-100 {
+    @apply bg-slate-800;
+  }
+
+  /* --- Text colors --- */
   .dark .text-slate-900 {
     @apply text-slate-100;
   }
@@ -104,21 +111,119 @@
   .dark .text-slate-500 {
     @apply text-slate-400;
   }
+  .dark .text-gray-900 {
+    @apply text-gray-100;
+  }
+  .dark .text-gray-700 {
+    @apply text-gray-300;
+  }
+  .dark .text-gray-600 {
+    @apply text-gray-400;
+  }
+  .dark .text-gray-500 {
+    @apply text-gray-400;
+  }
+
+  /* --- Borders --- */
+  .dark .border-slate-100 {
+    @apply border-slate-700;
+  }
+  .dark .border-slate-200 {
+    @apply border-slate-700;
+  }
+  .dark .border-slate-300 {
+    @apply border-slate-600;
+  }
+  .dark .border-gray-200 {
+    @apply border-gray-700;
+  }
+  .dark .border-gray-300 {
+    @apply border-gray-600;
+  }
+  .dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+    @apply border-slate-700;
+  }
+  .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+    @apply border-slate-700;
+  }
+
+  /* --- Semantic color backgrounds (50 → 900/30) --- */
   .dark .bg-emerald-50 {
     @apply bg-emerald-900/30;
+  }
+  .dark .bg-green-50 {
+    @apply bg-green-900/30;
   }
   .dark .bg-sky-50 {
     @apply bg-sky-900/30;
   }
+  .dark .bg-blue-50 {
+    @apply bg-blue-900/30;
+  }
   .dark .bg-amber-50 {
     @apply bg-amber-900/30;
+  }
+  .dark .bg-yellow-50 {
+    @apply bg-yellow-900/30;
   }
   .dark .bg-red-50 {
     @apply bg-red-900/30;
   }
-  .dark .bg-blue-50 {
-    @apply bg-blue-900/30;
+  .dark .bg-orange-50 {
+    @apply bg-orange-900/30;
   }
+  .dark .bg-purple-50 {
+    @apply bg-purple-900/30;
+  }
+  .dark .bg-indigo-50 {
+    @apply bg-indigo-900/30;
+  }
+  .dark .bg-pink-50 {
+    @apply bg-pink-900/30;
+  }
+  .dark .bg-cyan-50 {
+    @apply bg-cyan-900/30;
+  }
+
+  /* --- Semantic color backgrounds (100 → 900/40) --- */
+  .dark .bg-emerald-100 {
+    @apply bg-emerald-900/40;
+  }
+  .dark .bg-green-100 {
+    @apply bg-green-900/40;
+  }
+  .dark .bg-sky-100 {
+    @apply bg-sky-900/40;
+  }
+  .dark .bg-blue-100 {
+    @apply bg-blue-900/40;
+  }
+  .dark .bg-amber-100 {
+    @apply bg-amber-900/40;
+  }
+  .dark .bg-yellow-100 {
+    @apply bg-yellow-900/40;
+  }
+  .dark .bg-red-100 {
+    @apply bg-red-900/40;
+  }
+  .dark .bg-orange-100 {
+    @apply bg-orange-900/40;
+  }
+  .dark .bg-purple-100 {
+    @apply bg-purple-900/40;
+  }
+  .dark .bg-indigo-100 {
+    @apply bg-indigo-900/40;
+  }
+  .dark .bg-pink-100 {
+    @apply bg-pink-900/40;
+  }
+  .dark .bg-cyan-100 {
+    @apply bg-cyan-900/40;
+  }
+
+  /* --- Semantic text colors (700 → 400) --- */
   .dark .text-emerald-700 {
     @apply text-emerald-400;
   }
@@ -128,20 +233,81 @@
   .dark .text-emerald-900 {
     @apply text-emerald-200;
   }
+  .dark .text-green-700 {
+    @apply text-green-400;
+  }
   .dark .text-sky-700 {
     @apply text-sky-400;
+  }
+  .dark .text-blue-700 {
+    @apply text-blue-400;
   }
   .dark .text-amber-700 {
     @apply text-amber-400;
   }
+  .dark .text-yellow-700 {
+    @apply text-yellow-400;
+  }
   .dark .text-red-700 {
     @apply text-red-400;
   }
+  .dark .text-orange-700 {
+    @apply text-orange-400;
+  }
+  .dark .text-purple-700 {
+    @apply text-purple-400;
+  }
+  .dark .text-indigo-700 {
+    @apply text-indigo-400;
+  }
+  .dark .text-pink-700 {
+    @apply text-pink-400;
+  }
+  .dark .text-cyan-700 {
+    @apply text-cyan-400;
+  }
+
+  /* --- Semantic border colors (100/200 → 700/800) --- */
   .dark .border-emerald-100 {
     @apply border-emerald-800;
   }
   .dark .border-emerald-200 {
     @apply border-emerald-700;
+  }
+  .dark .border-green-200 {
+    @apply border-green-700;
+  }
+  .dark .border-blue-200 {
+    @apply border-blue-700;
+  }
+  .dark .border-sky-200 {
+    @apply border-sky-700;
+  }
+  .dark .border-amber-200 {
+    @apply border-amber-700;
+  }
+  .dark .border-red-200 {
+    @apply border-red-700;
+  }
+  .dark .border-orange-200 {
+    @apply border-orange-700;
+  }
+  .dark .border-purple-200 {
+    @apply border-purple-700;
+  }
+  .dark .border-indigo-200 {
+    @apply border-indigo-700;
+  }
+  .dark .border-pink-200 {
+    @apply border-pink-700;
+  }
+  .dark .border-cyan-200 {
+    @apply border-cyan-700;
+  }
+
+  /* --- Hover states --- */
+  .dark .hover\:bg-slate-50:hover {
+    @apply bg-slate-800;
   }
   .dark .hover\:bg-slate-100:hover {
     @apply bg-slate-700;
@@ -155,13 +321,38 @@
   .dark .hover\:border-emerald-400:hover {
     @apply border-emerald-500;
   }
-  
-  /* Gradient backgrounds for dark mode */
+
+  /* --- Native HTML inputs, selects, textareas in dark mode --- */
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .dark textarea,
+  .dark select {
+    background-color: hsl(222.2 84% 4.9%) !important;
+    color: hsl(210 40% 98%) !important;
+    border-color: hsl(217.2 32.6% 25%) !important;
+  }
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: hsl(215 20.2% 55.1%) !important;
+  }
+
+  /* --- Shadow adjustments --- */
+  .dark .shadow-sm {
+    --tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  }
+
+  /* --- Gradient backgrounds for dark mode --- */
   .dark .from-emerald-50\/70 {
     --tw-gradient-from: rgb(6 78 59 / 0.3);
   }
   .dark .via-emerald-50\/40 {
     --tw-gradient-stops: var(--tw-gradient-from), rgb(6 78 59 / 0.15), var(--tw-gradient-to);
+  }
+
+  /* --- Ring offsets --- */
+  .dark .ring-offset-white {
+    --tw-ring-offset-color: hsl(222.2 84% 4.9%);
   }
 }
 

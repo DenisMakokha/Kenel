@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { usePortalAuthStore } from '../../store/portalAuthStore';
 import { Button } from '../ui/button';
 import WhatsAppButton from '../WhatsAppButton';
@@ -18,6 +18,7 @@ import {
 import { cn } from '../../lib/utils';
 import Logo from '../Logo';
 import { NotificationDropdown } from './NotificationDropdown';
+import { useInactivityLogout } from '../../hooks/useInactivityLogout';
 
 const navItems = [
   { path: '/portal/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -43,7 +44,7 @@ export default function PortalLayout() {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await portalService.logout();
     } catch {
@@ -51,7 +52,10 @@ export default function PortalLayout() {
     }
     logout();
     navigate('/portal/login');
-  };
+  }, [logout, navigate]);
+
+  // Auto-logout after 15 minutes of inactivity for portal clients
+  useInactivityLogout({ timeoutMinutes: 15, onLogout: handleLogout, enabled: isAuthenticated });
 
   const isActive = (path: string) => location.pathname === path;
 
