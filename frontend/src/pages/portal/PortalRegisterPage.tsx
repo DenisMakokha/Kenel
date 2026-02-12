@@ -39,6 +39,11 @@ export default function PortalRegisterPage() {
       return;
     }
 
+    if (!formData.dateOfBirth) {
+      setError('Date of birth is required');
+      return;
+    }
+
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters');
       return;
