@@ -44,10 +44,10 @@ class PortalRegisterDto {
   @IsNotEmpty()
   idNumber!: string;
 
-  @ApiProperty({ example: '1995-06-15', required: false })
-  @IsOptional()
+  @ApiProperty({ example: '1995-06-15' })
   @IsString()
-  dateOfBirth?: string;
+  @IsNotEmpty()
+  dateOfBirth!: string;
 
   @ApiProperty({ example: 'SecurePass123' })
   @IsString()

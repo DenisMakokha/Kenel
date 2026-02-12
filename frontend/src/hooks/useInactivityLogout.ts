@@ -9,6 +9,9 @@ const ACTIVITY_EVENTS: (keyof DocumentEventMap)[] = [
   'click',
 ];
 
+const STORAGE_KEY = 'lastActivityTimestamp';
+const CHECK_INTERVAL_MS = 15_000; // check every 15 seconds
+
 interface UseInactivityLogoutOptions {
   timeoutMinutes: number;
   onLogout: () => void;
@@ -20,46 +23,69 @@ export function useInactivityLogout({
   onLogout,
   enabled = true,
 }: UseInactivityLogoutOptions) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onLogoutRef = useRef(onLogout);
   onLogoutRef.current = onLogout;
+  const firedRef = useRef(false);
 
-  const resetTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
+  const timeoutMs = timeoutMinutes * 60 * 1000;
+
+  const recordActivity = useCallback(() => {
+    const now = Date.now();
+    try {
+      localStorage.setItem(STORAGE_KEY, String(now));
+    } catch {
+      // localStorage might be unavailable
     }
-    timerRef.current = setTimeout(() => {
+  }, []);
+
+  const getLastActivity = useCallback((): number => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) return parseInt(stored, 10);
+    } catch {
+      // ignore
+    }
+    return Date.now();
+  }, []);
+
+  const checkInactivity = useCallback(() => {
+    if (firedRef.current) return;
+    const elapsed = Date.now() - getLastActivity();
+    if (elapsed >= timeoutMs) {
+      firedRef.current = true;
       onLogoutRef.current();
-    }, timeoutMinutes * 60 * 1000);
-  }, [timeoutMinutes]);
+    }
+  }, [getLastActivity, timeoutMs]);
 
   useEffect(() => {
     if (!enabled) return;
 
-    resetTimer();
+    firedRef.current = false;
+    recordActivity(); // mark session start
 
-    const handleActivity = () => resetTimer();
+    // Periodic check (works even if setTimeout is throttled in background tabs)
+    const intervalId = setInterval(checkInactivity, CHECK_INTERVAL_MS);
 
+    // Record user activity on DOM events
+    const handleActivity = () => recordActivity();
     for (const event of ACTIVITY_EVENTS) {
       document.addEventListener(event, handleActivity, { passive: true });
     }
 
-    // Also reset on visibility change (tab focus)
+    // Immediately check when tab becomes visible again
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        resetTimer();
+        checkInactivity();
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      clearInterval(intervalId);
       for (const event of ACTIVITY_EVENTS) {
         document.removeEventListener(event, handleActivity);
       }
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [enabled, resetTimer]);
+  }, [enabled, recordActivity, checkInactivity]);
 }

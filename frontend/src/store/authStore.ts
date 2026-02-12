@@ -25,6 +25,7 @@ export const useAuthStore = create<AuthState>()(
         }),
       logout: () => {
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('lastActivityTimestamp');
         set({ user: null, isAuthenticated: false });
       },
       setHasHydrated: (state) => set({ hasHydrated: state }),

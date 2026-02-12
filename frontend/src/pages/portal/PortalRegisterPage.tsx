@@ -52,7 +52,7 @@ export default function PortalRegisterPage() {
         email: formData.email,
         phone: formData.phone,
         idNumber: formData.idNumber,
-        dateOfBirth: formData.dateOfBirth || undefined,
+        dateOfBirth: formData.dateOfBirth,
         password: formData.password,
       });
       setSuccess(true);

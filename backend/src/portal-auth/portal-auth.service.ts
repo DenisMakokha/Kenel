@@ -12,7 +12,7 @@ interface RegisterDto {
   email: string;
   phone: string;
   idNumber: string;
-  dateOfBirth?: string;
+  dateOfBirth: string;
   password: string;
 }
 
@@ -181,7 +181,7 @@ export class PortalAuthService {
           lastName: data.lastName,
           idType: 'NATIONAL_ID',
           idNumber: data.idNumber,
-          dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : new Date('1990-01-01'),
+          dateOfBirth: new Date(data.dateOfBirth),
           phonePrimary: data.phone,
           email: data.email,
           createdChannel: 'ONLINE',

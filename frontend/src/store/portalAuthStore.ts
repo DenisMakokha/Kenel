@@ -21,6 +21,7 @@ export const usePortalAuthStore = create<PortalAuthState>()(
         }),
       logout: () => {
         localStorage.removeItem('portalAccessToken');
+        localStorage.removeItem('lastActivityTimestamp');
         set({ client: null, isAuthenticated: false });
       },
     }),
