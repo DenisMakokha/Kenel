@@ -344,13 +344,15 @@ export class ReportsService {
 
     const loans = await this.prisma.loan.findMany({
       where: {
-        // For now include all non-draft application loans
         status: {
           in: [
             LoanStatus.PENDING_DISBURSEMENT,
             LoanStatus.ACTIVE,
+            LoanStatus.DUE,
+            LoanStatus.IN_ARREARS,
             LoanStatus.CLOSED,
             LoanStatus.WRITTEN_OFF,
+            LoanStatus.RESTRUCTURED,
           ],
         },
       },
@@ -510,8 +512,11 @@ export class ReportsService {
           in: [
             LoanStatus.PENDING_DISBURSEMENT,
             LoanStatus.ACTIVE,
+            LoanStatus.DUE,
+            LoanStatus.IN_ARREARS,
             LoanStatus.CLOSED,
             LoanStatus.WRITTEN_OFF,
+            LoanStatus.RESTRUCTURED,
           ],
         },
       },
@@ -647,8 +652,11 @@ export class ReportsService {
           in: [
             LoanStatus.PENDING_DISBURSEMENT,
             LoanStatus.ACTIVE,
+            LoanStatus.DUE,
+            LoanStatus.IN_ARREARS,
             LoanStatus.CLOSED,
             LoanStatus.WRITTEN_OFF,
+            LoanStatus.RESTRUCTURED,
           ],
         },
       },
