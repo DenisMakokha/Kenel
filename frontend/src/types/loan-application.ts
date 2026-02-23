@@ -87,6 +87,7 @@ export interface LoanApplication {
   requestedTermMonths: number;
   requestedRepaymentFrequency?: RepaymentFrequency | null;
   purpose?: string | null;
+  mpesaDisbursementNumber?: string | null;
 
   status: LoanApplicationStatus;
 
@@ -150,6 +151,7 @@ export interface CreateLoanApplicationDto {
   requestedRepaymentFrequency?: RepaymentFrequency;
   purpose?: string;
   channel?: CreatedChannel;
+  mpesaDisbursementNumber?: string;
 }
 
 export interface UpdateLoanApplicationDto {
@@ -157,6 +159,7 @@ export interface UpdateLoanApplicationDto {
   requestedTermMonths?: number;
   requestedRepaymentFrequency?: RepaymentFrequency;
   purpose?: string;
+  mpesaDisbursementNumber?: string;
 }
 
 export interface QueryLoanApplicationsDto {

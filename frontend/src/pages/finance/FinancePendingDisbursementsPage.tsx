@@ -145,6 +145,7 @@ export default function FinancePendingDisbursementsPage() {
                       <TableHead>Loan</TableHead>
                       <TableHead>Client</TableHead>
                       <TableHead>Principal</TableHead>
+                      <TableHead>M-Pesa No.</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -168,6 +169,11 @@ export default function FinancePendingDisbursementsPage() {
                         <TableCell>
                           <span className="font-semibold">
                             {formatCurrency(Number(loan.principalAmount || 0))}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm">
+                            {loan.application?.mpesaDisbursementNumber || '—'}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -248,6 +254,12 @@ export default function FinancePendingDisbursementsPage() {
               <span className="text-slate-600">Principal</span>
               <span className="font-semibold">
                 {formatCurrency(Number(selectedLoan?.principalAmount || 0))}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600">M-Pesa Disburse To</span>
+              <span className="font-mono font-semibold text-emerald-600">
+                {selectedLoan?.application?.mpesaDisbursementNumber || '—'}
               </span>
             </div>
           </div>

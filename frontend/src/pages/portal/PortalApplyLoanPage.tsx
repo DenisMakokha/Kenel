@@ -63,6 +63,10 @@ export default function PortalApplyLoanPage() {
   const [term, setTerm] = useState('');
   const [purpose, setPurpose] = useState('');
   
+  // M-Pesa disbursement
+  const [useSamePhone, setUseSamePhone] = useState(true);
+  const [mpesaNumber, setMpesaNumber] = useState('');
+  
   // Documents - individual fields for each required document
   const [requiredDocuments, setRequiredDocuments] = useState<{
     bank_statement: File | null;
@@ -249,6 +253,11 @@ export default function PortalApplyLoanPage() {
       toast.error('Purpose required', 'Please enter the purpose of the loan');
       return;
     }
+
+    if (!useSamePhone && !mpesaNumber.trim()) {
+      toast.error('M-Pesa number required', 'Please enter the M-Pesa number for disbursement');
+      return;
+    }
     
     setStep('documents');
   };
@@ -295,6 +304,9 @@ export default function PortalApplyLoanPage() {
     try {
       const requestedAmount = parseFloat(amount);
       const requestedTermMonths = parseInt(term);
+      const finalMpesaNumber = useSamePhone
+        ? (client as any)?.phonePrimary || ''
+        : mpesaNumber.trim();
 
       let appId = existingApplicationId;
 
@@ -304,6 +316,7 @@ export default function PortalApplyLoanPage() {
           requestedAmount,
           requestedTermMonths,
           purpose: purpose.trim(),
+          mpesaDisbursementNumber: finalMpesaNumber,
         });
       } else {
         // Create new application
@@ -312,6 +325,7 @@ export default function PortalApplyLoanPage() {
           requestedAmount,
           requestedTermMonths,
           purpose: purpose.trim(),
+          mpesaDisbursementNumber: finalMpesaNumber,
         });
         appId = application?.id;
       }
@@ -579,6 +593,52 @@ export default function PortalApplyLoanPage() {
                 />
               </div>
 
+              {/* M-Pesa Disbursement Number */}
+              <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-800 dark:bg-emerald-950/30">
+                <label className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  M-Pesa Disbursement Number
+                </label>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Which M-Pesa number should the loan be disbursed to?
+                </p>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="mpesaOption"
+                    checked={useSamePhone}
+                    onChange={() => { setUseSamePhone(true); setMpesaNumber(''); }}
+                    className="h-4 w-4 text-emerald-600 border-slate-300 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                    Use my registered phone number
+                    {(client as any)?.phonePrimary && (
+                      <span className="ml-1 font-mono text-emerald-700 dark:text-emerald-400">
+                        ({(client as any).phonePrimary})
+                      </span>
+                    )}
+                  </span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="mpesaOption"
+                    checked={!useSamePhone}
+                    onChange={() => setUseSamePhone(false)}
+                    className="h-4 w-4 text-emerald-600 border-slate-300 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Use a different M-Pesa number</span>
+                </label>
+                {!useSamePhone && (
+                  <Input
+                    type="tel"
+                    className="bg-white text-slate-900 placeholder:text-slate-400 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    value={mpesaNumber}
+                    onChange={(e) => setMpesaNumber(e.target.value)}
+                    placeholder="e.g. 254712345678"
+                  />
+                )}
+              </div>
+
               <Button
                 className="w-full bg-emerald-600 hover:bg-emerald-700"
                 onClick={handleDetailsSubmit}
@@ -828,6 +888,12 @@ export default function PortalApplyLoanPage() {
                 <div className="flex justify-between">
                   <span className="text-slate-500">Purpose</span>
                   <span className="font-medium">{purpose}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">M-Pesa Disbursement No.</span>
+                  <span className="font-mono font-medium">
+                    {useSamePhone ? (client as any)?.phonePrimary || '—' : mpesaNumber || '—'}
+                  </span>
                 </div>
               </div>
             </div>

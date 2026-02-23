@@ -92,6 +92,7 @@ export class LoansService {
               id: true,
               applicationNumber: true,
               status: true,
+              mpesaDisbursementNumber: true,
             },
           },
           schedules: true,

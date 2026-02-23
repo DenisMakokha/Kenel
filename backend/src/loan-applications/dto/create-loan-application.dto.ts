@@ -36,4 +36,10 @@ export class CreateLoanApplicationDto {
   @IsOptional()
   @IsEnum(CreatedChannel)
   channel?: CreatedChannel;
+
+  @ApiProperty({ required: false, description: 'M-Pesa number for disbursement', example: '254712345678' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  mpesaDisbursementNumber?: string;
 }

@@ -210,6 +210,7 @@ export class LoanApplicationsService {
         requestedRepaymentFrequency:
           dto.requestedRepaymentFrequency ?? rules.terms.repayment_frequency ?? 'MONTHLY',
         purpose: dto.purpose,
+        mpesaDisbursementNumber: dto.mpesaDisbursementNumber,
         status: 'DRAFT',
       },
     });
@@ -425,6 +426,7 @@ export class LoanApplicationsService {
         requestedTermMonths: dto.requestedTermMonths ?? undefined,
         requestedRepaymentFrequency: dto.requestedRepaymentFrequency ?? undefined,
         purpose: dto.purpose ?? undefined,
+        mpesaDisbursementNumber: dto.mpesaDisbursementNumber ?? undefined,
       },
     });
 

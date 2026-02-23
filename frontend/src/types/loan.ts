@@ -75,6 +75,7 @@ export interface Loan {
     id: string;
     applicationNumber: string;
     status: LoanApplicationStatus;
+    mpesaDisbursementNumber?: string | null;
   };
   schedules?: LoanSchedule[];
   repayments?: Repayment[];

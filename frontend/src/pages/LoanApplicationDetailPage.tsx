@@ -632,6 +632,10 @@ export default function LoanApplicationDetailPage() {
               <p className="font-semibold">{application.purpose || 'Not specified'}</p>
             </div>
             <div>
+              <p className="text-muted-foreground text-xs">M-Pesa Disburse To</p>
+              <p className="font-semibold font-mono">{application.mpesaDisbursementNumber || '—'}</p>
+            </div>
+            <div>
               <p className="text-muted-foreground text-xs">Channel</p>
               <p className="font-semibold">{application.channel || 'ONLINE'}</p>
             </div>
@@ -707,6 +711,10 @@ export default function LoanApplicationDetailPage() {
                   <div>
                     <p className="text-muted-foreground">Purpose</p>
                     <p className="font-semibold">{application.purpose || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">M-Pesa Disburse To</p>
+                    <p className="font-semibold font-mono">{application.mpesaDisbursementNumber || '—'}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Created At</p>

@@ -68,6 +68,7 @@ export const portalService = {
     requestedAmount: number;
     requestedTermMonths: number;
     purpose: string;
+    mpesaDisbursementNumber?: string;
   }) {
     const response = await portalApi.post('/portal/loan-applications', data);
     return response.data;
@@ -80,6 +81,7 @@ export const portalService = {
       requestedTermMonths?: number;
       requestedRepaymentFrequency?: string;
       purpose?: string;
+      mpesaDisbursementNumber?: string;
     },
   ) {
     const response = await portalApi.patch(`/portal/loan-applications/${id}`, data);

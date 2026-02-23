@@ -82,7 +82,7 @@ export class PortalController {
   @ApiResponse({ status: 201, description: 'Application created successfully' })
   async createLoanApplication(
     @Req() req: PortalRequest,
-    @Body() body: { productVersionId: string; requestedAmount: number; requestedTermMonths: number; purpose: string },
+    @Body() body: { productVersionId: string; requestedAmount: number; requestedTermMonths: number; purpose: string; mpesaDisbursementNumber?: string },
   ) {
     const clientId = req.portalClientId as string;
 
@@ -99,6 +99,7 @@ export class PortalController {
         requestedAmount: body.requestedAmount,
         requestedTermMonths: body.requestedTermMonths,
         purpose: body.purpose,
+        mpesaDisbursementNumber: body.mpesaDisbursementNumber,
         channel: 'ONLINE' as any,
       } as any,
       client.userId,
@@ -111,7 +112,7 @@ export class PortalController {
   async updateLoanApplication(
     @Req() req: PortalRequest,
     @Param('id') id: string,
-    @Body() body: { requestedAmount?: number; requestedTermMonths?: number; requestedRepaymentFrequency?: string; purpose?: string },
+    @Body() body: { requestedAmount?: number; requestedTermMonths?: number; requestedRepaymentFrequency?: string; purpose?: string; mpesaDisbursementNumber?: string },
   ) {
     const clientId = req.portalClientId as string;
     const portalUser = (req as any).portalUser as { sub: string } | undefined;

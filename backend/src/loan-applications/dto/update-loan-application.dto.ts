@@ -25,4 +25,10 @@ export class UpdateLoanApplicationDto {
   @IsString()
   @MaxLength(1000)
   purpose?: string;
+
+  @ApiPropertyOptional({ description: 'M-Pesa number for disbursement', example: '254712345678' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  mpesaDisbursementNumber?: string;
 }
