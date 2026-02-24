@@ -118,8 +118,8 @@ export default function FinanceArrearsPage() {
     return 'bg-red-200 text-red-800';
   };
 
-  const totalArrears = agingBuckets.reduce((sum, b) => sum + b.amount, 0);
-  const totalLoansInArrears = agingBuckets.reduce((sum, b) => sum + b.count, 0);
+  const totalArrears = loans.reduce((sum, loan) => sum + Number(loan.outstandingPrincipal || 0), 0);
+  const totalLoansInArrears = loans.length;
 
   const filteredLoans = loans.filter((loan) => {
     if (bucketFilter === 'ALL') return true;
@@ -247,7 +247,7 @@ export default function FinanceArrearsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {agingBuckets.filter((b) => !b.bucket.includes('1-30')).reduce((sum, b) => sum + b.count, 0)}
+              {agingBuckets.filter((b) => !['0', '1-30'].includes(b.bucket)).reduce((sum, b) => sum + b.count, 0)}
             </p>
             <p className="text-xs text-muted-foreground">Loans 30+ days overdue</p>
           </CardContent>
@@ -259,7 +259,7 @@ export default function FinanceArrearsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-red-600">
-              {agingBuckets.filter((b) => b.bucket.includes('90')).reduce((sum, b) => sum + b.count, 0)}
+              {agingBuckets.filter((b) => b.bucket === '90+').reduce((sum, b) => sum + b.count, 0)}
             </p>
             <p className="text-xs text-muted-foreground">Critical arrears</p>
           </CardContent>
