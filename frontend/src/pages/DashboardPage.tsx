@@ -65,6 +65,8 @@ export default function DashboardPage() {
         const [
           clients,
           activeLoans,
+          dueLoans,
+          inArrearsLoans,
           closedLoans,
           submittedApps,
           underReviewApps,
@@ -74,13 +76,17 @@ export default function DashboardPage() {
           Awaited<ReturnType<typeof clientService.getClients>>,
           Awaited<ReturnType<typeof loanService.getLoans>>,
           Awaited<ReturnType<typeof loanService.getLoans>>,
+          Awaited<ReturnType<typeof loanService.getLoans>>,
+          Awaited<ReturnType<typeof loanService.getLoans>>,
           Awaited<ReturnType<typeof loanApplicationService.getApplications>>,
           Awaited<ReturnType<typeof loanApplicationService.getApplications>>,
           PortfolioSummaryResponse,
           AgingSummaryResponse,
         ] = await Promise.all([
           clientService.getClients({ page: 1, limit: 1 }),
-          loanService.getLoans({ status: LoanStatus.ACTIVE, page: 1, limit: 1 }),
+          loanService.getLoans({ status: LoanStatus.ACTIVE, page: 1, limit: 1000 }),
+          loanService.getLoans({ status: LoanStatus.DUE, page: 1, limit: 1000 }),
+          loanService.getLoans({ status: LoanStatus.IN_ARREARS, page: 1, limit: 1000 }),
           loanService.getLoans({ status: LoanStatus.CLOSED, page: 1, limit: 1 }),
           loanApplicationService.getApplications({
             status: LoanApplicationStatus.SUBMITTED,
@@ -106,9 +112,11 @@ export default function DashboardPage() {
         const closedLoansTotal = closedLoans.meta.total;
         const applicationsPendingApproval = submittedApps.meta.total + underReviewApps.meta.total;
 
-        const portfolioOutstanding = Number(
-          (portfolioSummary.kpis && portfolioSummary.kpis.totalOutstandingPrincipal) || '0',
-        );
+        const portfolioOutstanding = [
+          ...activeLoans.data,
+          ...dueLoans.data,
+          ...inArrearsLoans.data,
+        ].reduce((sum, loan) => sum + Number(loan.outstandingPrincipal || 0), 0);
         const par30Pct = (portfolioSummary.kpis?.par30Ratio ?? 0) * 100;
         const par90Pct = (portfolioSummary.kpis?.par90Ratio ?? 0) * 100;
 
