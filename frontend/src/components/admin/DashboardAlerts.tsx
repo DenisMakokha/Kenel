@@ -59,6 +59,20 @@ export default function DashboardAlerts() {
       link: '/loan-applications?status=SUBMITTED',
       description: 'Loan applications awaiting review',
     },
+    ...(alerts.applicationsUnderReview && alerts.applicationsUnderReview > 0
+      ? [
+          {
+            label: 'Under Review',
+            count: alerts.applicationsUnderReview,
+            icon: FileText,
+            color: 'bg-purple-500',
+            bgColor: 'bg-purple-50 border-purple-200',
+            textColor: 'text-purple-700',
+            link: '/loan-applications?status=UNDER_REVIEW',
+            description: 'Applications currently under review',
+          },
+        ]
+      : []),
     {
       label: 'Overdue Loans',
       count: alerts.overdueLoans,
