@@ -174,6 +174,23 @@ export default function FinanceStatementsPage() {
             balance: runningBalance,
             loanNumber: loan.loanNumber,
           });
+
+          // Add interest charge as a separate transaction
+          const interestAmount = Number(loan.totalInterest) || 0;
+          if (interestAmount > 0) {
+            runningBalance += interestAmount;
+            allTransactions.push({
+              id: `int-${loan.id}`,
+              date: loan.disbursedAt,
+              type: 'FEE',
+              description: `Interest Charge - ${loan.loanNumber}`,
+              reference: loan.loanNumber,
+              debit: interestAmount,
+              credit: 0,
+              balance: runningBalance,
+              loanNumber: loan.loanNumber,
+            });
+          }
         }
         
         // Add repayments

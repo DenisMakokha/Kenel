@@ -70,6 +70,7 @@ export interface Loan {
     clientCode: string;
     firstName: string;
     lastName: string;
+    phonePrimary?: string;
   };
   application?: {
     id: string;

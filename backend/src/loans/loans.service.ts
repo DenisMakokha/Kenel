@@ -85,6 +85,7 @@ export class LoansService {
               clientCode: true,
               firstName: true,
               lastName: true,
+              phonePrimary: true,
             },
           },
           application: {

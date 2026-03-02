@@ -385,19 +385,20 @@ export class ReportsService {
     let par90Amount = 0;
 
     for (const loan of loans as any as LoanWithRelations[]) {
-      const balances = this.computeOutstandingAsOf(loan, asOfDate);
-      const outstandingPrincipal = balances.principalOutstanding;
-      const outstandingInterest = balances.interestOutstanding;
-      const outstandingFees = balances.feesOutstanding;
-      const outstandingPenalties = balances.penaltiesOutstanding;
+      const outstandingPrincipal = (loan.outstandingPrincipal as any).toNumber?.() ?? Number(loan.outstandingPrincipal);
+      const outstandingInterest = (loan.outstandingInterest as any).toNumber?.() ?? Number(loan.outstandingInterest);
+      const outstandingFees = (loan.outstandingFees as any).toNumber?.() ?? Number(loan.outstandingFees);
+      const outstandingPenalties = (loan.outstandingPenalties as any).toNumber?.() ?? Number(loan.outstandingPenalties);
       const principalAmount = (loan.principalAmount as any).toNumber?.() ?? Number(loan.principalAmount);
+
+      const dpdInfo = this.computeLoanDpd(loan, asOfDate);
 
       totalOutstandingPrincipalAll += outstandingPrincipal;
 
-      if (balances.daysPastDue > 30) {
+      if (dpdInfo.daysPastDue > 30) {
         par30Amount += outstandingPrincipal;
       }
-      if (balances.daysPastDue > 90) {
+      if (dpdInfo.daysPastDue > 90) {
         par90Amount += outstandingPrincipal;
       }
 
@@ -455,8 +456,8 @@ export class ReportsService {
       agg.totalFeesOutstanding += outstandingFees;
       agg.totalPenaltiesOutstanding += outstandingPenalties;
 
-      agg.totalOverduePrincipal += balances.overduePrincipal;
-      agg.totalOverdueInterest += balances.overdueInterest;
+      agg.totalOverduePrincipal += dpdInfo.overduePrincipal;
+      agg.totalOverdueInterest += dpdInfo.overdueInterest;
 
       if (loan.status === LoanStatus.CLOSED) {
         agg.totalClosedLoans += 1;
@@ -557,8 +558,7 @@ export class ReportsService {
     let par90Amount = 0;
 
     for (const loan of loans as any as LoanWithRelations[]) {
-      const balances = this.computeOutstandingAsOf(loan, asOfDate);
-      const outstandingPrincipal = balances.principalOutstanding;
+      const outstandingPrincipal = (loan.outstandingPrincipal as any).toNumber?.() ?? Number(loan.outstandingPrincipal);
       totalOutstanding += outstandingPrincipal;
 
       const dpdInfo = this.computeLoanDpd(loan, asOfDate);

@@ -164,6 +164,9 @@ export default function FinancePendingDisbursementsPage() {
                               {loan.client?.firstName} {loan.client?.lastName}
                             </p>
                             <p className="text-xs text-slate-500">{loan.client?.clientCode}</p>
+                            {loan.client?.phonePrimary && (
+                              <p className="text-xs text-slate-500">{loan.client.phonePrimary}</p>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -250,6 +253,12 @@ export default function FinancePendingDisbursementsPage() {
                 {selectedLoan?.client?.firstName} {selectedLoan?.client?.lastName}
               </span>
             </div>
+            {selectedLoan?.client?.phonePrimary && (
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">Phone</span>
+                <span className="font-mono">{selectedLoan.client.phonePrimary}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm">
               <span className="text-slate-600">Principal</span>
               <span className="font-semibold">

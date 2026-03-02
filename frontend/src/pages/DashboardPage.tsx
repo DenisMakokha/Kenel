@@ -120,10 +120,9 @@ export default function DashboardPage() {
         const par30Pct = (portfolioSummary.kpis?.par30Ratio ?? 0) * 100;
         const par90Pct = (portfolioSummary.kpis?.par90Ratio ?? 0) * 100;
 
-        const loansInArrears = agingSummary.buckets.reduce(
-          (sum, bucket) => sum + bucket.loansInBucket,
-          0,
-        );
+        const loansInArrears = agingSummary.buckets
+          .filter(bucket => bucket.bucketLabel !== '0')
+          .reduce((sum, bucket) => sum + bucket.loansInBucket, 0);
 
         // Set aging data for chart
         const chartAgingData = agingSummary.buckets.map(bucket => ({
