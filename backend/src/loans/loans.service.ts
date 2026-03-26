@@ -379,10 +379,16 @@ export class LoansService {
   }
 
   async getStats() {
-    const [total, activeCount, aggregates] = await Promise.all([
+    const [total, activeCount, closedCount, writtenOffCount, aggregates, writtenOffAggregates] = await Promise.all([
       this.prisma.loan.count(),
       this.prisma.loan.count({
         where: { status: { in: [LoanStatus.ACTIVE, LoanStatus.DUE, LoanStatus.IN_ARREARS] } },
+      }),
+      this.prisma.loan.count({
+        where: { status: LoanStatus.CLOSED },
+      }),
+      this.prisma.loan.count({
+        where: { status: LoanStatus.WRITTEN_OFF },
       }),
       this.prisma.loan.aggregate({
         _sum: {
@@ -402,13 +408,29 @@ export class LoansService {
           },
         },
       }),
+      this.prisma.loan.aggregate({
+        _sum: {
+          principalAmount: true,
+          outstandingPrincipal: true,
+        },
+        where: { status: LoanStatus.WRITTEN_OFF },
+      }),
     ]);
+
+    const totalDisbursed = Number(aggregates._sum.principalAmount ?? 0);
+    const totalOutstanding = Number(aggregates._sum.outstandingPrincipal ?? 0);
+    const writtenOffAmount = Number(writtenOffAggregates._sum.principalAmount ?? 0);
+    const averageLoanSize = total > 0 ? totalDisbursed / total : 0;
 
     return {
       total,
       active: activeCount,
-      totalDisbursed: Number(aggregates._sum.principalAmount ?? 0),
-      totalOutstanding: Number(aggregates._sum.outstandingPrincipal ?? 0),
+      closed: closedCount,
+      writtenOff: writtenOffCount,
+      totalDisbursed,
+      totalOutstanding,
+      writtenOffAmount,
+      averageLoanSize,
     };
   }
 }

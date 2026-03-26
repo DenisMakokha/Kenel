@@ -54,8 +54,12 @@ export default function LoansPage() {
   const [stats, setStats] = useState<{
     total: number;
     active: number;
+    closed: number;
+    writtenOff: number;
     totalDisbursed: number;
     totalOutstanding: number;
+    writtenOffAmount: number;
+    averageLoanSize: number;
   } | null>(null);
 
   useEffect(() => {
@@ -126,7 +130,7 @@ export default function LoansPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-slate-100">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium">Total Loans</CardTitle>
@@ -134,7 +138,7 @@ export default function LoansPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{stats?.total ?? '—'}</p>
-            <p className="text-xs text-muted-foreground">All time</p>
+            <p className="text-xs text-muted-foreground">All disbursed loans</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -144,7 +148,7 @@ export default function LoansPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-emerald-600">{stats?.active ?? '—'}</p>
-            <p className="text-xs text-muted-foreground">Currently running</p>
+            <p className="text-xs text-muted-foreground">Active + Due + In Arrears</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -154,7 +158,7 @@ export default function LoansPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{stats ? formatCurrency(stats.totalDisbursed) : '—'}</p>
-            <p className="text-xs text-muted-foreground">Principal amount</p>
+            <p className="text-xs text-muted-foreground">Total principal disbursed</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -164,7 +168,51 @@ export default function LoansPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{stats ? formatCurrency(stats.totalOutstanding) : '—'}</p>
-            <p className="text-xs text-muted-foreground">Balance to collect</p>
+            <p className="text-xs text-muted-foreground">Outstanding principal</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-slate-100 bg-slate-50/50">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Closed Loans</CardTitle>
+            <CheckCircle className="h-4 w-4 text-slate-600" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-slate-700">{stats?.closed ?? '—'}</p>
+            <p className="text-xs text-muted-foreground">Fully repaid</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100 bg-red-50/30">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Written Off</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-red-600">{stats?.writtenOff ?? '—'}</p>
+            <p className="text-xs text-muted-foreground">Non-performing loans</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100 bg-blue-50/30">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Avg Loan Size</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600">{stats ? formatCurrency(stats.averageLoanSize) : '—'}</p>
+            <p className="text-xs text-muted-foreground">Average principal amount</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-100 bg-orange-50/30">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Written Off Amount</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-orange-600">{stats ? formatCurrency(stats.writtenOffAmount) : '—'}</p>
+            <p className="text-xs text-muted-foreground">Total written-off principal</p>
           </CardContent>
         </Card>
       </div>

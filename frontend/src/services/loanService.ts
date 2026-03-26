@@ -27,8 +27,12 @@ export const loanService = {
   async getStats(): Promise<{
     total: number;
     active: number;
+    closed: number;
+    writtenOff: number;
     totalDisbursed: number;
     totalOutstanding: number;
+    writtenOffAmount: number;
+    averageLoanSize: number;
   }> {
     const response = await api.get(`${BASE_URL}/stats`);
     return response.data;
