@@ -116,6 +116,9 @@ export class LoansService {
             },
           },
           schedules: true,
+          repayments: {
+            orderBy: { transactionDate: 'asc' },
+          },
         },
       }),
       this.prisma.loan.count({ where }),
