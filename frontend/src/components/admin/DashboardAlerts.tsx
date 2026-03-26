@@ -134,7 +134,7 @@ export default function DashboardAlerts() {
             color: 'bg-red-600',
             bgColor: 'bg-red-50 border-red-300',
             textColor: 'text-red-800',
-            link: '/documents?virusScanStatus=infected',
+            link: '/documents',
             description: 'Documents flagged by virus scan',
           },
         ]

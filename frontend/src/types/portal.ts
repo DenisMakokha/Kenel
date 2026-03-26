@@ -66,6 +66,7 @@ export interface PortalDashboardResponse {
 
 export interface PortalLoanApplication {
   id: string;
+  applicationNumber: string;
   status: 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'DISBURSED' | 'CANCELLED';
   requestedAmount: number;
   requestedTermMonths: number;

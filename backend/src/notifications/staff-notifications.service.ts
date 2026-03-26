@@ -158,6 +158,12 @@ export class StaffNotificationsService {
       this.prisma.loan.count({
         where: {
           status: 'IN_ARREARS',
+          OR: [
+            { outstandingPrincipal: { gt: 0.01 } },
+            { outstandingInterest: { gt: 0.01 } },
+            { outstandingFees: { gt: 0.01 } },
+            { outstandingPenalties: { gt: 0.01 } },
+          ],
         },
       }),
     ]);
@@ -200,14 +206,22 @@ export class StaffNotificationsService {
           where: { status: 'PENDING_DISBURSEMENT' },
         }),
         this.prisma.loan.count({
-          where: { status: 'IN_ARREARS' },
+          where: {
+            status: 'IN_ARREARS',
+            OR: [
+              { outstandingPrincipal: { gt: 0.01 } },
+              { outstandingInterest: { gt: 0.01 } },
+              { outstandingFees: { gt: 0.01 } },
+              { outstandingPenalties: { gt: 0.01 } },
+            ],
+          },
         }),
         // High value arrears - loans with outstanding > average loan amount
         // This filters significant arrears without hardcoding a threshold
         this.prisma.loan.count({
           where: {
             status: 'IN_ARREARS',
-            outstandingPrincipal: { gte: 0 }, // All arrears - filtering done at display level
+            outstandingPrincipal: { gt: 100000 },
           },
         }),
         this.prisma.loan.count({

@@ -48,6 +48,8 @@ import { clientService } from '../../services/clientService';
 import { loanService } from '../../services/loanService';
 import type { Client as ApiClient } from '../../types/client';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Client {
   id: string;
@@ -348,6 +350,133 @@ export default function FinanceStatementsPage() {
       printWindow.document.close();
       printWindow.print();
     }
+  };
+
+  const handleDownloadPDF = () => {
+    if (!selectedClient || filteredTransactions.length === 0) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const totalDebitsVal = filteredTransactions.reduce((sum, t) => sum + t.debit, 0);
+    const totalCreditsVal = filteredTransactions.reduce((sum, t) => sum + t.credit, 0);
+    const closingBalance = filteredTransactions.length > 0
+      ? filteredTransactions[filteredTransactions.length - 1].balance
+      : 0;
+
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(16, 185, 129); // emerald-500
+    doc.text(org.companyName || 'KENELS LMS', 14, 20);
+    doc.setFontSize(12);
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.text('Client Account Statement', 14, 28);
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.text(`Statement Date: ${formatDate(new Date().toISOString())}`, pageWidth - 14, 20, { align: 'right' });
+    doc.text(`Period: ${dateFrom || 'All time'} to ${dateTo || 'Present'}`, pageWidth - 14, 26, { align: 'right' });
+
+    // Divider
+    doc.setDrawColor(16, 185, 129);
+    doc.setLineWidth(0.5);
+    doc.line(14, 32, pageWidth - 14, 32);
+
+    // Client info
+    let y = 40;
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    const infoCol1 = 14;
+    const infoCol2 = 80;
+    const infoCol3 = 146;
+
+    doc.text('Client Name', infoCol1, y);
+    doc.text('Client Code', infoCol2, y);
+    doc.text('Phone', infoCol3, y);
+    y += 5;
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(10);
+    doc.text(`${selectedClient.firstName} ${selectedClient.lastName}`, infoCol1, y);
+    doc.text(selectedClient.clientCode, infoCol2, y);
+    doc.text(selectedClient.phone || '-', infoCol3, y);
+
+    y += 8;
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Email', infoCol1, y);
+    doc.text('Total Loans', infoCol2, y);
+    doc.text('Active Loans', infoCol3, y);
+    y += 5;
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(10);
+    doc.text(selectedClient.email || '-', infoCol1, y);
+    doc.text(String(selectedClient.totalLoans), infoCol2, y);
+    doc.text(String(selectedClient.activeLoans), infoCol3, y);
+
+    // Summary
+    y += 12;
+    doc.setFillColor(241, 245, 249); // slate-100
+    doc.roundedRect(14, y, pageWidth - 28, 14, 2, 2, 'F');
+    y += 9;
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`${filteredTransactions.length} transactions`, 18, y);
+    doc.setTextColor(220, 38, 38); // red-600
+    doc.text(`Debits: ${formatCurrency(totalDebitsVal)}`, 70, y);
+    doc.setTextColor(22, 163, 74); // green-600
+    doc.text(`Credits: ${formatCurrency(totalCreditsVal)}`, 120, y);
+    doc.setTextColor(37, 99, 235); // blue-600
+    doc.text(`Closing Balance: ${formatCurrency(closingBalance)}`, 170, y);
+
+    y += 10;
+
+    // Transaction table
+    autoTable(doc, {
+      startY: y,
+      head: [['Date', 'Type', 'Description', 'Loan #', 'Debit', 'Credit', 'Balance']],
+      body: filteredTransactions.map((t) => [
+        formatDate(t.date),
+        TRANSACTION_TYPE_CONFIG[t.type]?.label || t.type,
+        t.description,
+        t.loanNumber,
+        t.debit > 0 ? formatCurrency(t.debit) : '-',
+        t.credit > 0 ? formatCurrency(t.credit) : '-',
+        formatCurrency(t.balance),
+      ]),
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: {
+        fillColor: [241, 245, 249],
+        textColor: [71, 85, 105],
+        fontStyle: 'bold',
+      },
+      columnStyles: {
+        4: { halign: 'right' },
+        5: { halign: 'right' },
+        6: { halign: 'right' },
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      margin: { left: 14, right: 14 },
+    });
+
+    // Footer
+    const finalY = (doc as any).lastAutoTable?.finalY || y + 20;
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184); // slate-400
+    doc.text(
+      'This is a computer-generated statement and does not require a signature.',
+      pageWidth / 2,
+      finalY + 12,
+      { align: 'center' },
+    );
+    if (org.contactEmail || org.contactPhone) {
+      doc.text(
+        `For queries, contact: ${org.contactEmail || ''} | ${org.contactPhone || ''}`,
+        pageWidth / 2,
+        finalY + 17,
+        { align: 'center' },
+      );
+    }
+
+    doc.save(`Statement_${selectedClient.clientCode}_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   const handleEmailStatement = () => {
@@ -693,7 +822,12 @@ export default function FinanceStatementsPage() {
                   <Mail className="h-4 w-4 mr-2" />
                   Email to Client
                 </Button>
-                <Button variant="outline" className="flex-1" disabled>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleDownloadPDF}
+                  disabled={filteredTransactions.length === 0}
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Download PDF
                 </Button>

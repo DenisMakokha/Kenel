@@ -1,5 +1,6 @@
 import { CreatedChannel, KycStatus, RiskRating, DocumentType, Client } from './client';
 import { ProductType, RepaymentFrequency } from './loan-product';
+import type { LoanStatus } from './loan';
 
 export enum LoanApplicationStatus {
   DRAFT = 'DRAFT',
@@ -129,7 +130,11 @@ export interface LoanApplication {
   documents?: ApplicationDocument[];
   checklistItems?: LoanApplicationChecklistItem[];
   creditScore?: CreditScore | null;
-  loan?: any;
+  loan?: {
+    id: string;
+    status: LoanStatus;
+    disbursedAt?: string | null;
+  } | null;
   events?: LoanApplicationEvent[];
 }
 

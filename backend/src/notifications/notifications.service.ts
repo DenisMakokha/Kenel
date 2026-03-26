@@ -39,12 +39,12 @@ export class NotificationsService {
     // Get loans in arrears
     const loansInArrears = await this.prisma.loan.count({
       where: {
+        status: 'IN_ARREARS' as any,
         OR: [
-          { status: 'IN_ARREARS' as any },
-          {
-            status: { in: ['ACTIVE', 'DUE'] as any },
-            outstandingPenalties: { gt: 0 },
-          },
+          { outstandingPrincipal: { gt: 0.01 } },
+          { outstandingInterest: { gt: 0.01 } },
+          { outstandingFees: { gt: 0.01 } },
+          { outstandingPenalties: { gt: 0.01 } },
         ],
       },
     });
@@ -97,11 +97,11 @@ export class NotificationsService {
 
     recentApprovals.forEach((app) => {
       notifications.push({
-        id: `approval-${app.id}`,
+        id: `approved-${app.id}`,
         type: 'success',
         title: 'Loan Approved',
         message: `Application ${app.applicationNumber} has been approved`,
-        link: `/loan-applications/${app.id}`,
+        link: `/loan-applications/${app.applicationNumber}`,
         read: false,
         createdAt: app.updatedAt,
       });

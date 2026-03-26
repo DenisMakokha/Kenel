@@ -36,6 +36,14 @@ export class LoansController {
     });
   }
 
+  @Get('stats')
+  @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER, UserRole.FINANCE_OFFICER)
+  @ApiOperation({ summary: 'Get loan portfolio statistics' })
+  @ApiResponse({ status: 200, description: 'Statistics retrieved successfully' })
+  getStats() {
+    return this.loansService.getStats();
+  }
+
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.CREDIT_OFFICER, UserRole.FINANCE_OFFICER)
   @ApiOperation({ summary: 'Get loan detail by ID' })

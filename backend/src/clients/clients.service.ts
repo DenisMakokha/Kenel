@@ -926,8 +926,14 @@ export class ClientsService {
       },
     });
 
-    const activeStatuses = ['ACTIVE', 'DUE', 'IN_ARREARS'];
-    const activeLoans = loans.filter((l) => activeStatuses.includes(l.status)).length;
+    const toNumber = (value: any) => (value as any)?.toNumber?.() ?? Number(value || 0);
+    const outstandingTotal = (l: any) =>
+      toNumber(l.outstandingPrincipal) +
+      toNumber(l.outstandingInterest) +
+      toNumber(l.outstandingFees) +
+      toNumber(l.outstandingPenalties);
+
+    const activeLoans = loans.filter((l) => outstandingTotal(l) > 0.01).length;
     const totalLoans = loans.length;
 
     const totalDisbursed = loans.reduce(
@@ -940,17 +946,7 @@ export class ClientsService {
       0,
     );
 
-    const currentBalance = loans
-      .filter((l) => activeStatuses.includes(l.status))
-      .reduce(
-        (sum, l) =>
-          sum +
-          (Number(l.outstandingPrincipal) || 0) +
-          (Number(l.outstandingInterest) || 0) +
-          (Number(l.outstandingFees) || 0) +
-          (Number(l.outstandingPenalties) || 0),
-        0,
-      );
+    const currentBalance = loans.reduce((sum, l) => sum + outstandingTotal(l), 0);
 
     return {
       totalLoans,

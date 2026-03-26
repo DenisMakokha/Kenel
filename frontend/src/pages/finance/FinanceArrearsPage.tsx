@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -51,6 +51,7 @@ interface AgingBucket {
 
 export default function FinanceArrearsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -59,6 +60,7 @@ export default function FinanceArrearsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [agingBuckets, setAgingBuckets] = useState<AgingBucket[]>([]);
+  const minAmountFilter = Number(searchParams.get('minAmount') || 0);
 
   useEffect(() => {
     loadData();
@@ -122,10 +124,17 @@ export default function FinanceArrearsPage() {
   const totalLoansInArrears = loans.length;
 
   const filteredLoans = loans.filter((loan) => {
-    if (bucketFilter === 'ALL') return true;
-    const days = getMaxDaysPastDue(loan);
-    const bucketKey = getBucketForDays(days);
-    return bucketFilter.includes(bucketKey) || bucketFilter === bucketKey;
+    if (bucketFilter !== 'ALL') {
+      const days = getMaxDaysPastDue(loan);
+      const bucketKey = getBucketForDays(days);
+      if (!bucketFilter.includes(bucketKey) && bucketFilter !== bucketKey) return false;
+    }
+
+    if (minAmountFilter > 0 && Number(loan.outstandingPrincipal || 0) < minAmountFilter) {
+      return false;
+    }
+
+    return true;
   });
 
   const pageSize = 20;

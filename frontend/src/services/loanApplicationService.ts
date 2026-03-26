@@ -156,6 +156,7 @@ export const loanApplicationService = {
     submitted: number;
     underReview: number;
     approved: number;
+    disbursed: number;
     rejected: number;
     returned: number;
   }> {

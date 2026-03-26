@@ -409,26 +409,39 @@ export default function LoanApplicationDetailPage() {
     }
   };
 
-  const getStatusBadge = (status: LoanApplicationStatus) => {
-    const variants: Record<LoanApplicationStatus, any> = {
+  const getDisplayStatus = (app: LoanApplication) => {
+    const normalizedStatus = ((app.status || '') as string).toUpperCase();
+    if (normalizedStatus === 'APPROVED' && app.loan?.disbursedAt) {
+      return 'DISBURSED';
+    }
+
+    return normalizedStatus === 'RETURNED_TO_CLIENT' ? 'RETURNED' : normalizedStatus;
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, any> = {
       DRAFT: 'outline',
       SUBMITTED: 'warning',
       UNDER_REVIEW: 'secondary',
       APPROVED: 'success',
+      DISBURSED: 'success',
       REJECTED: 'destructive',
       RETURNED: 'warning',
     };
 
-    const labels: Record<LoanApplicationStatus, string> = {
+    const labels: Record<string, string> = {
       DRAFT: 'Draft',
       SUBMITTED: 'Submitted',
       UNDER_REVIEW: 'Under Review',
       APPROVED: 'Approved',
+      DISBURSED: 'Disbursed',
       REJECTED: 'Rejected',
       RETURNED: 'Returned to Client',
     };
 
-    return <Badge variant={variants[status]} className={status === 'RETURNED' ? 'bg-orange-100 text-orange-700 border-orange-200' : ''}>{labels[status]}</Badge>;
+    const normalizedStatus = status === 'RETURNED_TO_CLIENT' ? 'RETURNED' : status;
+
+    return <Badge variant={variants[normalizedStatus]} className={normalizedStatus === 'RETURNED' ? 'bg-orange-100 text-orange-700 border-orange-200' : ''}>{labels[normalizedStatus]}</Badge>;
   };
 
   const canManageDocuments =
@@ -480,7 +493,7 @@ export default function LoanApplicationDetailPage() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-xl font-bold text-slate-900">{application.applicationNumber}</h1>
-            {getStatusBadge(application.status)}
+            {getStatusBadge(getDisplayStatus(application))}
           </div>
           <p className="text-sm text-slate-600">
             {application.productVersion?.loanProduct?.name || 'Loan Application'} • {application.client ? `${application.client.firstName} ${application.client.lastName}` : ''}
@@ -489,7 +502,7 @@ export default function LoanApplicationDetailPage() {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate('/loan-applications')}>Back</Button>
           {canEditDraft && (
-            <Button variant="outline" size="sm" onClick={() => navigate(`/loan-applications/${application.id}/edit`)}>Edit</Button>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/loan-applications/${application.applicationNumber}/edit`)}>Edit</Button>
           )}
           {canSubmit && <Button size="sm" onClick={handleSubmit}>Submit</Button>}
           {canMoveToUnderReview && (

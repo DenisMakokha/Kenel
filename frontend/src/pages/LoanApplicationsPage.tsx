@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { loanApplicationService } from '../services/loanApplicationService';
 import {
   LoanApplication,
@@ -51,24 +51,50 @@ import { useAuthStore } from '../store/authStore';
 import { UserRole } from '../types/auth';
 import { BulkApproveModal, BulkRejectModal } from '../components/ui/bulk-action-modal';
 
-const STATUS_CONFIG: Record<LoanApplicationStatus, { label: string; color: string; bg: string; border: string; icon: any }> = {
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: any }> = {
   DRAFT: { label: 'Draft', color: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200', icon: FileText },
   SUBMITTED: { label: 'Submitted', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', icon: FileClock },
   UNDER_REVIEW: { label: 'Under Review', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle },
   APPROVED: { label: 'Approved', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle },
+  DISBURSED: { label: 'Disbursed', color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200', icon: CheckCircle },
   REJECTED: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: XCircle },
   RETURNED: { label: 'Returned', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', icon: RotateCcw },
 };
 
+const APPLICATION_STATUS_VALUES = new Set<LoanApplicationStatus>([
+  LoanApplicationStatus.DRAFT,
+  LoanApplicationStatus.SUBMITTED,
+  LoanApplicationStatus.UNDER_REVIEW,
+  LoanApplicationStatus.APPROVED,
+  LoanApplicationStatus.REJECTED,
+  LoanApplicationStatus.RETURNED,
+]);
+
+const isApplicationStatus = (value: string | null): value is LoanApplicationStatus =>
+  !!value && APPLICATION_STATUS_VALUES.has(value as LoanApplicationStatus);
+
+const getDisplayStatus = (app: LoanApplication) => {
+  const normalizedStatus = ((app.status || '') as string).toUpperCase();
+  if (normalizedStatus === 'APPROVED' && app.loan?.disbursedAt) {
+    return 'DISBURSED';
+  }
+
+  return normalizedStatus === 'RETURNED_TO_CLIENT' ? 'RETURNED' : normalizedStatus;
+};
+
 export default function LoanApplicationsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuthStore();
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<LoanApplicationStatus | ''>('');
+  const [statusFilter, setStatusFilter] = useState<LoanApplicationStatus | ''>(() => {
+    const status = searchParams.get('status');
+    return isApplicationStatus(status) ? status : '';
+  });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -88,6 +114,7 @@ export default function LoanApplicationsPage() {
     submitted: number;
     underReview: number;
     approved: number;
+    disbursed: number;
     rejected: number;
     returned: number;
   } | null>(null);
@@ -159,7 +186,7 @@ export default function LoanApplicationsPage() {
       applicationNumber: app.applicationNumber,
       clientName: `${app.client?.firstName || ''} ${app.client?.lastName || ''}`.trim(),
       requestedAmount: Number(app.requestedAmount || 0),
-      status: app.status,
+      status: getDisplayStatus(app),
       submittedAt: app.submittedAt || '',
       createdAt: app.createdAt || '',
     }));
@@ -487,7 +514,7 @@ export default function LoanApplicationsPage() {
                             <span className="text-slate-400">—</span>
                           )}
                         </TableCell>
-                        <TableCell>{getStatusBadge(app.status)}</TableCell>
+                        <TableCell>{getStatusBadge(getDisplayStatus(app))}</TableCell>
                         <TableCell>
                           <span className="font-semibold text-emerald-600">{formatCurrency(Number(app.requestedAmount) || 0)}</span>
                         </TableCell>
@@ -498,7 +525,7 @@ export default function LoanApplicationsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => navigate(`/loan-applications/${app.id}`)}
+                            onClick={() => navigate(`/loan-applications/${app.applicationNumber}`)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>

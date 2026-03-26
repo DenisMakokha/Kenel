@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Users, FileText, TrendingUp, BarChart3, ShieldCheck, LayoutDashboard, ArrowDownRight } from 'lucide-react';
+import { Users, FileText, TrendingUp, BarChart3, ShieldCheck, LayoutDashboard, ArrowDownRight, CreditCard } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { CustomizeDashboardButton } from '../components/dashboard/WidgetCustomizer';
 import { clientService } from '../services/clientService';
@@ -20,6 +20,7 @@ interface DashboardKpis {
   totalClients: number | null;
   activeLoans: number | null;
   portfolioOutstanding: number | null;
+  totalOutstanding: number | null;
   loansInArrears: number | null;
   par30Pct: number | null;
   par90Pct: number | null;
@@ -37,6 +38,7 @@ export default function DashboardPage() {
     totalClients: null,
     activeLoans: null,
     portfolioOutstanding: null,
+    totalOutstanding: null,
     loansInArrears: null,
     par30Pct: null,
     par90Pct: null,
@@ -65,8 +67,6 @@ export default function DashboardPage() {
         const [
           clients,
           activeLoans,
-          dueLoans,
-          inArrearsLoans,
           closedLoans,
           submittedApps,
           underReviewApps,
@@ -76,8 +76,6 @@ export default function DashboardPage() {
           Awaited<ReturnType<typeof clientService.getClients>>,
           Awaited<ReturnType<typeof loanService.getLoans>>,
           Awaited<ReturnType<typeof loanService.getLoans>>,
-          Awaited<ReturnType<typeof loanService.getLoans>>,
-          Awaited<ReturnType<typeof loanService.getLoans>>,
           Awaited<ReturnType<typeof loanApplicationService.getApplications>>,
           Awaited<ReturnType<typeof loanApplicationService.getApplications>>,
           PortfolioSummaryResponse,
@@ -85,8 +83,6 @@ export default function DashboardPage() {
         ] = await Promise.all([
           clientService.getClients({ page: 1, limit: 1 }),
           loanService.getLoans({ status: LoanStatus.ACTIVE, page: 1, limit: 1000 }),
-          loanService.getLoans({ status: LoanStatus.DUE, page: 1, limit: 1000 }),
-          loanService.getLoans({ status: LoanStatus.IN_ARREARS, page: 1, limit: 1000 }),
           loanService.getLoans({ status: LoanStatus.CLOSED, page: 1, limit: 1 }),
           loanApplicationService.getApplications({
             status: LoanApplicationStatus.SUBMITTED,
@@ -112,11 +108,17 @@ export default function DashboardPage() {
         const closedLoansTotal = closedLoans.meta.total;
         const applicationsPendingApproval = submittedApps.meta.total + underReviewApps.meta.total;
 
-        const portfolioOutstanding = [
-          ...activeLoans.data,
-          ...dueLoans.data,
-          ...inArrearsLoans.data,
-        ].reduce((sum, loan) => sum + Number(loan.outstandingPrincipal || 0), 0);
+        const portfolioTotals = portfolioSummary.rows[0];
+        const totalOutstanding = portfolioTotals
+          ? Number(portfolioTotals.totalPrincipalOutstanding || 0) +
+            Number(portfolioTotals.totalInterestOutstanding || 0) +
+            Number(portfolioTotals.totalFeesOutstanding || 0) +
+            Number(portfolioTotals.totalPenaltiesOutstanding || 0)
+          : 0;
+
+        const portfolioOutstanding = portfolioTotals
+          ? Number(portfolioTotals.totalPrincipalOutstanding || 0)
+          : 0;
         const par30Pct = (portfolioSummary.kpis?.par30Ratio ?? 0) * 100;
         const par90Pct = (portfolioSummary.kpis?.par90Ratio ?? 0) * 100;
 
@@ -136,6 +138,7 @@ export default function DashboardPage() {
           totalClients,
           activeLoans: activeLoansCount,
           portfolioOutstanding,
+          totalOutstanding,
           loansInArrears,
           par30Pct,
           par90Pct,
@@ -232,6 +235,23 @@ export default function DashboardPage() {
           <Card className="border-slate-100 bg-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-100">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
               <div>
+                <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
+                <CardDescription>Principal + interest + overdue (KES)</CardDescription>
+              </div>
+              <div className="rounded-full bg-emerald-50 text-emerald-700 p-2">
+                <CreditCard className="h-4 w-4" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-slate-900">
+                {kpis.totalOutstanding !== null ? formatCurrency(kpis.totalOutstanding) : '—'}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-100 bg-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-100">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+              <div>
                 <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
                 <CardDescription>Total onboarded clients</CardDescription>
               </div>
@@ -267,7 +287,7 @@ export default function DashboardPage() {
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
               <div>
                 <CardTitle className="text-sm font-medium">Portfolio Outstanding</CardTitle>
-                <CardDescription>Principal outstanding (KES)</CardDescription>
+                <CardDescription>All principal incl. overdue (KES)</CardDescription>
               </div>
               <div className="rounded-full bg-emerald-50 text-emerald-700 p-2">
                 <BarChart3 className="h-4 w-4" />

@@ -213,6 +213,8 @@ export default function PortalLoansPage() {
                           <div>
                             <h3 className="font-medium text-slate-900">{app.productName}</h3>
                             <div className="flex items-center gap-3 text-sm text-slate-500">
+                              <span className="font-mono text-xs text-slate-400">{app.applicationNumber}</span>
+                              <span>•</span>
                               <span>{formatCurrency(Number(app.requestedAmount))}</span>
                               <span>•</span>
                               <span>{app.requestedTermMonths} months</span>
@@ -287,6 +289,8 @@ export default function PortalLoansPage() {
                         <div>
                           <h3 className="font-medium text-slate-900">{app.productName}</h3>
                           <div className="flex items-center gap-3 text-sm text-slate-500">
+                            <span className="font-mono text-xs text-slate-400">{app.applicationNumber}</span>
+                            <span>•</span>
                             <span>{formatCurrency(Number(app.requestedAmount))}</span>
                             <span>•</span>
                             <span>{app.requestedTermMonths} months</span>
@@ -330,6 +334,8 @@ export default function PortalLoansPage() {
                         <div>
                           <h3 className="font-medium text-slate-900">{app.productName}</h3>
                           <div className="flex items-center gap-3 text-sm text-slate-500">
+                            <span className="font-mono text-xs text-slate-400">{app.applicationNumber}</span>
+                            <span>•</span>
                             <span>{formatCurrency(Number(app.requestedAmount))}</span>
                             <span>•</span>
                             <span>{app.requestedTermMonths} months</span>

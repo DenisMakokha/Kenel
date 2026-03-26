@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -98,6 +98,8 @@ const STATUS_CONFIG = {
   REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: AlertTriangle },
 };
 
+const DOCUMENT_STATUS_VALUES = new Set(['PENDING', 'VERIFIED', 'REJECTED']);
+
 function getFileIcon(mimeType: string) {
   if (mimeType.startsWith('image/')) return Image;
   if (mimeType.includes('pdf')) return FileText;
@@ -115,6 +117,7 @@ function formatFileSize(bytes: number): string {
 
 export default function DocumentsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -122,7 +125,10 @@ export default function DocumentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const status = searchParams.get('status');
+    return status && DOCUMENT_STATUS_VALUES.has(status.toUpperCase()) ? status.toUpperCase() : 'all';
+  });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);

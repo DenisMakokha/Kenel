@@ -74,7 +74,7 @@ export default function RoleAlerts({ role }: RoleAlertsProps) {
           color: 'bg-blue-500',
           bgColor: 'bg-blue-50 border-blue-200',
           textColor: 'text-blue-700',
-          link: '/kyc-reviews?status=PENDING_REVIEW',
+          link: '/credit/kyc-reviews?status=PENDING_REVIEW',
           description: 'Clients awaiting KYC verification',
         },
         {
@@ -84,7 +84,7 @@ export default function RoleAlerts({ role }: RoleAlertsProps) {
           color: 'bg-amber-500',
           bgColor: 'bg-amber-50 border-amber-200',
           textColor: 'text-amber-700',
-          link: '/loan-applications?status=SUBMITTED',
+          link: '/credit/pipeline?status=SUBMITTED',
           description: 'New applications awaiting review',
         },
         {
@@ -94,7 +94,7 @@ export default function RoleAlerts({ role }: RoleAlertsProps) {
           color: 'bg-purple-500',
           bgColor: 'bg-purple-50 border-purple-200',
           textColor: 'text-purple-700',
-          link: '/loan-applications?status=UNDER_REVIEW',
+          link: '/credit/pipeline?status=UNDER_REVIEW',
           description: 'Applications currently being reviewed',
         },
         {
@@ -104,7 +104,7 @@ export default function RoleAlerts({ role }: RoleAlertsProps) {
           color: 'bg-cyan-500',
           bgColor: 'bg-cyan-50 border-cyan-200',
           textColor: 'text-cyan-700',
-          link: '/documents?reviewStatus=PENDING',
+          link: '/documents?status=PENDING',
           description: 'Documents awaiting verification',
         },
       ];
@@ -119,7 +119,7 @@ export default function RoleAlerts({ role }: RoleAlertsProps) {
           color: 'bg-emerald-500',
           bgColor: 'bg-emerald-50 border-emerald-200',
           textColor: 'text-emerald-700',
-          link: '/loans?status=PENDING_DISBURSEMENT',
+          link: '/finance/pending-disbursements',
           description: 'Approved loans awaiting disbursement',
         },
         {
@@ -196,7 +196,7 @@ export default function RoleAlerts({ role }: RoleAlertsProps) {
               color: 'bg-red-600',
               bgColor: 'bg-red-50 border-red-300',
               textColor: 'text-red-800',
-              link: '/documents?virusScanStatus=infected',
+              link: '/documents',
               description: 'Documents flagged by virus scan',
             },
           ]

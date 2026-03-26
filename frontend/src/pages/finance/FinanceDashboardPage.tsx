@@ -25,6 +25,7 @@ interface FinanceKpis {
   paymentsPostedToday: number | null;
   loansInArrears: number | null;
   arrearsValue: number | null;
+  totalOutstanding: number | null;
 }
 
 interface RecentPayment {
@@ -61,6 +62,7 @@ export default function FinanceDashboardPage() {
     paymentsPostedToday: null,
     loansInArrears: null,
     arrearsValue: null,
+    totalOutstanding: null,
   });
   const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([]);
   const [arrearsBuckets, setArrearsBuckets] = useState<ArrearsBucket[]>([]);
@@ -80,7 +82,7 @@ export default function FinanceDashboardPage() {
         const today = new Date().toISOString().slice(0, 10);
 
         // Fetch aging summary for arrears data
-        const [agingSummary, todaysRepayments] = await Promise.all([
+        const [agingSummary, todaysRepayments, portfolioSummary] = await Promise.all([
           reportService.getAgingSummary({ asOfDate: today }),
           repaymentService.getAllRepayments({
             dateFrom: today,
@@ -88,7 +90,16 @@ export default function FinanceDashboardPage() {
             page: 1,
             limit: 50,
           }),
+          reportService.getPortfolioSummary({ asOfDate: today, groupBy: 'none' }),
         ]);
+
+        const portfolioTotals = portfolioSummary.rows[0];
+        const totalOutstanding = portfolioTotals
+          ? Number(portfolioTotals.totalPrincipalOutstanding || 0) +
+            Number(portfolioTotals.totalInterestOutstanding || 0) +
+            Number(portfolioTotals.totalFeesOutstanding || 0) +
+            Number(portfolioTotals.totalPenaltiesOutstanding || 0)
+          : 0;
 
         // Calculate arrears metrics from aging summary (exclude bucket "0" which is current/not overdue)
         const arrearsBucketsOnly = agingSummary.buckets.filter(
@@ -124,6 +135,7 @@ export default function FinanceDashboardPage() {
           paymentsPostedToday: todaysRepayments.data.length,
           loansInArrears,
           arrearsValue,
+          totalOutstanding,
         });
 
         const paymentsSorted = [...todaysRepayments.data].sort(
@@ -243,7 +255,24 @@ export default function FinanceDashboardPage() {
             Collections and arrears metrics
           </p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <Card className="border-slate-100 bg-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-100">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
+                <CardDescription>Principal + interest + overdue (KES)</CardDescription>
+              </div>
+              <div className="rounded-full bg-emerald-50 text-emerald-700 p-2">
+                <CreditCard className="h-4 w-4" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-slate-900">
+                {kpis.totalOutstanding !== null ? formatCurrency(kpis.totalOutstanding) : '—'}
+              </p>
+            </CardContent>
+          </Card>
+
           <Card className="border-slate-100 bg-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-100">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
               <div>

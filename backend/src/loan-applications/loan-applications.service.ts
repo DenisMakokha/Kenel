@@ -63,8 +63,10 @@ export class LoanApplicationsService {
   }
 
   private async getApplicationOrThrow(id: string) {
-    const application = await this.prisma.loanApplication.findUnique({
-      where: { id },
+    const application = await this.prisma.loanApplication.findFirst({
+      where: {
+        OR: [{ id }, { applicationNumber: id }],
+      },
       include: {
         client: true,
         productVersion: {
@@ -290,6 +292,13 @@ export class LoanApplicationsService {
                   productType: true,
                 },
               },
+            },
+          },
+          loan: {
+            select: {
+              id: true,
+              status: true,
+              disbursedAt: true,
             },
           },
         },
@@ -1011,7 +1020,7 @@ export class LoanApplicationsService {
   }
 
   async getStats() {
-    const [total, draft, submitted, underReview, approved, rejected, returned] = await Promise.all([
+    const [total, draft, submitted, underReview, approvedAll, rejected, returned] = await Promise.all([
       this.prisma.loanApplication.count(),
       this.prisma.loanApplication.count({ where: { status: 'DRAFT' } }),
       this.prisma.loanApplication.count({ where: { status: 'SUBMITTED' } }),
@@ -1021,12 +1030,23 @@ export class LoanApplicationsService {
       this.prisma.loanApplication.count({ where: { status: 'RETURNED' } }),
     ]);
 
+    // Count approved applications whose loan has already been disbursed
+    const disbursed = await this.prisma.loanApplication.count({
+      where: {
+        status: 'APPROVED',
+        loan: { disbursedAt: { not: null } },
+      },
+    });
+
+    const approved = approvedAll - disbursed;
+
     return {
       total,
       draft,
       submitted,
       underReview,
       approved,
+      disbursed,
       rejected,
       returned,
     };

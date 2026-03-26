@@ -251,10 +251,33 @@ export class PortalService {
       const principal = (loan.principalAmount as any).toNumber?.() ?? Number(loan.principalAmount);
       const outstanding =
         (loan.outstandingPrincipal as any).toNumber?.() ?? Number(loan.outstandingPrincipal);
+      const outstandingInterest =
+        (loan.outstandingInterest as any).toNumber?.() ?? Number(loan.outstandingInterest);
+      const outstandingFees =
+        (loan.outstandingFees as any).toNumber?.() ?? Number(loan.outstandingFees);
+      const outstandingPenalties =
+        (loan.outstandingPenalties as any).toNumber?.() ?? Number(loan.outstandingPenalties);
+      const totalOutstanding = outstanding + outstandingInterest + outstandingFees + outstandingPenalties;
+      const productName =
+        loan.application?.productVersion?.loanProduct?.name ?? loan.applicationId;
 
       let nextDueDate: Date | null = null;
       let inArrears = false;
       let daysPastDue = 0;
+
+      if (totalOutstanding <= 0.01) {
+        return {
+          id: loan.id,
+          loanNumber: loan.loanNumber,
+          productName,
+          status: loan.status,
+          principal,
+          outstanding,
+          nextDueDate: null,
+          inArrears: false,
+          daysPastDue: 0,
+        };
+      }
 
       for (const sched of loan.schedules) {
         if (!sched.isPaid) {
@@ -269,9 +292,6 @@ export class PortalService {
           }
         }
       }
-
-      const productName =
-        loan.application?.productVersion?.loanProduct?.name ?? loan.applicationId;
 
       return {
         id: loan.id,
@@ -311,10 +331,35 @@ export class PortalService {
     const principal = (loan.principalAmount as any).toNumber?.() ?? Number(loan.principalAmount);
     const outstanding =
       (loan.outstandingPrincipal as any).toNumber?.() ?? Number(loan.outstandingPrincipal);
+    const outstandingInterest =
+      (loan.outstandingInterest as any).toNumber?.() ?? Number(loan.outstandingInterest);
+    const outstandingFees =
+      (loan.outstandingFees as any).toNumber?.() ?? Number(loan.outstandingFees);
+    const outstandingPenalties =
+      (loan.outstandingPenalties as any).toNumber?.() ?? Number(loan.outstandingPenalties);
+    const totalOutstanding = outstanding + outstandingInterest + outstandingFees + outstandingPenalties;
+    const productName = loan.application?.productVersion?.loanProduct?.name ?? loan.applicationId;
 
     let nextDueDate: Date | null = null;
     let inArrears = false;
     let daysPastDue = 0;
+
+    if (totalOutstanding <= 0.01) {
+      return {
+        id: loan.id,
+        loanNumber: loan.loanNumber,
+        productName,
+        status: loan.status,
+        principal,
+        outstanding,
+        nextDueDate: null,
+        inArrears: false,
+        daysPastDue: 0,
+        disbursedAt: loan.disbursedAt,
+        termMonths: loan.termMonths,
+        interestRate: loan.interestRate,
+      };
+    }
 
     for (const sched of loan.schedules) {
       if (!sched.isPaid) {
@@ -329,9 +374,6 @@ export class PortalService {
         }
       }
     }
-
-    const productName =
-      loan.application?.productVersion?.loanProduct?.name ?? loan.applicationId;
 
     return {
       id: loan.id,

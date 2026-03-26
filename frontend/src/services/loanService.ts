@@ -23,4 +23,14 @@ export const loanService = {
     const response = await api.post<Loan>(`${BASE_URL}/${id}/disburse`);
     return response.data;
   },
+
+  async getStats(): Promise<{
+    total: number;
+    active: number;
+    totalDisbursed: number;
+    totalOutstanding: number;
+  }> {
+    const response = await api.get(`${BASE_URL}/stats`);
+    return response.data;
+  },
 };

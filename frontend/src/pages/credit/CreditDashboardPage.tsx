@@ -14,9 +14,9 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { loanApplicationService } from '../../services/loanApplicationService';
-import { loanService } from '../../services/loanService';
+import { reportService } from '../../services/reportService';
 import { LoanApplicationStatus } from '../../types/loan-application';
-import { LoanStatus } from '../../types/loan';
+import type { PortfolioSummaryResponse } from '../../types/reports';
 import { formatCurrency } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import RoleAlerts from '../../components/dashboard/RoleAlerts';
@@ -75,12 +75,13 @@ export default function CreditDashboardPage() {
         setError('');
 
         // Fetch applications by status
-        const [draftApps, submittedApps, underReviewApps, approvedApps, activeLoans] = await Promise.all([
+        const today = new Date().toISOString().slice(0, 10);
+        const [draftApps, submittedApps, underReviewApps, approvedApps, portfolioSummary] = await Promise.all([
           loanApplicationService.getApplications({ status: LoanApplicationStatus.DRAFT, page: 1, limit: 10 }),
           loanApplicationService.getApplications({ status: LoanApplicationStatus.SUBMITTED, page: 1, limit: 10 }),
           loanApplicationService.getApplications({ status: LoanApplicationStatus.UNDER_REVIEW, page: 1, limit: 10 }),
           loanApplicationService.getApplications({ status: LoanApplicationStatus.APPROVED, page: 1, limit: 10 }),
-          loanService.getLoans({ status: LoanStatus.ACTIVE, page: 1, limit: 100 }),
+          reportService.getPortfolioSummary({ asOfDate: today, groupBy: 'none' }) as Promise<PortfolioSummaryResponse>,
         ]);
 
         // Calculate KPIs
@@ -98,14 +99,14 @@ export default function CreditDashboardPage() {
           (app) => new Date(app.createdAt) >= sevenDaysAgo
         ).length;
 
-        const applicationsInReview = underReviewApps.meta.total;
-        const awaitingDisbursement = approvedApps.meta.total;
+        const applicationsInReview = submittedApps.meta.total;
+        const awaitingDisbursement = approvedApps.data.filter((app) => !app.loan?.disbursedAt).length;
 
-        // Calculate portfolio outstanding from active loans
-        const portfolioOutstanding = activeLoans.data.reduce(
-          (sum, loan) => sum + Number(loan.outstandingPrincipal || 0),
-          0
-        );
+        // Calculate portfolio outstanding from portfolio summary (all principal incl. overdue)
+        const portfolioTotals = portfolioSummary.rows[0];
+        const portfolioOutstanding = portfolioTotals
+          ? Number(portfolioTotals.totalPrincipalOutstanding || 0)
+          : 0;
 
         setKpis({
           newApplications,
@@ -172,6 +173,18 @@ export default function CreditDashboardPage() {
     );
   };
 
+  const openKycReviews = () => {
+    navigate('/credit/kyc-reviews');
+  };
+
+  const openApplicationsToReview = () => {
+    navigate('/credit/pipeline?status=SUBMITTED');
+  };
+
+  const openPendingDisbursements = () => {
+    navigate('/credit/pipeline?status=APPROVED');
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 px-4 md:px-6 py-4">
       {/* Action Required Alerts */}
@@ -230,7 +243,7 @@ export default function CreditDashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-amber-600">{loading ? '...' : kpis.awaitingDisbursement ?? '—'}</p>
-            <p className="text-xs text-muted-foreground">Approved</p>
+            <p className="text-xs text-muted-foreground">Approved and not yet disbursed</p>
           </CardContent>
         </Card>
         <Card className="border-slate-100">
@@ -240,7 +253,7 @@ export default function CreditDashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-xl font-bold">{loading ? '...' : kpis.portfolioOutstanding !== null ? formatCurrency(kpis.portfolioOutstanding) : '—'}</p>
-            <p className="text-xs text-muted-foreground">Total</p>
+            <p className="text-xs text-muted-foreground">All principal incl. overdue</p>
           </CardContent>
         </Card>
       </div>
@@ -296,7 +309,10 @@ export default function CreditDashboardPage() {
         {/* Side Panel */}
         <div className="space-y-4">
           {/* KYC Follow-ups */}
-          <Card className="border-slate-100">
+          <Card
+            className="border-slate-100 cursor-pointer transition hover:shadow-md hover:border-slate-200"
+            onClick={openKycReviews}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">KYC Follow-ups</CardTitle>
               <CardDescription className="text-xs">Pending documents</CardDescription>
@@ -330,19 +346,28 @@ export default function CreditDashboardPage() {
           </Card>
 
           {/* Today's Tasks */}
-          <Card className="border-slate-100">
+          <Card
+            className="border-slate-100 cursor-pointer transition hover:shadow-md hover:border-slate-200"
+            onClick={openApplicationsToReview}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Today's Tasks</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="flex items-center justify-between p-2 rounded-md bg-blue-50">
+              <div className="flex items-center justify-between p-2 rounded-md bg-blue-50 transition hover:bg-blue-100">
                 <div>
                   <p className="text-sm font-medium">Applications to Review</p>
                   <p className="text-xs text-muted-foreground">Needs attention</p>
                 </div>
                 <Badge className="bg-blue-100 text-blue-700">{kpis.applicationsInReview ?? 0}</Badge>
               </div>
-              <div className="flex items-center justify-between p-2 rounded-md bg-amber-50">
+              <div
+                className="flex items-center justify-between p-2 rounded-md bg-amber-50 transition hover:bg-amber-100 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openPendingDisbursements();
+                }}
+              >
                 <div>
                   <p className="text-sm font-medium">Pending Disbursement</p>
                   <p className="text-xs text-muted-foreground">Approved</p>

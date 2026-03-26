@@ -64,6 +64,7 @@ export class PortalController {
 
     return applications.map((app) => ({
       id: app.id,
+      applicationNumber: app.applicationNumber,
       status: app.status,
       requestedAmount: app.requestedAmount,
       requestedTermMonths: app.requestedTermMonths,

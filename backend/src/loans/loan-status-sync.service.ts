@@ -74,6 +74,28 @@ export class LoanStatusSyncService implements OnModuleInit, OnModuleDestroy {
 
       const epsilon = 0.01;
 
+      const loanOutstandingPrincipal =
+        (loan.outstandingPrincipal as any).toNumber?.() ?? Number(loan.outstandingPrincipal);
+      const loanOutstandingInterest =
+        (loan.outstandingInterest as any).toNumber?.() ?? Number(loan.outstandingInterest);
+      const loanOutstandingFees =
+        (loan.outstandingFees as any).toNumber?.() ?? Number(loan.outstandingFees);
+      const loanOutstandingPenalties =
+        (loan.outstandingPenalties as any).toNumber?.() ?? Number(loan.outstandingPenalties);
+      const loanOutstandingTotal =
+        loanOutstandingPrincipal +
+        loanOutstandingInterest +
+        loanOutstandingFees +
+        loanOutstandingPenalties;
+
+      if (loanOutstandingTotal <= epsilon) {
+        await tx.loan.update({
+          where: { id: loanId },
+          data: { status: LoanStatus.CLOSED, closedAt: loan.closedAt ?? new Date() },
+        });
+        return;
+      }
+
       let hasOverdue = false;
       let hasDueToday = false;
 

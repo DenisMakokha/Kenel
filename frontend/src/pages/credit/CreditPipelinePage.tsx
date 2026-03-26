@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -43,6 +43,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 
 export default function CreditPipelinePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -76,10 +77,31 @@ export default function CreditPipelinePage() {
       )
     : applications;
 
+  const statusParam = (searchParams.get('status') || '').toUpperCase();
+  const normalizeApplicationStatus = (status: string) => {
+    const statusKey = (status || '').toUpperCase();
+    return statusKey === 'RETURNED_TO_CLIENT' ? 'RETURNED' : statusKey;
+  };
+
+  const getDisplayStatus = (app: LoanApplication) => {
+    const normalizedStatus = normalizeApplicationStatus(app.status);
+    if (normalizedStatus === 'APPROVED' && app.loan?.disbursedAt) {
+      return 'DISBURSED';
+    }
+    return normalizedStatus;
+  };
+
+  const statusFilteredApplications = statusParam
+    ? filteredApplications.filter((app) => {
+        const normalizedStatus = getDisplayStatus(app);
+        return normalizedStatus === statusParam || (statusParam === 'APPROVED' && normalizedStatus === 'APPROVED');
+      })
+    : filteredApplications;
+
   const stats = {
     total: applications.length,
     pending: applications.filter(a => ['SUBMITTED', 'UNDER_REVIEW'].includes(a.status)).length,
-    approved: applications.filter(a => a.status === 'APPROVED').length,
+    approved: applications.filter((a) => getDisplayStatus(a) === 'APPROVED').length,
     rejected: applications.filter(a => a.status === 'REJECTED').length,
   };
 
@@ -104,7 +126,7 @@ export default function CreditPipelinePage() {
         clientName: `${app.client?.firstName || ''} ${app.client?.lastName || ''}`.trim(),
         product: (app as any).product?.name || '',
         requestedAmount: Number(app.requestedAmount || 0),
-        status: app.status,
+        status: getDisplayStatus(app),
         submittedDate: app.submittedAt || '',
         createdAt: app.createdAt || '',
       })),
@@ -119,7 +141,15 @@ export default function CreditPipelinePage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">My Pipeline</h1>
-          <p className="text-sm text-slate-600">Track loan applications through each stage</p>
+          <p className="text-sm text-slate-600">
+            {statusParam === 'UNDER_REVIEW'
+              ? 'Applications that need your review'
+              : statusParam === 'SUBMITTED'
+                ? 'Submitted applications awaiting review'
+              : statusParam === 'APPROVED'
+                ? 'Approved applications awaiting disbursement'
+                : 'Track loan applications through each stage'}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleExport}>
@@ -189,7 +219,7 @@ export default function CreditPipelinePage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <CardTitle>Applications</CardTitle>
-              <CardDescription>{filteredApplications.length} applications</CardDescription>
+              <CardDescription>{statusFilteredApplications.length} applications</CardDescription>
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -221,8 +251,8 @@ export default function CreditPipelinePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredApplications.slice(0, 10).map((app) => {
-                    const rawStatus = (app as any).status;
+                  {statusFilteredApplications.slice(0, 10).map((app) => {
+                    const rawStatus = getDisplayStatus(app);
                     const statusKey = typeof rawStatus === 'string' ? rawStatus.toUpperCase() : rawStatus;
                     const normalizedStatus = statusKey === 'RETURNED_TO_CLIENT' ? 'RETURNED' : statusKey;
                     const statusConfig = (STATUS_CONFIG as any)[normalizedStatus];
@@ -266,7 +296,7 @@ export default function CreditPipelinePage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/loan-applications/${app.id}`)}
+                            onClick={() => navigate(`/loan-applications/${app.applicationNumber}`)}
                             className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
                           >
                             <Eye className="h-4 w-4 mr-1" />

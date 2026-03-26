@@ -105,6 +105,30 @@ export class ReportsService {
     let overdueInterest = 0;
     const epsilon = 0.01;
 
+    const loanOutstandingPrincipal =
+      (loan.outstandingPrincipal as any).toNumber?.() ?? Number(loan.outstandingPrincipal);
+    const loanOutstandingInterest =
+      (loan.outstandingInterest as any).toNumber?.() ?? Number(loan.outstandingInterest);
+    const loanOutstandingFees =
+      (loan.outstandingFees as any).toNumber?.() ?? Number(loan.outstandingFees);
+    const loanOutstandingPenalties =
+      (loan.outstandingPenalties as any).toNumber?.() ?? Number(loan.outstandingPenalties);
+
+    if (
+      loanOutstandingPrincipal +
+      loanOutstandingInterest +
+      loanOutstandingFees +
+      loanOutstandingPenalties <=
+      epsilon
+    ) {
+      return {
+        daysPastDue: 0,
+        bucketLabel: this.getBucketLabel(0),
+        overduePrincipal: 0,
+        overdueInterest: 0,
+      };
+    }
+
     for (const sched of loan.schedules) {
       if (sched.dueDate > asOfDate) continue;
 

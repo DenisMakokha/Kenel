@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
@@ -56,6 +56,8 @@ const KYC_STATUS_CONFIG: Record<KycStatus, { label: string; color: string; bg: s
   RETURNED: { label: 'Returned', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', icon: RotateCcw },
 };
 
+const KYC_STATUS_VALUES = ['UNVERIFIED', 'PENDING_REVIEW', 'VERIFIED', 'REJECTED', 'RETURNED'] as const;
+
 interface ReturnedItem {
   type: 'document' | 'field';
   documentType?: string;
@@ -65,11 +67,17 @@ interface ReturnedItem {
 
 export default function KycReviewsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('PENDING_REVIEW');
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const status = searchParams.get('status');
+    return status && KYC_STATUS_VALUES.includes(status.toUpperCase() as (typeof KYC_STATUS_VALUES)[number])
+      ? status.toUpperCase()
+      : 'PENDING_REVIEW';
+  });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);

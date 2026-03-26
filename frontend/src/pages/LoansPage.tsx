@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { loanService } from '../services/loanService';
 import type { Loan, LoanListResponse } from '../types/loan';
 import { LoanStatus } from '../types/loan';
@@ -38,25 +38,41 @@ import { cn } from '../lib/utils';
 
 export default function LoansPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [data, setData] = useState<LoanListResponse | null>(null);
-  const [statusFilter, setStatusFilter] = useState<LoanStatus | 'ALL'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<LoanStatus | 'ALL'>(() => {
+    const status = searchParams.get('status');
+    return status && Object.values(LoanStatus).includes(status as LoanStatus)
+      ? (status as LoanStatus)
+      : 'ALL';
+  });
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [stats, setStats] = useState<{
+    total: number;
+    active: number;
+    totalDisbursed: number;
+    totalOutstanding: number;
+  } | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
         setError('');
-        const response = await loanService.getLoans({
-          status: statusFilter === 'ALL' ? undefined : statusFilter,
-          page,
-          limit,
-        });
+        const [response, loanStats] = await Promise.all([
+          loanService.getLoans({
+            status: statusFilter === 'ALL' ? undefined : statusFilter,
+            page,
+            limit,
+          }),
+          loanService.getStats(),
+        ]);
         setData(response);
+        setStats(loanStats);
       } catch (err: any) {
         setError(err.response?.data?.message || 'Failed to load loans');
       } finally {
@@ -95,14 +111,6 @@ export default function LoansPage() {
     exportLoanPortfolio(exportData, 'loans_export');
   };
 
-  // Calculate stats
-  const stats = {
-    total: data?.meta?.total || 0,
-    active: data?.data?.filter(l => l.status === LoanStatus.ACTIVE).length || 0,
-    totalDisbursed: data?.data?.reduce((sum, l) => sum + (Number(l.principalAmount) || 0), 0) || 0,
-    totalOutstanding: data?.data?.reduce((sum, l) => sum + (Number(l.outstandingPrincipal) || 0), 0) || 0,
-  };
-
   return (
     <div className="max-w-6xl mx-auto space-y-6 px-4 md:px-6 py-4">
       {/* Header */}
@@ -125,7 +133,7 @@ export default function LoansPage() {
             <Wallet className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{stats.total}</p>
+            <p className="text-2xl font-bold">{stats?.total ?? '—'}</p>
             <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
@@ -135,7 +143,7 @@ export default function LoansPage() {
             <CheckCircle className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
+            <p className="text-2xl font-bold text-emerald-600">{stats?.active ?? '—'}</p>
             <p className="text-xs text-muted-foreground">Currently running</p>
           </CardContent>
         </Card>
@@ -145,7 +153,7 @@ export default function LoansPage() {
             <TrendingUp className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{formatCurrency(stats.totalDisbursed)}</p>
+            <p className="text-2xl font-bold">{stats ? formatCurrency(stats.totalDisbursed) : '—'}</p>
             <p className="text-xs text-muted-foreground">Principal amount</p>
           </CardContent>
         </Card>
@@ -155,7 +163,7 @@ export default function LoansPage() {
             <AlertTriangle className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{formatCurrency(stats.totalOutstanding)}</p>
+            <p className="text-2xl font-bold">{stats ? formatCurrency(stats.totalOutstanding) : '—'}</p>
             <p className="text-xs text-muted-foreground">Balance to collect</p>
           </CardContent>
         </Card>

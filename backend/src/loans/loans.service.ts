@@ -17,6 +17,12 @@ interface QueryLoansDto {
 
 @Injectable()
 export class LoansService {
+  private static readonly OPEN_STATUSES = new Set<LoanStatus>([
+    LoanStatus.ACTIVE,
+    LoanStatus.DUE,
+    LoanStatus.IN_ARREARS,
+  ]);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly loanProductsService: LoanProductsService,
@@ -61,6 +67,19 @@ export class LoansService {
     if (status) where.status = status;
     if (clientId) where.clientId = clientId;
     if (applicationId) where.applicationId = applicationId;
+
+    if (status && LoansService.OPEN_STATUSES.has(status)) {
+      where.AND = [
+        {
+          OR: [
+            { outstandingPrincipal: { gt: 0.01 } },
+            { outstandingInterest: { gt: 0.01 } },
+            { outstandingFees: { gt: 0.01 } },
+            { outstandingPenalties: { gt: 0.01 } },
+          ],
+        },
+      ];
+    }
     
     if (search) {
       where.OR = [
@@ -357,5 +376,39 @@ export class LoansService {
     }
 
     return this.prisma.loan.findUnique({ where: { id } });
+  }
+
+  async getStats() {
+    const [total, activeCount, aggregates] = await Promise.all([
+      this.prisma.loan.count(),
+      this.prisma.loan.count({
+        where: { status: { in: [LoanStatus.ACTIVE, LoanStatus.DUE, LoanStatus.IN_ARREARS] } },
+      }),
+      this.prisma.loan.aggregate({
+        _sum: {
+          principalAmount: true,
+          outstandingPrincipal: true,
+        },
+        where: {
+          status: {
+            in: [
+              LoanStatus.ACTIVE,
+              LoanStatus.DUE,
+              LoanStatus.IN_ARREARS,
+              LoanStatus.CLOSED,
+              LoanStatus.WRITTEN_OFF,
+              LoanStatus.RESTRUCTURED,
+            ],
+          },
+        },
+      }),
+    ]);
+
+    return {
+      total,
+      active: activeCount,
+      totalDisbursed: Number(aggregates._sum.principalAmount ?? 0),
+      totalOutstanding: Number(aggregates._sum.outstandingPrincipal ?? 0),
+    };
   }
 }
