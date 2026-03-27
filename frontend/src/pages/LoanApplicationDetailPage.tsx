@@ -1417,9 +1417,21 @@ export default function LoanApplicationDetailPage() {
                   isKycVerified,
                   hasChecklistItems,
                   checklistItemsCount: (application.checklistItems || []).length,
-                  checklistItems: application.checklistItems,
-                  kycItems: (application.checklistItems || []).filter(item => item.documentSource === 'KYC'),
-                  loanItems: (application.checklistItems || []).filter(item => item.documentSource === 'LOAN_APPLICATION')
+                  checklistItems: (application.checklistItems || []).map(item => ({
+                    id: item.id,
+                    itemKey: item.itemKey,
+                    itemLabel: item.itemLabel,
+                    status: item.status,
+                    documentSource: item.documentSource
+                  })),
+                  kycItems: (application.checklistItems || []).filter(item => 
+                    item.documentSource === 'KYC' || 
+                    (item.documentSource === null && isKycVerified && ['bank_statement', 'kra_pin_certificate', 'id_copy', 'employment_contract', 'utility_bill'].includes(item.itemKey))
+                  ),
+                  loanItems: (application.checklistItems || []).filter(item => 
+                    item.documentSource === 'LOAN_APPLICATION' || 
+                    (item.documentSource === null && item.itemKey === 'loan_application_form')
+                  )
                 });
                 
                 // If no checklist items exist (existing applications), show fallback
@@ -1436,8 +1448,14 @@ export default function LoanApplicationDetailPage() {
                 }
                 
                 // Group checklist items by document source
-                const kycItems = (application.checklistItems || []).filter(item => item.documentSource === 'KYC');
-                const loanItems = (application.checklistItems || []).filter(item => item.documentSource === 'LOAN_APPLICATION');
+                const kycItems = (application.checklistItems || []).filter(item => 
+                  item.documentSource === 'KYC' || 
+                  (item.documentSource === null && isKycVerified && ['bank_statement', 'kra_pin_certificate', 'id_copy', 'employment_contract', 'utility_bill'].includes(item.itemKey))
+                );
+                const loanItems = (application.checklistItems || []).filter(item => 
+                  item.documentSource === 'LOAN_APPLICATION' || 
+                  (item.documentSource === null && item.itemKey === 'loan_application_form')
+                );
                 
                 return (
                   <>
