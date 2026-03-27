@@ -518,6 +518,7 @@ export class LoanApplicationsService {
 
   async submit(id: string, dto: SubmitLoanApplicationDto, userId: string) {
     const application = await this.getApplicationOrThrow(id);
+    const resolvedApplicationId = application.id; // Use the resolved UUID
 
     if (application.status !== 'DRAFT') {
       throw new BadRequestException('Only DRAFT applications can be submitted');
@@ -531,7 +532,7 @@ export class LoanApplicationsService {
       },
     });
 
-    await this.logEvent(id, userId, 'application_submitted', application.status, updated.status, {
+    await this.logEvent(resolvedApplicationId, userId, 'application_submitted', application.status, updated.status, {
       notes: dto.notes,
     });
 
@@ -540,6 +541,7 @@ export class LoanApplicationsService {
 
   async moveToUnderReview(id: string, userId: string) {
     const application = await this.getApplicationOrThrow(id);
+    const resolvedApplicationId = application.id; // Use the resolved UUID
 
     if (application.status !== 'SUBMITTED') {
       throw new BadRequestException('Only SUBMITTED applications can be moved to UNDER_REVIEW');
@@ -554,7 +556,7 @@ export class LoanApplicationsService {
       },
     });
 
-    await this.logEvent(id, userId, 'moved_to_under_review', application.status, updated.status);
+    await this.logEvent(resolvedApplicationId, userId, 'moved_to_under_review', application.status, updated.status);
 
     // Send notifications
     try {
@@ -583,6 +585,7 @@ export class LoanApplicationsService {
 
   async approve(id: string, dto: ApproveLoanApplicationDto, userId: string) {
     const application = await this.getApplicationOrThrow(id);
+    const resolvedApplicationId = application.id; // Use the resolved UUID
 
     if (application.status !== 'UNDER_REVIEW') {
       throw new BadRequestException('Only UNDER_REVIEW applications can be approved');
@@ -602,14 +605,14 @@ export class LoanApplicationsService {
 
     // Mark existing credit score (if any) as approved by the checker
     await this.prisma.creditScore.updateMany({
-      where: { applicationId: id, approvedBy: null }, // id is already resolved UUID here
+      where: { applicationId: resolvedApplicationId, approvedBy: null },
       data: {
         approvedBy: userId,
         approvedAt: new Date(),
       },
     });
 
-    await this.logEvent(id, userId, 'application_approved', application.status, updated.status, {
+    await this.logEvent(resolvedApplicationId, userId, 'application_approved', application.status, updated.status, {
       approvedPrincipal: dto.approvedPrincipal,
       approvedTermMonths: dto.approvedTermMonths,
       approvedInterestRate: dto.approvedInterestRate,
@@ -619,7 +622,7 @@ export class LoanApplicationsService {
     // Auto-create a loan so Finance sees it in the pending disbursement queue.
     // If it fails, we keep the application approved (manual creation remains possible).
     try {
-      await this.loansService.createFromApplication(id, userId);
+      await this.loansService.createFromApplication(resolvedApplicationId, userId);
     } catch {
       // intentionally ignored
     }
@@ -702,6 +705,7 @@ export class LoanApplicationsService {
 
   async reject(id: string, dto: RejectLoanApplicationDto, userId: string) {
     const application = await this.getApplicationOrThrow(id);
+    const resolvedApplicationId = application.id; // Use the resolved UUID
 
     if (application.status !== 'UNDER_REVIEW') {
       throw new BadRequestException('Only UNDER_REVIEW applications can be rejected');
@@ -717,7 +721,7 @@ export class LoanApplicationsService {
       },
     });
 
-    await this.logEvent(id, userId, 'application_rejected', application.status, updated.status, {
+    await this.logEvent(resolvedApplicationId, userId, 'application_rejected', application.status, updated.status, {
       reason: dto.reason,
       notes: dto.notes,
     });
