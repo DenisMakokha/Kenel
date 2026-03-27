@@ -18,7 +18,7 @@ import type { AuditLog } from '../types/audit';
 import { LoanApplicationStatus, LoanApplicationChecklistStatus } from '../types/loan-application';
 import { DocumentType } from '../types/client';
 import { UserRole } from '../types/auth';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -1411,6 +1411,17 @@ export default function LoanApplicationDetailPage() {
                 const isKycVerified = clientKycStatus === 'VERIFIED';
                 const hasChecklistItems = (application.checklistItems || []).length > 0;
                 
+                // Debug: Log the data to understand what's happening
+                console.log('Debug Checklist Data:', {
+                  clientKycStatus,
+                  isKycVerified,
+                  hasChecklistItems,
+                  checklistItemsCount: (application.checklistItems || []).length,
+                  checklistItems: application.checklistItems,
+                  kycItems: (application.checklistItems || []).filter(item => item.documentSource === 'KYC'),
+                  loanItems: (application.checklistItems || []).filter(item => item.documentSource === 'LOAN_APPLICATION')
+                });
+                
                 // If no checklist items exist (existing applications), show fallback
                 if (!hasChecklistItems) {
                   return (
@@ -1503,6 +1514,39 @@ export default function LoanApplicationDetailPage() {
                             </div>
                           </div>
                         </details>
+                      </div>
+                    )}
+                    
+                    {/* Show KYC status info if client is not verified but has KYC items */}
+                    {!isKycVerified && kycItems.length > 0 && (
+                      <div className="border rounded-lg mb-6 bg-amber-50 border-amber-200">
+                        <div className="p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertCircle className="h-4 w-4 text-amber-600" />
+                            <h4 className="text-sm font-medium text-amber-800">KYC Documents Required</h4>
+                            <Badge variant="outline" className="text-xs border-amber-300 text-amber-700">
+                              {kycItems.filter(item => item.status === 'COMPLETED').length}/{kycItems.length} completed
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-amber-700 mb-3">
+                            Client KYC status: {clientKycStatus || 'Unknown'}
+                          </p>
+                          <div className="grid gap-2">
+                            {kycItems.map((item) => {
+                              const isCompleted = item.status === 'COMPLETED';
+                              return (
+                                <div key={item.id} className={`flex items-center gap-2 p-2 rounded border ${isCompleted ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                                  {isCompleted ? (
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <Clock className="h-4 w-4 text-amber-600" />
+                                  )}
+                                  <span className={`text-sm ${isCompleted ? 'text-green-800' : 'text-amber-800'}`}>{item.itemLabel}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
                     )}
                     
