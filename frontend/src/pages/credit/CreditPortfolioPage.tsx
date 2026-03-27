@@ -42,7 +42,9 @@ export default function CreditPortfolioPage() {
 
       const today = new Date().toISOString().slice(0, 10);
 
-      const [activeRes, closedRes, agingSummary] = await Promise.all([
+      // Use same API as admin for consistent data across all roles
+      const [portfolioSummary, activeRes, closedRes, agingSummary] = await Promise.all([
+        reportService.getPortfolioSummary({ asOfDate: today, groupBy: 'none' }),
         loanService.getLoans({ status: LoanStatus.ACTIVE, page: 1, limit: 200 }),
         loanService.getLoans({ status: LoanStatus.CLOSED, page: 1, limit: 200 }),
         reportService.getAgingSummary({ asOfDate: today }),
@@ -51,57 +53,90 @@ export default function CreditPortfolioPage() {
       const allLoans = [...activeRes.data, ...closedRes.data];
       setLoans(allLoans);
 
-      const totalLoans = allLoans.length;
-      const activeLoans = activeRes.data.length;
-
-      const calcOutstanding = (loan: Loan) => {
-        return (
-          (Number(loan.outstandingPrincipal) || 0) +
-          (Number(loan.outstandingInterest) || 0) +
-          (Number(loan.outstandingFees) || 0) +
-          (Number(loan.outstandingPenalties) || 0)
+      // Use backend-calculated values from portfolio summary for consistency
+      const summary = portfolioSummary.rows[0]; // Single row for 'none' groupBy
+      
+      if (summary) {
+        const totalDisbursed = Number(summary.totalPrincipalDisbursed) || 0;
+        const totalOutstanding = Number(summary.totalPrincipalOutstanding) || 0;
+        const totalCollected = totalDisbursed - totalOutstanding;
+        const totalLoans = summary.totalLoans || allLoans.length;
+        
+        // Calculate active loans from the loan data
+        const activeLoans = activeRes.data.length;
+        
+        // Use aging summary for arrears (consistent with backend)
+        const arrearsBuckets = agingSummary.buckets.filter(
+          (bucket) => bucket.bucketLabel !== '0'
         );
-      };
+        const arrearsCount = arrearsBuckets.reduce(
+          (sum, bucket) => sum + bucket.loansInBucket,
+          0,
+        );
+        const arrearsAmount = Number(portfolioSummary.kpis.par30Amount) || 
+          arrearsBuckets.reduce((sum, bucket) => sum + (Number(bucket.principalOutstanding) || 0), 0);
 
-      const totalDisbursed = allLoans.reduce(
-        (sum, loan) => sum + (Number(loan.principalAmount) || 0),
-        0,
-      );
+        setStats({
+          totalLoans,
+          activeLoans,
+          totalDisbursed,
+          totalOutstanding,
+          totalCollected: Math.max(0, totalCollected),
+          arrearsCount,
+          arrearsAmount,
+          avgLoanSize: totalLoans > 0 ? totalDisbursed / totalLoans : 0,
+        });
+      } else {
+        // Fallback to manual calculation if no summary data
+        const totalLoans = allLoans.length;
+        const activeLoans = activeRes.data.length;
+        
+        const calcOutstanding = (loan: Loan) => {
+          return (
+            (Number(loan.outstandingPrincipal) || 0) +
+            (Number(loan.outstandingInterest) || 0) +
+            (Number(loan.outstandingFees) || 0) +
+            (Number(loan.outstandingPenalties) || 0)
+          );
+        };
 
-      const totalOutstanding = allLoans.reduce((sum, loan) => sum + calcOutstanding(loan), 0);
+        const totalDisbursed = allLoans.reduce(
+          (sum, loan) => sum + (Number(loan.principalAmount) || 0),
+          0,
+        );
 
-      const totalCollected = allLoans.reduce((sum, loan) => {
-        const totalAmount = Number(loan.totalAmount) || 0;
-        const outstanding = calcOutstanding(loan);
-        const collected = Math.max(0, totalAmount - outstanding);
-        return sum + collected;
-      }, 0);
+        const totalOutstanding = allLoans.reduce((sum, loan) => sum + calcOutstanding(loan), 0);
 
-      // Filter out bucket "0" (current loans) - only include overdue loans in arrears
-      const arrearsBuckets = agingSummary.buckets.filter(
-        (bucket) => bucket.bucketLabel !== '0'
-      );
+        const totalCollected = allLoans.reduce((sum, loan) => {
+          const totalAmount = Number(loan.totalAmount) || 0;
+          const outstanding = calcOutstanding(loan);
+          const collected = Math.max(0, totalAmount - outstanding);
+          return sum + collected;
+        }, 0);
 
-      const arrearsCount = arrearsBuckets.reduce(
-        (sum, bucket) => sum + bucket.loansInBucket,
-        0,
-      );
+        const arrearsBuckets = agingSummary.buckets.filter(
+          (bucket) => bucket.bucketLabel !== '0'
+        );
+        const arrearsCount = arrearsBuckets.reduce(
+          (sum, bucket) => sum + bucket.loansInBucket,
+          0,
+        );
+        const arrearsAmount = arrearsBuckets.reduce(
+          (sum, bucket) => sum + (Number(bucket.principalOutstanding) || 0),
+          0,
+        );
 
-      const arrearsAmount = arrearsBuckets.reduce(
-        (sum, bucket) => sum + (Number(bucket.principalOutstanding) || 0),
-        0,
-      );
-
-      setStats({
-        totalLoans,
-        activeLoans,
-        totalDisbursed,
-        totalOutstanding,
-        totalCollected,
-        arrearsCount,
-        arrearsAmount,
-        avgLoanSize: totalLoans > 0 ? totalDisbursed / totalLoans : 0,
-      });
+        setStats({
+          totalLoans,
+          activeLoans,
+          totalDisbursed,
+          totalOutstanding,
+          totalCollected,
+          arrearsCount,
+          arrearsAmount,
+          avgLoanSize: totalLoans > 0 ? totalDisbursed / totalLoans : 0,
+        });
+      }
     } catch (err: any) {
       setError(
         err?.response?.data?.message || 'Failed to load portfolio data. Please try again.',
