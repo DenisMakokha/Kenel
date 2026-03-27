@@ -960,12 +960,12 @@ export class LoanApplicationsService {
   }
 
   async deleteDocument(applicationId: string, documentId: string) {
-    await this.getApplicationOrThrow(applicationId);
+    const application = await this.getApplicationOrThrow(applicationId);
 
     const document = await this.prisma.applicationDocument.findFirst({
       where: {
         id: documentId,
-        applicationId,
+        applicationId: application.id,
       },
     });
 
@@ -988,10 +988,11 @@ export class LoanApplicationsService {
     notes: string | undefined,
     userId: string,
   ) {
-    await this.getApplicationOrThrow(applicationId);
+    // First resolve the application to get the actual UUID
+    const application = await this.getApplicationOrThrow(applicationId);
 
     const document = await this.prisma.applicationDocument.findFirst({
-      where: { id: documentId, applicationId, isDeleted: false },
+      where: { id: documentId, applicationId: application.id, isDeleted: false },
     });
 
     if (!document) {
@@ -1026,7 +1027,7 @@ export class LoanApplicationsService {
       if (checklistKey) {
         await this.prisma.loanApplicationChecklistItem.updateMany({
           where: {
-            loanApplicationId: applicationId,
+            loanApplicationId: application.id,
             itemKey: checklistKey,
             status: 'PENDING',
           },
