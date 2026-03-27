@@ -18,7 +18,35 @@ export class AuditLogsService {
     }
 
     if (entityId) {
-      where.entityId = entityId;
+      // If entity is loan_applications, resolve application number to UUID
+      if (entity === 'loan_applications') {
+        const application = await this.prisma.loanApplication.findFirst({
+          where: {
+            OR: [
+              { id: entityId },
+              { applicationNumber: entityId },
+            ],
+          },
+          select: { id: true },
+        });
+        
+        if (application) {
+          where.entityId = application.id;
+        } else {
+          // If application not found, return empty result
+          return {
+            data: [],
+            meta: {
+              total: 0,
+              page,
+              limit,
+              totalPages: 0,
+            },
+          };
+        }
+      } else {
+        where.entityId = entityId;
+      }
     }
 
     // If loanId is provided without a specific entityId, fetch repayment logs for that loan
