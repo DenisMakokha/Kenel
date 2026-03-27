@@ -66,32 +66,66 @@ export class LoanApplicationsService {
     try {
       this.logger.log(`Fetching loan application: ${id}`);
       
-      const application = await this.prisma.loanApplication.findFirst({
-        where: {
-          OR: [{ id }, { applicationNumber: id }],
-        },
-        include: {
-          client: true,
-          productVersion: {
-            include: {
-              loanProduct: true,
+      // Try by UUID first, then by application number
+      let application;
+      
+      // Check if the id looks like a UUID (contains dashes and proper format)
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      
+      if (isUuid) {
+        application = await this.prisma.loanApplication.findFirst({
+          where: { id },
+          include: {
+            client: true,
+            productVersion: {
+              include: {
+                loanProduct: true,
+              },
+            },
+            documents: true,
+            checklistItems: true,
+            creditScore: true,
+            loan: {
+              select: {
+                id: true,
+                status: true,
+                disbursedAt: true,
+              },
+            },
+            events: {
+              orderBy: { createdAt: 'desc' },
             },
           },
-          documents: true,
-          checklistItems: true,
-          creditScore: true,
-          loan: {
-            select: {
-              id: true,
-              status: true,
-              disbursedAt: true,
+        });
+      }
+      
+      // If not found by UUID or id doesn't look like UUID, try by application number
+      if (!application) {
+        application = await this.prisma.loanApplication.findFirst({
+          where: { applicationNumber: id },
+          include: {
+            client: true,
+            productVersion: {
+              include: {
+                loanProduct: true,
+              },
+            },
+            documents: true,
+            checklistItems: true,
+            creditScore: true,
+            loan: {
+              select: {
+                id: true,
+                status: true,
+                disbursedAt: true,
+              },
+            },
+            events: {
+              orderBy: { createdAt: 'desc' },
             },
           },
-          events: {
-            orderBy: { createdAt: 'desc' },
-          },
-        },
-      });
+        });
+      }
 
       if (!application) {
         this.logger.warn(`Loan application not found: ${id}`);
