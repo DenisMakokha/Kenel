@@ -741,7 +741,7 @@ export class LoanApplicationsService {
     }
 
     const updated = await this.prisma.loanApplication.update({
-      where: { id },
+      where: { id: application.id },
       data: {
         status: 'RETURNED',
         returnReason: dto.reason,
@@ -751,7 +751,7 @@ export class LoanApplicationsService {
       },
     });
 
-    await this.logEvent(id, userId, 'application_returned', application.status, updated.status, {
+    await this.logEvent(application.id, userId, 'application_returned', application.status, updated.status, {
       reason: dto.reason,
       returnedItems: dto.returnedItems,
     });
