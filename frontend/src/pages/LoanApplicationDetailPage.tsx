@@ -96,6 +96,7 @@ export default function LoanApplicationDetailPage() {
   const [reviewStatus, setReviewStatus] = useState<'VERIFIED' | 'REJECTED'>('VERIFIED');
   const [reviewNotes, setReviewNotes] = useState('');
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState('');
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState('');
   const [showApproveFooter, setShowApproveFooter] = useState(false);
@@ -128,6 +129,7 @@ export default function LoanApplicationDetailPage() {
     const load = async () => {
       try {
         setLoading(true);
+      setReviewSuccess('');
         const app = await loanApplicationService.getApplication(id);
         setApplication(app);
         setChecklist(app.checklistItems || []);
@@ -260,26 +262,45 @@ export default function LoanApplicationDetailPage() {
 
   const handleReviewDocument = async () => {
     if (!id || !reviewingDoc) return;
+    const previousDocuments = documents;
+
     try {
       setReviewLoading(true);
       setError('');
-      await loanApplicationService.reviewDocument(id, reviewingDoc.id, reviewStatus, reviewNotes);
-      // Refresh documents and checklist
-      const [docs, app] = await Promise.all([
-        loanApplicationService.getDocuments(id),
-        loanApplicationService.getApplication(id),
-      ]);
-      setDocuments(docs);
+      setReviewSuccess('');
+
+      setDocuments((current) =>
+        current.map((doc) =>
+          doc.id === reviewingDoc.id
+            ? {
+                ...doc,
+                reviewStatus,
+                reviewNotes: reviewNotes || null,
+                reviewedAt: new Date().toISOString(),
+              }
+            : doc,
+        ),
+      );
+
+      const updatedDocument = await loanApplicationService.reviewDocument(id, reviewingDoc.id, reviewStatus, reviewNotes);
+
+      setDocuments((current) => current.map((doc) => (doc.id === updatedDocument.id ? updatedDocument : doc)));
+
+      const app = await loanApplicationService.getApplication(id);
       setChecklist(app.checklistItems || []);
+      setApplication(app);
       setShowReviewDialog(false);
       setReviewingDoc(null);
-      
-      // Show success feedback
+
+      const reviewedLabel = String(reviewingDoc.documentType).replace(/_/g, ' ');
       const action = reviewStatus === 'VERIFIED' ? 'approved' : 'rejected';
+      const message = `${reviewedLabel} has been ${action}.`;
+      setReviewSuccess(message);
       toast.success(`Document ${action} successfully`, {
-        description: `${String(reviewingDoc.documentType).replace(/_/g, ' ')} has been ${action}.`,
+        description: message,
       });
     } catch (err: any) {
+      setDocuments(previousDocuments);
       setError(err.response?.data?.message || 'Failed to review document');
       toast.error('Failed to review document', {
         description: err.response?.data?.message || 'Please try again.',
@@ -531,6 +552,12 @@ export default function LoanApplicationDetailPage() {
 
       {error && (
         <div className="rounded-md border border-destructive bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>
+      )}
+
+      {reviewSuccess && !error && (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {reviewSuccess}
+        </div>
       )}
 
       {/* Progress Steps - Simplified */}
@@ -1461,7 +1488,10 @@ export default function LoanApplicationDetailPage() {
                               : ''}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={doc.reviewStatus === 'APPROVED' ? 'default' : doc.reviewStatus === 'REJECTED' ? 'destructive' : 'secondary'}>
+                            <Badge
+                              variant={doc.reviewStatus === 'VERIFIED' ? 'default' : doc.reviewStatus === 'REJECTED' ? 'destructive' : 'secondary'}
+                              className={doc.reviewStatus === 'VERIFIED' ? 'bg-green-600 hover:bg-green-700' : ''}
+                            >
                               {doc.reviewStatus || 'PENDING'}
                             </Badge>
                           </TableCell>
