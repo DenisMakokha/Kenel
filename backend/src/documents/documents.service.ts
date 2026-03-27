@@ -303,13 +303,28 @@ export class DocumentsService {
       return { id: this.encodeId('c', created.id) };
     }
 
-    await this.prisma.loanApplication.findUnique({ where: { id: dto.applicationId! } }).then((a) => {
+    // Resolve application number to UUID if needed
+    let applicationId = dto.applicationId!;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(applicationId);
+    
+    if (!isUuid) {
+      const application = await this.prisma.loanApplication.findFirst({
+        where: { applicationNumber: applicationId },
+        select: { id: true },
+      });
+      if (!application) {
+        throw new NotFoundException('Application not found');
+      }
+      applicationId = application.id;
+    }
+    
+    await this.prisma.loanApplication.findUnique({ where: { id: applicationId } }).then((a) => {
       if (!a) throw new NotFoundException('Application not found');
     });
 
     const created = await this.prisma.applicationDocument.create({
       data: {
-        applicationId: dto.applicationId!,
+        applicationId: applicationId,
         documentType,
         category: dto.category,
         fileName: file.originalname,
@@ -343,7 +358,7 @@ export class DocumentsService {
     if (checklistKey) {
       await this.prisma.loanApplicationChecklistItem.updateMany({
         where: {
-          loanApplicationId: dto.applicationId!,
+          loanApplicationId: applicationId,
           itemKey: checklistKey,
           status: 'PENDING',
         },

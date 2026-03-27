@@ -239,9 +239,20 @@ export class PortalController {
       throw new Error('Your account is fully verified. You cannot delete applications. Please contact support.');
     }
     
+    // Resolve application number to UUID if needed
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    
     // Ensure application belongs to this client and is in DRAFT status
     const application = await this.prisma.loanApplication.findFirst({ 
-      where: { id, clientId } 
+      where: isUuid
+        ? {
+            clientId,
+            OR: [{ id }, { applicationNumber: id }],
+          }
+        : {
+            clientId,
+            applicationNumber: id,
+          }
     });
     
     if (!application) {
@@ -254,22 +265,22 @@ export class PortalController {
     
     // Delete associated documents first
     await this.prisma.applicationDocument.deleteMany({
-      where: { applicationId: id },
+      where: { applicationId: application.id },
     });
     
     // Delete checklist items
     await this.prisma.loanApplicationChecklistItem.deleteMany({
-      where: { loanApplicationId: id },
+      where: { loanApplicationId: application.id },
     });
     
     // Delete events
     await this.prisma.loanApplicationEvent.deleteMany({
-      where: { loanApplicationId: id },
+      where: { loanApplicationId: application.id },
     });
     
     // Delete the application
     await this.prisma.loanApplication.delete({
-      where: { id },
+      where: { id: application.id },
     });
     
     return { message: 'Application deleted successfully' };

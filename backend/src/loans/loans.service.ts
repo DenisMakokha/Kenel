@@ -66,7 +66,35 @@ export class LoansService {
     const where: Prisma.LoanWhereInput = {};
     if (status) where.status = status;
     if (clientId) where.clientId = clientId;
-    if (applicationId) where.applicationId = applicationId;
+    if (applicationId) {
+      // Resolve application number to UUID if needed
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(applicationId);
+      
+      if (isUuid) {
+        where.applicationId = applicationId;
+      } else {
+        // Resolve application number to UUID
+        const application = await this.prisma.loanApplication.findFirst({
+          where: { applicationNumber: applicationId },
+          select: { id: true },
+        });
+        
+        if (application) {
+          where.applicationId = application.id;
+        } else {
+          // If application not found, return empty result
+          return {
+            data: [],
+            meta: {
+              total: 0,
+              page,
+              limit,
+              totalPages: 0,
+            },
+          };
+        }
+      }
+    }
 
     if (status && LoansService.OPEN_STATUSES.has(status)) {
       where.AND = [
@@ -177,8 +205,24 @@ export class LoansService {
 
   async createFromApplication(applicationId: string, userId: string) {
     try {
+      // Resolve application number to UUID if needed
+      let resolvedApplicationId = applicationId;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(applicationId);
+      
+      if (!isUuid) {
+        const application = await this.prisma.loanApplication.findFirst({
+          where: { applicationNumber: applicationId },
+          select: { id: true },
+        });
+        
+        if (!application) {
+          throw new NotFoundException('Loan application not found');
+        }
+        resolvedApplicationId = application.id;
+      }
+
       const application = await this.prisma.loanApplication.findUnique({
-        where: { id: applicationId },
+        where: { id: resolvedApplicationId },
         include: {
           client: true,
           productVersion: {
