@@ -63,32 +63,50 @@ export class LoanApplicationsService {
   }
 
   private async getApplicationOrThrow(id: string) {
-    const application = await this.prisma.loanApplication.findFirst({
-      where: {
-        OR: [{ id }, { applicationNumber: id }],
-      },
-      include: {
-        client: true,
-        productVersion: {
-          include: {
-            loanProduct: true,
+    try {
+      this.logger.log(`Fetching loan application: ${id}`);
+      
+      const application = await this.prisma.loanApplication.findFirst({
+        where: {
+          OR: [{ id }, { applicationNumber: id }],
+        },
+        include: {
+          client: true,
+          productVersion: {
+            include: {
+              loanProduct: true,
+            },
+          },
+          documents: true,
+          checklistItems: true,
+          creditScore: true,
+          loan: {
+            select: {
+              id: true,
+              status: true,
+              disbursedAt: true,
+            },
+          },
+          events: {
+            orderBy: { createdAt: 'desc' },
           },
         },
-        documents: true,
-        checklistItems: true,
-        creditScore: true,
-        loan: true,
-        events: {
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
+      });
 
-    if (!application) {
-      throw new NotFoundException('Loan application not found');
+      if (!application) {
+        this.logger.warn(`Loan application not found: ${id}`);
+        throw new NotFoundException('Loan application not found');
+      }
+
+      this.logger.log(`Successfully fetched loan application: ${application.applicationNumber}`);
+      return application;
+    } catch (error) {
+      this.logger.error(`Error fetching loan application ${id}:`, error);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to fetch loan application: ${error.message}`);
     }
-
-    return application;
   }
 
   private async logEvent(
