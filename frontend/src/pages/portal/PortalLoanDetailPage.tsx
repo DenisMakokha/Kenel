@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { portalService } from '../../services/portalService';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
+import { Progress } from '../../components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { toast } from 'sonner';
 
@@ -75,6 +76,11 @@ export default function PortalLoanDetailPage() {
     );
   }
 
+  const amountDue = loan.totalOutstanding ?? loan.outstanding;
+  const progress = loan.totalAmount > 0
+    ? Math.min(100, Math.round((loan.totalRepaid / loan.totalAmount) * 100))
+    : 0;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -127,6 +133,28 @@ export default function PortalLoanDetailPage() {
           {loan.nextDueDate && (
             <div>Next payment due: {new Date(loan.nextDueDate).toLocaleDateString('en-KE')}</div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Repayment Progress</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-xs">
+          <div className="flex items-center justify-between text-slate-500">
+            <span>{progress}% paid</span>
+            <span>
+              {loan.totalRepaid.toLocaleString('en-KE')} of {loan.totalAmount.toLocaleString('en-KE')} KES
+            </span>
+          </div>
+          <Progress value={progress} className="h-2" />
+          <div className="flex items-center justify-between text-slate-500">
+            <span>Paid: {loan.totalRepaid.toLocaleString('en-KE')} KES</span>
+            <span>Remaining: {amountDue.toLocaleString('en-KE')} KES</span>
+          </div>
+          <p className="text-[11px] text-slate-400">
+            Progress is based on the full repayment obligation: principal + interest + fees + penalties.
+          </p>
         </CardContent>
       </Card>
 
