@@ -155,9 +155,15 @@ export default function ClientLoansTab({ client }: ClientLoansTabProps) {
               {loans.map((loan) => {
                 const statusConfig = STATUS_CONFIG[loan.status] || STATUS_CONFIG.ACTIVE;
                 const StatusIcon = statusConfig.icon;
-                const outstanding = Number(loan.outstandingPrincipal || 0) + Number(loan.outstandingInterest || 0);
-                const progress = loan.principalAmount
-                  ? Math.round(((Number(loan.principalAmount) - Number(loan.outstandingPrincipal || 0)) / Number(loan.principalAmount)) * 100)
+                const amountDue =
+                  Number(loan.outstandingPrincipal || 0) +
+                  Number(loan.outstandingInterest || 0) +
+                  Number(loan.outstandingFees || 0) +
+                  Number(loan.outstandingPenalties || 0);
+                const totalAmount = Number(loan.totalAmount || 0);
+                const totalRepaid = Number(loan.totalRepaid || 0);
+                const progress = totalAmount
+                  ? Math.min(100, Math.round((totalRepaid / totalAmount) * 100))
                   : 0;
 
                 return (
@@ -191,8 +197,14 @@ export default function ClientLoansTab({ client }: ClientLoansTabProps) {
                       {loan.status === 'ACTIVE' && (
                         <>
                           <div className="flex justify-between text-sm">
-                            <span className="text-slate-600">Outstanding</span>
-                            <span className="font-semibold text-amber-700">{formatCurrency(outstanding)}</span>
+                            <span className="text-slate-600">Amount Due</span>
+                            <span className="font-semibold text-amber-700">{formatCurrency(amountDue)}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+                            <span>Interest: {formatCurrency(Number(loan.outstandingInterest || 0))}</span>
+                            <span>Fees: {formatCurrency(Number(loan.outstandingFees || 0))}</span>
+                            <span>Penalties: {formatCurrency(Number(loan.outstandingPenalties || 0))}</span>
+                            <span>Principal: {formatCurrency(Number(loan.outstandingPrincipal || 0))}</span>
                           </div>
                           <div className="mt-2">
                             <div className="flex justify-between text-xs text-slate-500 mb-1">

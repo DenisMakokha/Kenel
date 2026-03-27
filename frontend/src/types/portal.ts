@@ -45,6 +45,8 @@ export interface PortalLoanSummary {
   productName: string;
   status: string;
   principal: number;
+  totalAmount: number;
+  totalRepaid: number;
   outstanding: number;
   outstandingPrincipal: number;
   outstandingInterest: number;

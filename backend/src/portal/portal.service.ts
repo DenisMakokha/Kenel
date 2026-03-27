@@ -33,11 +33,15 @@ export class PortalService {
     const outstandingInterest = this.toNumber(loan.outstandingInterest);
     const outstandingFees = this.toNumber(loan.outstandingFees);
     const outstandingPenalties = this.toNumber(loan.outstandingPenalties);
+    const totalAmount = this.toNumber(loan.totalAmount);
+    const totalRepaid = this.toNumber(loan.totalRepaid);
     const totalOutstanding =
       outstandingPrincipal + outstandingInterest + outstandingFees + outstandingPenalties;
 
     return {
       principal,
+      totalAmount,
+      totalRepaid,
       outstandingPrincipal,
       outstandingInterest,
       outstandingFees,
@@ -271,8 +275,16 @@ export class PortalService {
     });
 
     return loans.map((loan) => {
-      const { principal, outstandingPrincipal, outstandingInterest, outstandingFees, outstandingPenalties, totalOutstanding } =
-        this.getLoanBalanceBreakdown(loan);
+      const {
+        principal,
+        totalAmount,
+        totalRepaid,
+        outstandingPrincipal,
+        outstandingInterest,
+        outstandingFees,
+        outstandingPenalties,
+        totalOutstanding,
+      } = this.getLoanBalanceBreakdown(loan);
       const productName =
         loan.application?.productVersion?.loanProduct?.name ?? loan.applicationId;
 
@@ -287,6 +299,8 @@ export class PortalService {
           productName,
           status: loan.status,
           principal,
+          totalAmount,
+          totalRepaid,
           outstanding: outstandingPrincipal,
           outstandingPrincipal,
           outstandingInterest,
@@ -319,6 +333,8 @@ export class PortalService {
         productName,
         status: loan.status,
         principal,
+        totalAmount,
+        totalRepaid,
         outstanding: outstandingPrincipal,
         outstandingPrincipal,
         outstandingInterest,
@@ -353,8 +369,16 @@ export class PortalService {
       throw new NotFoundException('Loan not found for this client');
     }
 
-    const { principal, outstandingPrincipal, outstandingInterest, outstandingFees, outstandingPenalties, totalOutstanding } =
-      this.getLoanBalanceBreakdown(loan);
+    const {
+      principal,
+      totalAmount,
+      totalRepaid,
+      outstandingPrincipal,
+      outstandingInterest,
+      outstandingFees,
+      outstandingPenalties,
+      totalOutstanding,
+    } = this.getLoanBalanceBreakdown(loan);
     const productName = loan.application?.productVersion?.loanProduct?.name ?? loan.applicationId;
 
     let nextDueDate: Date | null = null;
@@ -403,6 +427,8 @@ export class PortalService {
       productName,
       status: loan.status,
       principal,
+      totalAmount,
+      totalRepaid,
       outstanding: outstandingPrincipal,
       outstandingPrincipal,
       outstandingInterest,

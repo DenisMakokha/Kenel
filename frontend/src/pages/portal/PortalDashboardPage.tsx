@@ -418,8 +418,8 @@ export default function PortalDashboardPage() {
               ) : (
                 <div className="space-y-4">
                   {data.activeLoans.slice(0, 3).map((loan) => {
-                    const progress = loan.principal > 0 
-                      ? Math.round(((loan.principal - loan.outstanding) / loan.principal) * 100)
+                    const progress = loan.totalAmount > 0 
+                      ? Math.min(100, Math.round((loan.totalRepaid / loan.totalAmount) * 100))
                       : 0;
                     const amountDue = loan.totalOutstanding ?? loan.outstanding;
                     

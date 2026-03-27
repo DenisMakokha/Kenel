@@ -394,10 +394,12 @@ export default function PortalLoansPage() {
       ) : (
         <div className="space-y-4">
           {filteredLoans.map((loan) => {
-            const progress = loan.principal > 0 
-              ? Math.round(((loan.principal - loan.outstanding) / loan.principal) * 100)
+            const progress = loan.totalAmount > 0
+              ? Math.min(100, Math.round((loan.totalRepaid / loan.totalAmount) * 100))
               : 0;
             const amountDue = loan.totalOutstanding ?? loan.outstanding;
+            const remainingBalance = amountDue;
+            const paidAmount = loan.totalRepaid;
             
             return (
               <Card 
@@ -463,8 +465,8 @@ export default function PortalLoansPage() {
                         </div>
                         <Progress value={progress} className="h-2" />
                         <div className="flex items-center justify-between text-xs text-slate-500">
-                          <span>Paid: {formatCurrency(loan.principal - loan.outstanding)}</span>
-                          <span>Remaining: {formatCurrency(loan.outstanding)}</span>
+                          <span>Paid: {formatCurrency(paidAmount)}</span>
+                          <span>Remaining: {formatCurrency(remainingBalance)}</span>
                         </div>
                       </div>
 

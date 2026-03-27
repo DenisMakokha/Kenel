@@ -251,10 +251,12 @@ export default function PortalMakePaymentPage() {
             </Card>
           ) : (
             loans.map((loan) => {
-              const progress = loan.principal > 0 
-                ? Math.round(((loan.principal - loan.outstanding) / loan.principal) * 100) 
+              const progress = loan.totalAmount > 0 
+                ? Math.min(100, Math.round((loan.totalRepaid / loan.totalAmount) * 100)) 
                 : 0;
               const amountDue = loan.totalOutstanding ?? loan.outstanding;
+              const paidAmount = loan.totalRepaid;
+              const remainingBalance = amountDue;
               
               return (
                 <Card
@@ -291,9 +293,13 @@ export default function PortalMakePaymentPage() {
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs text-slate-500">
                         <span>{progress}% repaid</span>
-                        <span>{formatCurrency(loan.principal - loan.outstanding)} of {formatCurrency(loan.principal)}</span>
+                        <span>{formatCurrency(paidAmount)} of {formatCurrency(loan.totalAmount)}</span>
                       </div>
                       <Progress value={progress} className="h-2" />
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span>Paid: {formatCurrency(paidAmount)}</span>
+                        <span>Remaining: {formatCurrency(remainingBalance)}</span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
