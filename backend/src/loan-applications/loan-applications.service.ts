@@ -901,19 +901,22 @@ export class LoanApplicationsService {
   // ============================================
 
   async getDocuments(applicationId: string) {
-    await this.getApplicationOrThrow(applicationId);
-
+    // First resolve the application to get the actual UUID
+    const application = await this.getApplicationOrThrow(applicationId);
+    
+    // Use the resolved UUID for the documents query
     return this.prisma.applicationDocument.findMany({
-      where: { applicationId, isDeleted: false } as any,
+      where: { applicationId: application.id, isDeleted: false } as any,
       orderBy: { uploadedAt: 'desc' },
     });
   }
 
   async getDocumentById(applicationId: string, documentId: string) {
-    await this.getApplicationOrThrow(applicationId);
+    // First resolve the application to get the actual UUID
+    const application = await this.getApplicationOrThrow(applicationId);
 
     return this.prisma.applicationDocument.findFirst({
-      where: { id: documentId, applicationId, isDeleted: false } as any,
+      where: { id: documentId, applicationId: application.id, isDeleted: false } as any,
     });
   }
 
