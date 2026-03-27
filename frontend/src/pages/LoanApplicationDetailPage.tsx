@@ -1409,6 +1409,20 @@ export default function LoanApplicationDetailPage() {
               {(() => {
                 const clientKycStatus = application.client?.kycStatus || application.kycStatusSnapshot;
                 const isKycVerified = clientKycStatus === 'VERIFIED';
+                const hasChecklistItems = (application.checklistItems || []).length > 0;
+                
+                // If no checklist items exist (existing applications), show fallback
+                if (!hasChecklistItems) {
+                  return (
+                    <div className="border rounded-lg p-4 bg-muted/50 mb-6">
+                      <p className="text-sm font-medium mb-3">Required Documents Status:</p>
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p className="text-sm">Document checklist not available for this application</p>
+                        <p className="text-xs mt-2">Please check the uploaded documents section below</p>
+                      </div>
+                    </div>
+                  );
+                }
                 
                 // Group checklist items by document source
                 const kycItems = (application.checklistItems || []).filter(item => item.documentSource === 'KYC');
@@ -1502,51 +1516,60 @@ export default function LoanApplicationDetailPage() {
                           </Badge>
                         </div>
                         <div className="grid gap-3">
-                          {loanItems.map((item) => {
-                            const uploadedDoc = documents.find((d) => 
-                              d.documentType === item.itemKey.toUpperCase() || 
-                              (item.itemKey === 'loan_application_form' && d.documentType === 'LOAN_APPLICATION_FORM')
-                            );
-                            const isCompleted = item.status === 'COMPLETED';
-                            
-                            return (
-                              <div key={item.id} className={`flex items-center justify-between p-3 rounded-lg border ${isCompleted ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
-                                <div className="flex items-center gap-3">
-                                  {isCompleted ? (
-                                    <div className="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center">
-                                      <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                      </svg>
-                                    </div>
-                                  ) : (
-                                    <div className="h-6 w-6 rounded-full bg-amber-500 flex items-center justify-center">
-                                      <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
-                                      </svg>
-                                    </div>
-                                  )}
-                                  <div>
-                                    <p className={`text-sm font-medium ${isCompleted ? 'text-green-800' : 'text-amber-800'}`}>{item.itemLabel}</p>
-                                    {uploadedDoc && (
-                                      <p className="text-xs text-green-600">
-                                        {uploadedDoc.fileName} • Uploaded {formatDate(uploadedDoc.uploadedAt)}
-                                      </p>
+                          {loanItems.length > 0 ? (
+                            loanItems.map((item) => {
+                              const uploadedDoc = documents.find((d) => 
+                                d.documentType === item.itemKey.toUpperCase() || 
+                                (item.itemKey === 'loan_application_form' && d.documentType === 'LOAN_APPLICATION_FORM')
+                              );
+                              const isCompleted = item.status === 'COMPLETED';
+                              
+                              return (
+                                <div key={item.id} className={`flex items-center justify-between p-3 rounded-lg border ${isCompleted ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                                  <div className="flex items-center gap-3">
+                                    {isCompleted ? (
+                                      <div className="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center">
+                                        <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      </div>
+                                    ) : (
+                                      <div className="h-6 w-6 rounded-full bg-amber-500 flex items-center justify-center">
+                                        <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+                                        </svg>
+                                      </div>
                                     )}
+                                    <div>
+                                      <p className={`text-sm font-medium ${isCompleted ? 'text-green-800' : 'text-amber-800'}`}>{item.itemLabel}</p>
+                                      {uploadedDoc && (
+                                        <p className="text-xs text-green-600">
+                                          {uploadedDoc.fileName} • Uploaded {formatDate(uploadedDoc.uploadedAt)}
+                                        </p>
+                                      )}
+                                    </div>
                                   </div>
+                                  {uploadedDoc && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-green-700 border-green-300 hover:bg-green-100"
+                                      onClick={() => openAuthenticatedFile(`/documents/a_${uploadedDoc.id}/download`)}
+                                    >
+                                      View
+                                    </Button>
+                                  )}
                                 </div>
-                                {uploadedDoc && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-green-700 border-green-300 hover:bg-green-100"
-                                    onClick={() => openAuthenticatedFile(`/documents/a_${uploadedDoc.id}/download`)}
-                                  >
-                                    View
-                                  </Button>
-                                )}
-                              </div>
-                            );
-                          })}
+                              );
+                            })
+                          ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <p className="text-sm">All loan application documents have been completed</p>
+                              {isKycVerified && (
+                                <p className="text-xs mt-2">KYC documents are shown in the Approved KYC Documents section above</p>
+                              )}
+                            </div>
+                          )}
                         </div>
                         {!isKycVerified && (
                           <div className="mt-3 text-xs text-muted-foreground">

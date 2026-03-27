@@ -218,19 +218,20 @@ export class LoanApplicationsService {
       },
     ];
 
-    const items = requireFullKycChecklist ? [...kycItems, ...loanItems] : loanItems;
+    // Always include all items, but pre-complete KYC items for verified clients
+    const allItems = requireFullKycChecklist ? [...kycItems, ...loanItems] : [...kycItems, ...loanItems];
 
     // Create all items
     await this.prisma.loanApplicationChecklistItem.createMany({
-      data: items.map((item) => ({
+      data: allItems.map((item) => ({
         loanApplicationId: applicationId,
         itemKey: item.itemKey,
         itemLabel: item.itemLabel,
         documentSource: item.documentSource,
         // Pre-complete KYC items for verified clients
-        status: (!requireFullKycChecklist && clientKycStatus === 'VERIFIED' && item.documentSource === 'KYC') ? 'COMPLETED' : 'PENDING',
-        completedAt: (!requireFullKycChecklist && clientKycStatus === 'VERIFIED' && item.documentSource === 'KYC') ? new Date() : null,
-        notes: (!requireFullKycChecklist && clientKycStatus === 'VERIFIED' && item.documentSource === 'KYC') ? 'Auto-completed: Approved during KYC process' : null,
+        status: (clientKycStatus === 'VERIFIED' && item.documentSource === 'KYC') ? 'COMPLETED' : 'PENDING',
+        completedAt: (clientKycStatus === 'VERIFIED' && item.documentSource === 'KYC') ? new Date() : null,
+        notes: (clientKycStatus === 'VERIFIED' && item.documentSource === 'KYC') ? 'Auto-completed: Approved during KYC process' : null,
       })),
     });
   }
