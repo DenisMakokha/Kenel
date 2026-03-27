@@ -602,7 +602,7 @@ export class LoanApplicationsService {
 
     // Mark existing credit score (if any) as approved by the checker
     await this.prisma.creditScore.updateMany({
-      where: { applicationId: id, approvedBy: null },
+      where: { applicationId: id, approvedBy: null }, // id is already resolved UUID here
       data: {
         approvedBy: userId,
         approvedAt: new Date(),
@@ -785,6 +785,7 @@ export class LoanApplicationsService {
 
   async upsertScore(applicationId: string, dto: UpsertCreditScoreDto, userId: string) {
     const application = await this.getApplicationOrThrow(applicationId);
+    const resolvedApplicationId = application.id; // Use the resolved UUID
 
     if (application.status !== LoanApplicationStatus.SUBMITTED && application.status !== LoanApplicationStatus.UNDER_REVIEW) {
       throw new BadRequestException('Score can only be captured for SUBMITTED or UNDER_REVIEW applications');
@@ -798,7 +799,7 @@ export class LoanApplicationsService {
     const grade = this.mapScoreToGrade(totalScore);
 
     const existing = await this.prisma.creditScore.findUnique({
-      where: { applicationId },
+      where: { applicationId: resolvedApplicationId },
     });
 
     let score;
@@ -816,12 +817,12 @@ export class LoanApplicationsService {
         assessedAt: new Date(),
       };
       score = await this.prisma.creditScore.update({
-        where: { applicationId },
+        where: { applicationId: resolvedApplicationId },
         data: updateData,
       });
     } else {
       const createData: Prisma.CreditScoreUncheckedCreateInput = {
-        applicationId,
+        applicationId: resolvedApplicationId,
         repaymentHistoryScore: dto.repaymentHistoryScore,
         stabilityScore: dto.stabilityScore,
         incomeScore: dto.incomeScore,
@@ -839,7 +840,7 @@ export class LoanApplicationsService {
     }
 
     await this.logEvent(
-      applicationId,
+      resolvedApplicationId,
       userId,
       'score_saved',
       application.status,
