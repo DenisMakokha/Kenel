@@ -93,7 +93,6 @@ export default function LoanApplicationDetailPage() {
   // Document review state
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [reviewingDoc, setReviewingDoc] = useState<any>(null);
-  const [reviewStatus, setReviewStatus] = useState<'VERIFIED' | 'REJECTED'>('VERIFIED');
   const [reviewNotes, setReviewNotes] = useState('');
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState('');
@@ -255,14 +254,25 @@ export default function LoanApplicationDetailPage() {
 
   const openReviewDialog = (doc: any) => {
     setReviewingDoc(doc);
-    setReviewStatus('VERIFIED');
     setReviewNotes('');
     setShowReviewDialog(true);
   };
 
-  const handleReviewDocument = async () => {
+  const handleCloseReviewDialog = (open: boolean) => {
+    setShowReviewDialog(open);
+    if (!open) {
+      setReviewingDoc(null);
+      setReviewNotes('');
+      setReviewLoading(false);
+    }
+  };
+
+  const handleReviewDocument = async (statusToSet: 'VERIFIED' | 'REJECTED') => {
     if (!id || !reviewingDoc) return;
     const previousDocuments = documents;
+    const documentId = reviewingDoc.id;
+    const documentType = reviewingDoc.documentType;
+    const reviewedLabel = String(documentType).replace(/_/g, ' ');
 
     try {
       setReviewLoading(true);
@@ -271,10 +281,10 @@ export default function LoanApplicationDetailPage() {
 
       setDocuments((current) =>
         current.map((doc) =>
-          doc.id === reviewingDoc.id
+          doc.id === documentId
             ? {
                 ...doc,
-                reviewStatus,
+                reviewStatus: statusToSet,
                 reviewNotes: reviewNotes || null,
                 reviewedAt: new Date().toISOString(),
               }
@@ -282,18 +292,12 @@ export default function LoanApplicationDetailPage() {
         ),
       );
 
-      const updatedDocument = await loanApplicationService.reviewDocument(id, reviewingDoc.id, reviewStatus, reviewNotes);
+      const updatedDocument = await loanApplicationService.reviewDocument(id, documentId, statusToSet, reviewNotes);
 
       setDocuments((current) => current.map((doc) => (doc.id === updatedDocument.id ? updatedDocument : doc)));
 
-      const app = await loanApplicationService.getApplication(id);
-      setChecklist(app.checklistItems || []);
-      setApplication(app);
-      setShowReviewDialog(false);
-      setReviewingDoc(null);
-
-      const reviewedLabel = String(reviewingDoc.documentType).replace(/_/g, ' ');
-      const action = reviewStatus === 'VERIFIED' ? 'approved' : 'rejected';
+      handleCloseReviewDialog(false);
+      const action = statusToSet === 'VERIFIED' ? 'approved' : 'rejected';
       const message = `${reviewedLabel} has been ${action}.`;
       setReviewSuccess(message);
       toast.success(`Document ${action} successfully`, {
@@ -1649,7 +1653,7 @@ export default function LoanApplicationDetailPage() {
       )}
 
       {/* Document Review Dialog */}
-      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+      <Dialog open={showReviewDialog} onOpenChange={handleCloseReviewDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Review Document</DialogTitle>
@@ -1665,26 +1669,6 @@ export default function LoanApplicationDetailPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Review Decision</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={reviewStatus === 'VERIFIED' ? 'default' : 'outline'}
-                  className={reviewStatus === 'VERIFIED' ? 'bg-green-600 hover:bg-green-700' : ''}
-                  onClick={() => setReviewStatus('VERIFIED')}
-                >
-                  ✓ Approve
-                </Button>
-                <Button
-                  type="button"
-                  variant={reviewStatus === 'REJECTED' ? 'destructive' : 'outline'}
-                  onClick={() => setReviewStatus('REJECTED')}
-                >
-                  ✗ Reject
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="reviewNotes">Notes (optional)</Label>
               <Input
                 id="reviewNotes"
@@ -1695,15 +1679,22 @@ export default function LoanApplicationDetailPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowReviewDialog(false)}>
+            <Button variant="outline" onClick={() => handleCloseReviewDialog(false)}>
               Cancel
             </Button>
             <Button
-              onClick={handleReviewDocument}
+              variant="destructive"
+              onClick={() => handleReviewDocument('REJECTED')}
               disabled={reviewLoading}
-              className={reviewStatus === 'VERIFIED' ? 'bg-green-600 hover:bg-green-700' : ''}
             >
-              {reviewLoading ? 'Saving...' : reviewStatus === 'VERIFIED' ? 'Approve Document' : 'Reject Document'}
+              {reviewLoading ? 'Saving...' : 'Reject Document'}
+            </Button>
+            <Button
+              onClick={() => handleReviewDocument('VERIFIED')}
+              disabled={reviewLoading}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {reviewLoading ? 'Saving...' : 'Approve Document'}
             </Button>
           </DialogFooter>
         </DialogContent>
