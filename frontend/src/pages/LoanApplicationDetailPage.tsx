@@ -43,6 +43,7 @@ import {
 import PreviewScheduleModal from '../components/loan-products/PreviewScheduleModal';
 import { formatDate, mapCreditScoreToGrade } from '../lib/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { toast } from 'sonner';
 
 export default function LoanApplicationDetailPage() {
   const { id } = useParams();
@@ -272,8 +273,17 @@ export default function LoanApplicationDetailPage() {
       setChecklist(app.checklistItems || []);
       setShowReviewDialog(false);
       setReviewingDoc(null);
+      
+      // Show success feedback
+      const action = reviewStatus === 'VERIFIED' ? 'approved' : 'rejected';
+      toast.success(`Document ${action} successfully`, {
+        description: `${String(reviewingDoc.documentType).replace(/_/g, ' ')} has been ${action}.`,
+      });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to review document');
+      toast.error('Failed to review document', {
+        description: err.response?.data?.message || 'Please try again.',
+      });
     } finally {
       setReviewLoading(false);
     }
