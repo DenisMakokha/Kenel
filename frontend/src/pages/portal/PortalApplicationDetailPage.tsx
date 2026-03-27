@@ -368,7 +368,7 @@ export default function PortalApplicationDetailPage() {
                 {/* Show Edit Application button if there are non-document issues */}
                 {application.returnedItems?.some(item => item.type !== 'document') && (
                   <Button
-                    onClick={() => navigate(`/portal/apply?continue=${application.applicationNumber}`)}
+                    onClick={() => navigate(`/portal/apply?continue=${application.id}`)}
                     className="bg-amber-600 hover:bg-amber-700 text-white"
                   >
                     <Edit3 className="h-4 w-4 mr-2" />
@@ -576,7 +576,7 @@ export default function PortalApplicationDetailPage() {
         <div className="flex justify-end gap-3">
           <Button
             variant="outline"
-            onClick={() => navigate(`/portal/apply?continue=${application.applicationNumber}`)}
+            onClick={() => navigate(`/portal/apply?continue=${application.id}`)}
           >
             Continue Application
           </Button>

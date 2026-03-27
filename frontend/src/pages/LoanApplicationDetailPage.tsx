@@ -537,7 +537,7 @@ export default function LoanApplicationDetailPage() {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate('/loan-applications')}>Back</Button>
           {canEditDraft && (
-            <Button variant="outline" size="sm" onClick={() => navigate(`/loan-applications/${application.applicationNumber}/edit`)}>Edit</Button>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/loan-applications/${application.id}/edit`)}>Edit</Button>
           )}
           {canSubmit && <Button size="sm" onClick={handleSubmit}>Submit</Button>}
           {canMoveToUnderReview && (

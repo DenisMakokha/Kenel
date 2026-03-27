@@ -160,7 +160,7 @@ export default function PortalDashboardPage() {
                 Please review and fix the issues to continue with your application.
               </p>
               <Button
-                onClick={() => navigate(`/portal/applications/${returnedApplications[0].applicationNumber}?returned=true`)}
+                onClick={() => navigate(`/portal/applications/${returnedApplications[0].id}?returned=true`)}
                 className="bg-orange-600 hover:bg-orange-700 text-white"
               >
                 <ArrowRight className="h-4 w-4 mr-2" />
@@ -349,7 +349,7 @@ export default function PortalDashboardPage() {
                   <div
                     key={app.id}
                     className="rounded-lg border border-slate-200 p-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
-                    onClick={() => navigate(`/portal/applications/${app.applicationNumber}`)}
+                    onClick={() => navigate(`/portal/applications/${app.id}`)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">

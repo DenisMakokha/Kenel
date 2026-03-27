@@ -101,7 +101,7 @@ export class NotificationsService {
         type: 'success',
         title: 'Loan Approved',
         message: `Application ${app.applicationNumber} has been approved`,
-        link: `/loan-applications/${app.applicationNumber}`,
+        link: `/loan-applications/${app.id}`,
         read: false,
         createdAt: app.updatedAt,
       });

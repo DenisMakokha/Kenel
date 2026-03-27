@@ -296,7 +296,7 @@ export default function CreditPipelinePage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/loan-applications/${app.applicationNumber}`)}
+                            onClick={() => navigate(`/loan-applications/${app.id}`)}
                             className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
                           >
                             <Eye className="h-4 w-4 mr-1" />

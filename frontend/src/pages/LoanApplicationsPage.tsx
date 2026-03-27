@@ -525,7 +525,7 @@ export default function LoanApplicationsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => navigate(`/loan-applications/${app.applicationNumber}`)}
+                            onClick={() => navigate(`/loan-applications/${app.id}`)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>

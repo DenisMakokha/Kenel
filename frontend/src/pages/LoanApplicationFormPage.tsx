@@ -106,7 +106,7 @@ export default function LoanApplicationFormPage() {
         application = await loanApplicationService.createApplication(basePayload);
       }
 
-      navigate(`/loan-applications/${application.applicationNumber}`);
+      navigate(`/loan-applications/${application.id}`);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save application');
     } finally {
