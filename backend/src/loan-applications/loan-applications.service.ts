@@ -851,21 +851,21 @@ export class LoanApplicationsService {
   // ============================================
 
   async getChecklist(applicationId: string) {
-    await this.getApplicationOrThrow(applicationId);
+    const application = await this.getApplicationOrThrow(applicationId);
 
     return this.prisma.loanApplicationChecklistItem.findMany({
-      where: { loanApplicationId: applicationId },
+      where: { loanApplicationId: application.id },
       orderBy: { itemKey: 'asc' },
     });
   }
 
   async updateChecklistItem(applicationId: string, itemId: string, dto: UpdateChecklistItemDto, userId: string) {
-    await this.getApplicationOrThrow(applicationId);
+    const application = await this.getApplicationOrThrow(applicationId);
 
     const item = await this.prisma.loanApplicationChecklistItem.findFirst({
       where: {
         id: itemId,
-        loanApplicationId: applicationId,
+        loanApplicationId: application.id,
       },
     });
 
@@ -926,7 +926,7 @@ export class LoanApplicationsService {
     documentType: string,
     uploadedBy?: string,
   ) {
-    await this.getApplicationOrThrow(applicationId);
+    const application = await this.getApplicationOrThrow(applicationId);
 
     const normalized = (documentType || '').toString().trim().toUpperCase();
     if (!Object.values(DocumentType).includes(normalized as any)) {
@@ -935,7 +935,7 @@ export class LoanApplicationsService {
 
     const document = await this.prisma.applicationDocument.create({
       data: {
-        applicationId,
+        applicationId: application.id,
         documentType: normalized as any,
         category: null,
         fileName: file.originalname,
@@ -1057,10 +1057,10 @@ export class LoanApplicationsService {
   // ============================================
 
   async getEvents(applicationId: string) {
-    await this.getApplicationOrThrow(applicationId);
+    const application = await this.getApplicationOrThrow(applicationId);
 
     return this.prisma.loanApplicationEvent.findMany({
-      where: { loanApplicationId: applicationId },
+      where: { loanApplicationId: application.id },
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
