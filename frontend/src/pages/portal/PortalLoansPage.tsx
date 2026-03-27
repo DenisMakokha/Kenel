@@ -86,7 +86,7 @@ export default function PortalLoansPage() {
   // Calculate stats
   const activeLoans = loans.filter(l => l.status === 'ACTIVE').length;
   const loansInArrears = loans.filter(l => l.inArrears).length;
-  const totalOutstanding = loans.reduce((sum, l) => sum + l.outstanding, 0);
+  const totalOutstanding = loans.reduce((sum, l) => sum + (l.totalOutstanding ?? l.outstanding), 0);
 
   const normalizeApplicationStatus = (status: string) => {
     const statusKey = (status || '').toUpperCase();
@@ -143,7 +143,7 @@ export default function PortalLoansPage() {
               </div>
               <div>
                 <p className="text-xl font-bold">{formatCurrency(totalOutstanding)}</p>
-                <p className="text-xs text-muted-foreground">Outstanding</p>
+                <p className="text-xs text-muted-foreground">Total amount due</p>
               </div>
             </div>
           </CardContent>
@@ -397,6 +397,7 @@ export default function PortalLoansPage() {
             const progress = loan.principal > 0 
               ? Math.round(((loan.principal - loan.outstanding) / loan.principal) * 100)
               : 0;
+            const amountDue = loan.totalOutstanding ?? loan.outstanding;
             
             return (
               <Card 
@@ -423,17 +424,35 @@ export default function PortalLoansPage() {
                           </div>
                         </div>
                         
-                        {/* Status Badge */}
-                        {loan.inArrears ? (
-                          <Badge className="bg-red-100 text-red-700 border-red-200">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            {loan.daysPastDue} days overdue
-                          </Badge>
-                        ) : loan.status === 'ACTIVE' ? (
-                          <Badge className="bg-emerald-100 text-emerald-700">Active</Badge>
-                        ) : (
-                          <Badge className="bg-slate-100 text-slate-600">Closed</Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {loan.inArrears ? (
+                            <Badge className="bg-red-100 text-red-700 border-red-200">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              In Arrears
+                            </Badge>
+                          ) : loan.status === 'ACTIVE' ? (
+                            <Badge className="bg-emerald-100 text-emerald-700">Active</Badge>
+                          ) : (
+                            <Badge className="bg-slate-100 text-slate-600">Closed</Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                          <p className="text-xs text-slate-500">Amount Due</p>
+                          <p className="text-lg font-bold text-slate-900">{formatCurrency(amountDue)}</p>
+                          <p className="text-[11px] text-slate-500 mt-1">
+                            Interest/fees/penalties included if applicable
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Principal Remaining</p>
+                          <p className="text-lg font-bold text-slate-900">{formatCurrency(loan.outstanding)}</p>
+                          <p className="text-[11px] text-slate-500 mt-1">
+                            Principal only
+                          </p>
+                        </div>
                       </div>
 
                       {/* Progress Bar */}

@@ -23,6 +23,29 @@ export class PortalService {
     return `${phone.slice(0, 3)}****${phone.slice(-2)}`;
   }
 
+  private toNumber(value: unknown): number {
+    return (value as any)?.toNumber?.() ?? Number(value ?? 0);
+  }
+
+  private getLoanBalanceBreakdown(loan: any) {
+    const principal = this.toNumber(loan.principalAmount);
+    const outstandingPrincipal = this.toNumber(loan.outstandingPrincipal);
+    const outstandingInterest = this.toNumber(loan.outstandingInterest);
+    const outstandingFees = this.toNumber(loan.outstandingFees);
+    const outstandingPenalties = this.toNumber(loan.outstandingPenalties);
+    const totalOutstanding =
+      outstandingPrincipal + outstandingInterest + outstandingFees + outstandingPenalties;
+
+    return {
+      principal,
+      outstandingPrincipal,
+      outstandingInterest,
+      outstandingFees,
+      outstandingPenalties,
+      totalOutstanding,
+    };
+  }
+
   async getMe(clientId: string) {
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
@@ -248,16 +271,8 @@ export class PortalService {
     });
 
     return loans.map((loan) => {
-      const principal = (loan.principalAmount as any).toNumber?.() ?? Number(loan.principalAmount);
-      const outstanding =
-        (loan.outstandingPrincipal as any).toNumber?.() ?? Number(loan.outstandingPrincipal);
-      const outstandingInterest =
-        (loan.outstandingInterest as any).toNumber?.() ?? Number(loan.outstandingInterest);
-      const outstandingFees =
-        (loan.outstandingFees as any).toNumber?.() ?? Number(loan.outstandingFees);
-      const outstandingPenalties =
-        (loan.outstandingPenalties as any).toNumber?.() ?? Number(loan.outstandingPenalties);
-      const totalOutstanding = outstanding + outstandingInterest + outstandingFees + outstandingPenalties;
+      const { principal, outstandingPrincipal, outstandingInterest, outstandingFees, outstandingPenalties, totalOutstanding } =
+        this.getLoanBalanceBreakdown(loan);
       const productName =
         loan.application?.productVersion?.loanProduct?.name ?? loan.applicationId;
 
@@ -272,7 +287,12 @@ export class PortalService {
           productName,
           status: loan.status,
           principal,
-          outstanding,
+          outstanding: outstandingPrincipal,
+          outstandingPrincipal,
+          outstandingInterest,
+          outstandingFees,
+          outstandingPenalties,
+          totalOutstanding,
           nextDueDate: null,
           inArrears: false,
           daysPastDue: 0,
@@ -299,7 +319,12 @@ export class PortalService {
         productName,
         status: loan.status,
         principal,
-        outstanding,
+        outstanding: outstandingPrincipal,
+        outstandingPrincipal,
+        outstandingInterest,
+        outstandingFees,
+        outstandingPenalties,
+        totalOutstanding,
         nextDueDate,
         inArrears,
         daysPastDue,
@@ -328,16 +353,8 @@ export class PortalService {
       throw new NotFoundException('Loan not found for this client');
     }
 
-    const principal = (loan.principalAmount as any).toNumber?.() ?? Number(loan.principalAmount);
-    const outstanding =
-      (loan.outstandingPrincipal as any).toNumber?.() ?? Number(loan.outstandingPrincipal);
-    const outstandingInterest =
-      (loan.outstandingInterest as any).toNumber?.() ?? Number(loan.outstandingInterest);
-    const outstandingFees =
-      (loan.outstandingFees as any).toNumber?.() ?? Number(loan.outstandingFees);
-    const outstandingPenalties =
-      (loan.outstandingPenalties as any).toNumber?.() ?? Number(loan.outstandingPenalties);
-    const totalOutstanding = outstanding + outstandingInterest + outstandingFees + outstandingPenalties;
+    const { principal, outstandingPrincipal, outstandingInterest, outstandingFees, outstandingPenalties, totalOutstanding } =
+      this.getLoanBalanceBreakdown(loan);
     const productName = loan.application?.productVersion?.loanProduct?.name ?? loan.applicationId;
 
     let nextDueDate: Date | null = null;
@@ -351,7 +368,12 @@ export class PortalService {
         productName,
         status: loan.status,
         principal,
-        outstanding,
+        outstanding: outstandingPrincipal,
+        outstandingPrincipal,
+        outstandingInterest,
+        outstandingFees,
+        outstandingPenalties,
+        totalOutstanding,
         nextDueDate: null,
         inArrears: false,
         daysPastDue: 0,
@@ -381,7 +403,12 @@ export class PortalService {
       productName,
       status: loan.status,
       principal,
-      outstanding,
+      outstanding: outstandingPrincipal,
+      outstandingPrincipal,
+      outstandingInterest,
+      outstandingFees,
+      outstandingPenalties,
+      totalOutstanding,
       nextDueDate,
       inArrears,
       daysPastDue,
@@ -434,7 +461,7 @@ export class PortalService {
 
     const activeLoans = loans.filter((l) => l.status === 'ACTIVE');
     const totalActiveLoans = activeLoans.length;
-    const totalOutstanding = activeLoans.reduce((sum, l) => sum + (l.outstanding || 0), 0);
+    const totalOutstanding = activeLoans.reduce((sum, l) => sum + (l.totalOutstanding || 0), 0);
 
     // Next payment across all active loans - find next unpaid installment
     let nextPaymentAmount: number | null = null;
@@ -454,7 +481,7 @@ export class PortalService {
         orderBy: { dueDate: 'asc' },
         include: {
           loan: {
-            select: { loanNumber: true },
+            select: { loanNumber: true, outstandingPenalties: true },
           },
         },
       });
@@ -466,7 +493,8 @@ export class PortalService {
         const principalDue = Number(nextSchedule.principalDue) - Number(nextSchedule.principalPaid || 0);
         const interestDue = Number(nextSchedule.interestDue) - Number(nextSchedule.interestPaid || 0);
         const feesDue = Number(nextSchedule.feesDue || 0) - Number(nextSchedule.feesPaid || 0);
-        nextPaymentAmount = principalDue + interestDue + feesDue;
+        const penaltiesDue = this.toNumber(nextSchedule.loan.outstandingPenalties);
+        nextPaymentAmount = principalDue + interestDue + feesDue + penaltiesDue;
       }
     }
 

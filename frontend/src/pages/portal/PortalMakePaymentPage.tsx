@@ -74,12 +74,10 @@ export default function PortalMakePaymentPage() {
 
   const handleSelectLoan = (loan: PortalLoanSummary) => {
     setSelectedLoan(loan);
-    // Pre-fill with next payment amount from loan schedule, or full outstanding if not available
-    const nextPaymentAmount = (loan as any).nextPaymentAmount || (loan as any).monthlyPayment;
-    if (nextPaymentAmount && nextPaymentAmount > 0) {
-      setAmount(Math.min(loan.outstanding, nextPaymentAmount).toString());
-    } else if (loan.outstanding) {
-      setAmount(loan.outstanding.toString());
+    // Pre-fill with the full amount due so principal, interest, fees, and penalties are included
+    const totalDue = loan.totalOutstanding ?? loan.outstanding;
+    if (totalDue && totalDue > 0) {
+      setAmount(totalDue.toString());
     }
     setStep('enter-amount');
   };
@@ -90,8 +88,9 @@ export default function PortalMakePaymentPage() {
       toast.error('Invalid amount', 'Please enter a valid payment amount');
       return;
     }
-    if (selectedLoan && numAmount > selectedLoan.outstanding) {
-      toast.warning('Amount exceeds balance', 'Payment amount is more than outstanding balance');
+    const totalDue = selectedLoan?.totalOutstanding ?? selectedLoan?.outstanding ?? 0;
+    if (selectedLoan && numAmount > totalDue) {
+      toast.warning('Amount exceeds balance', 'Payment amount is more than the total amount due');
     }
     setStep('select-method');
   };
@@ -255,6 +254,7 @@ export default function PortalMakePaymentPage() {
               const progress = loan.principal > 0 
                 ? Math.round(((loan.principal - loan.outstanding) / loan.principal) * 100) 
                 : 0;
+              const amountDue = loan.totalOutstanding ?? loan.outstanding;
               
               return (
                 <Card
@@ -272,13 +272,19 @@ export default function PortalMakePaymentPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4 mb-3">
                       <div>
-                        <p className="text-xs text-slate-500">Outstanding</p>
-                        <p className="text-lg font-bold text-slate-900">{formatCurrency(loan.outstanding)}</p>
+                        <p className="text-xs text-slate-500">Total Amount Due</p>
+                        <p className="text-lg font-bold text-slate-900">{formatCurrency(amountDue)}</p>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          Principal + interest + fees + penalties
+                        </p>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500">Next Payment</p>
+                        <p className="text-xs text-slate-500">Principal Outstanding</p>
                         <p className="text-lg font-bold text-emerald-600">
-                          {formatCurrency(Math.min(loan.outstanding, 15000))}
+                          {formatCurrency(loan.outstanding)}
+                        </p>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          Principal only
                         </p>
                       </div>
                     </div>
@@ -303,10 +309,31 @@ export default function PortalMakePaymentPage() {
           <CardHeader>
             <CardTitle className="text-lg">Payment Amount</CardTitle>
             <CardDescription>
-              Outstanding balance: {formatCurrency(selectedLoan.outstanding)}
+              Total amount due: {formatCurrency(selectedLoan.totalOutstanding ?? selectedLoan.outstanding)}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-lg border border-slate-200 p-3">
+                <p className="text-xs text-slate-500">Principal</p>
+                <p className="font-semibold">{formatCurrency(selectedLoan.principal)}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 p-3">
+                <p className="text-xs text-slate-500">Principal Outstanding</p>
+                <p className="font-semibold">{formatCurrency(selectedLoan.outstanding)}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 p-3">
+                <p className="text-xs text-slate-500">Interest</p>
+                <p className="font-semibold">{formatCurrency(selectedLoan.outstandingInterest ?? 0)}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 p-3">
+                <p className="text-xs text-slate-500">Fees & Penalties</p>
+                <p className="font-semibold">
+                  {formatCurrency((selectedLoan.outstandingFees ?? 0) + (selectedLoan.outstandingPenalties ?? 0))}
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">Amount (KES)</label>
               <Input
@@ -321,8 +348,7 @@ export default function PortalMakePaymentPage() {
             {/* Quick amount buttons */}
             <div className="flex flex-wrap gap-2">
               {(() => {
-                const suggestedAmount = (selectedLoan as any).nextPaymentAmount || (selectedLoan as any).monthlyPayment || selectedLoan.outstanding;
-                const displayAmount = Math.min(selectedLoan.outstanding, suggestedAmount);
+                const displayAmount = selectedLoan.totalOutstanding ?? selectedLoan.outstanding;
                 return (
                   <Button
                     variant="outline"
@@ -330,17 +356,17 @@ export default function PortalMakePaymentPage() {
                     onClick={() => setAmount(displayAmount.toString())}
                     className={amount === displayAmount.toString() ? 'border-emerald-500 bg-emerald-50' : ''}
                   >
-                    Next Payment ({formatCurrency(displayAmount)})
+                    Full Amount Due ({formatCurrency(displayAmount)})
                   </Button>
                 );
               })()}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setAmount(selectedLoan.outstanding.toString())}
-                className={amount === selectedLoan.outstanding.toString() ? 'border-emerald-500 bg-emerald-50' : ''}
+                onClick={() => setAmount((selectedLoan.totalOutstanding ?? selectedLoan.outstanding).toString())}
+                className={amount === (selectedLoan.totalOutstanding ?? selectedLoan.outstanding).toString() ? 'border-emerald-500 bg-emerald-50' : ''}
               >
-                Full Balance ({formatCurrency(selectedLoan.outstanding)})
+                Full Balance ({formatCurrency(selectedLoan.totalOutstanding ?? selectedLoan.outstanding)})
               </Button>
             </div>
 

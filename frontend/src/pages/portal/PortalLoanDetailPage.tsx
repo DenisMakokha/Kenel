@@ -93,9 +93,34 @@ export default function PortalLoanDetailPage() {
         <CardHeader>
           <CardTitle className="text-sm">Summary</CardTitle>
         </CardHeader>
-        <CardContent className="text-xs space-y-1">
-          <div>Principal disbursed: {loan.principal.toLocaleString('en-KE')} KES</div>
-          <div>Outstanding: {loan.outstanding.toLocaleString('en-KE')} KES</div>
+        <CardContent className="text-xs space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-slate-500">Principal disbursed</div>
+              <div className="font-medium">{loan.principal.toLocaleString('en-KE')} KES</div>
+            </div>
+            <div>
+              <div className="text-slate-500">Principal remaining</div>
+              <div className="font-medium">{(loan.outstandingPrincipal ?? loan.outstanding).toLocaleString('en-KE')} KES</div>
+            </div>
+            <div>
+              <div className="text-slate-500">Interest remaining</div>
+              <div className="font-medium">{(loan.outstandingInterest ?? 0).toLocaleString('en-KE')} KES</div>
+            </div>
+            <div>
+              <div className="text-slate-500">Fees & penalties</div>
+              <div className="font-medium">
+                {((loan.outstandingFees ?? 0) + (loan.outstandingPenalties ?? 0)).toLocaleString('en-KE')} KES
+              </div>
+            </div>
+          </div>
+          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">
+            <div className="text-slate-500">Total amount due</div>
+            <div className="text-base font-semibold">
+              {(loan.totalOutstanding ?? loan.outstanding).toLocaleString('en-KE')} KES
+            </div>
+            <div className="text-[11px] mt-1">Principal + interest + fees + penalties</div>
+          </div>
           {loan.disbursedAt && (
             <div>Disbursed on: {new Date(loan.disbursedAt).toLocaleDateString('en-KE')}</div>
           )}

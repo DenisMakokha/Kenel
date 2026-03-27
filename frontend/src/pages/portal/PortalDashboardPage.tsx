@@ -421,6 +421,7 @@ export default function PortalDashboardPage() {
                     const progress = loan.principal > 0 
                       ? Math.round(((loan.principal - loan.outstanding) / loan.principal) * 100)
                       : 0;
+                    const amountDue = loan.totalOutstanding ?? loan.outstanding;
                     
                     return (
                       <div
@@ -437,7 +438,10 @@ export default function PortalDashboardPage() {
                               </Badge>
                             </div>
                             <p className="text-sm text-slate-500 mt-1">
-                              Outstanding: {formatCurrency(loan.outstanding)}
+                              Amount Due: {formatCurrency(amountDue)}
+                            </p>
+                            <p className="text-xs text-slate-400 mt-1">
+                              Principal remaining: {formatCurrency(loan.outstanding)}
                             </p>
                           </div>
                           <Badge className="bg-emerald-100 text-emerald-700">Active</Badge>

@@ -46,6 +46,11 @@ export interface PortalLoanSummary {
   status: string;
   principal: number;
   outstanding: number;
+  outstandingPrincipal: number;
+  outstandingInterest: number;
+  outstandingFees: number;
+  outstandingPenalties: number;
+  totalOutstanding: number;
   nextDueDate: string | null;
   inArrears: boolean;
   daysPastDue: number;
