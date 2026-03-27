@@ -18,6 +18,7 @@ import type { AuditLog } from '../types/audit';
 import { LoanApplicationStatus, LoanApplicationChecklistStatus } from '../types/loan-application';
 import { DocumentType } from '../types/client';
 import { UserRole } from '../types/auth';
+import { ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -1404,68 +1405,159 @@ export default function LoanApplicationDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {/* Required Documents Checklist with Status */}
-              <div className="border rounded-lg p-4 bg-muted/50 mb-6">
-                <p className="text-sm font-medium mb-3">Required Documents Status:</p>
-                <div className="grid gap-3">
-                  {[
-                    { type: 'BANK_STATEMENT', altTypes: [], label: 'Bank statement for the latest three months (stamped at bank)' },
-                    { type: 'KRA_PIN', altTypes: [], label: 'Copy of KRA PIN certificate' },
-                    { type: 'NATIONAL_ID', altTypes: [], label: 'Copy of ID' },
-                    { type: 'EMPLOYMENT_CONTRACT', altTypes: ['EMPLOYMENT_LETTER', 'CONTRACT'], label: 'Copy of Employment Contract' },
-                    { type: 'LOAN_APPLICATION_FORM', altTypes: [], label: 'Duly-filled KENELS BUREAU Loan Application form' },
-                    { type: 'PROOF_OF_RESIDENCE', altTypes: [], label: 'Utility Bill (proof of address)' },
-                  ].map((req) => {
-                    const uploadedDoc = documents.find((d) => d.documentType === req.type || req.altTypes.includes(d.documentType));
-                    const isUploaded = Boolean(uploadedDoc);
-                    return (
-                      <div key={req.type} className={`flex items-center justify-between p-3 rounded-lg border ${isUploaded ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
-                        <div className="flex items-center gap-3">
-                          {isUploaded ? (
-                            <div className="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center">
-                              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
+              {/* Dynamic Checklist based on client KYC status */}
+              {(() => {
+                const clientKycStatus = application.client?.kycStatus || application.kycStatusSnapshot;
+                const isKycVerified = clientKycStatus === 'VERIFIED';
+                
+                // Group checklist items by document source
+                const kycItems = (application.checklistItems || []).filter(item => item.documentSource === 'KYC');
+                const loanItems = (application.checklistItems || []).filter(item => item.documentSource === 'LOAN_APPLICATION');
+                
+                return (
+                  <>
+                    {/* KYC Documents Section - only show for KYC verified clients */}
+                    {isKycVerified && kycItems.length > 0 && (
+                      <div className="border rounded-lg mb-6">
+                        <details className="group">
+                          <summary className="flex justify-between items-center p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-medium">Approved KYC Documents</h4>
+                              <Badge variant="secondary" className="text-xs">
+                                {kycItems.filter(item => item.status === 'COMPLETED').length}/{kycItems.length} completed
+                              </Badge>
                             </div>
-                          ) : (
-                            <div className="h-6 w-6 rounded-full bg-amber-500 flex items-center justify-center">
-                              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
-                              </svg>
+                            <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+                          </summary>
+                          <div className="p-4 pt-0 border-t">
+                            <div className="grid gap-3 mt-4">
+                              {kycItems.map((item) => {
+                                const uploadedDoc = documents.find((d) => 
+                                  d.documentType === item.itemKey.toUpperCase() || 
+                                  (item.itemKey === 'id_copy' && d.documentType === 'NATIONAL_ID') ||
+                                  (item.itemKey === 'kra_pin_certificate' && d.documentType === 'KRA_PIN') ||
+                                  (item.itemKey === 'bank_statement' && d.documentType === 'BANK_STATEMENT') ||
+                                  (item.itemKey === 'employment_contract' && (d.documentType === 'EMPLOYMENT_CONTRACT' || d.documentType === 'EMPLOYMENT_LETTER' || d.documentType === 'CONTRACT')) ||
+                                  (item.itemKey === 'utility_bill' && d.documentType === 'PROOF_OF_RESIDENCE')
+                                );
+                                const isCompleted = item.status === 'COMPLETED';
+                                
+                                return (
+                                  <div key={item.id} className={`flex items-center justify-between p-3 rounded-lg border ${isCompleted ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                                    <div className="flex items-center gap-3">
+                                      {isCompleted ? (
+                                        <div className="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center">
+                                          <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        </div>
+                                      ) : (
+                                        <div className="h-6 w-6 rounded-full bg-amber-500 flex items-center justify-center">
+                                          <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+                                          </svg>
+                                        </div>
+                                      )}
+                                      <div>
+                                        <p className={`text-sm font-medium ${isCompleted ? 'text-green-800' : 'text-amber-800'}`}>{item.itemLabel}</p>
+                                        {isCompleted && item.notes && (
+                                          <p className="text-xs text-green-600">{item.notes}</p>
+                                        )}
+                                        {uploadedDoc && (
+                                          <p className="text-xs text-green-600">
+                                            {uploadedDoc.fileName} • Uploaded {formatDate(uploadedDoc.uploadedAt)}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                    {uploadedDoc && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-green-700 border-green-300 hover:bg-green-100"
+                                        onClick={() => openAuthenticatedFile(`/documents/a_${uploadedDoc.id}/download`)}
+                                      >
+                                        View
+                                      </Button>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
-                          )}
-                          <div>
-                            <p className={`text-sm font-medium ${isUploaded ? 'text-green-800' : 'text-amber-800'}`}>{req.label}</p>
-                            {isUploaded && uploadedDoc && (
-                              <p className="text-xs text-green-600">
-                                {uploadedDoc.fileName} • Uploaded {formatDate(uploadedDoc.uploadedAt)}
-                              </p>
-                            )}
+                            <div className="mt-3 text-xs text-muted-foreground">
+                              These documents were approved during the KYC verification process
+                            </div>
                           </div>
+                        </details>
+                      </div>
+                    )}
+                    
+                    {/* Loan Application Documents Section */}
+                    <div className="border rounded-lg">
+                      <div className="p-4">
+                        <div className="flex items-center gap-2 mb-4">
+                          <h4 className="text-sm font-medium">Loan Application Documents</h4>
+                          <Badge variant="outline" className="text-xs">
+                            {loanItems.filter(item => item.status === 'COMPLETED').length}/{loanItems.length} completed
+                          </Badge>
                         </div>
-                        {isUploaded && uploadedDoc && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-green-700 border-green-300 hover:bg-green-100"
-                            onClick={() => openAuthenticatedFile(`/documents/a_${uploadedDoc.id}/download`)}
-                          >
-                            View
-                          </Button>
+                        <div className="grid gap-3">
+                          {loanItems.map((item) => {
+                            const uploadedDoc = documents.find((d) => 
+                              d.documentType === item.itemKey.toUpperCase() || 
+                              (item.itemKey === 'loan_application_form' && d.documentType === 'LOAN_APPLICATION_FORM')
+                            );
+                            const isCompleted = item.status === 'COMPLETED';
+                            
+                            return (
+                              <div key={item.id} className={`flex items-center justify-between p-3 rounded-lg border ${isCompleted ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                                <div className="flex items-center gap-3">
+                                  {isCompleted ? (
+                                    <div className="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center">
+                                      <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </div>
+                                  ) : (
+                                    <div className="h-6 w-6 rounded-full bg-amber-500 flex items-center justify-center">
+                                      <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className={`text-sm font-medium ${isCompleted ? 'text-green-800' : 'text-amber-800'}`}>{item.itemLabel}</p>
+                                    {uploadedDoc && (
+                                      <p className="text-xs text-green-600">
+                                        {uploadedDoc.fileName} • Uploaded {formatDate(uploadedDoc.uploadedAt)}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                {uploadedDoc && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-green-700 border-green-300 hover:bg-green-100"
+                                    onClick={() => openAuthenticatedFile(`/documents/a_${uploadedDoc.id}/download`)}
+                                  >
+                                    View
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {!isKycVerified && (
+                          <div className="mt-3 text-xs text-muted-foreground">
+                            All documents must be uploaded for loan application review
+                          </div>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-3 flex items-center gap-4 text-xs">
-                  <span className="flex items-center gap-1 text-green-600">
-                    <div className="h-3 w-3 rounded-full bg-green-500" /> Uploaded
-                  </span>
-                  <span className="flex items-center gap-1 text-amber-600">
-                    <div className="h-3 w-3 rounded-full bg-amber-500" /> Missing
-                  </span>
-                </div>
-              </div>
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* All Uploaded Documents Table */}
               {documents.length > 0 && (

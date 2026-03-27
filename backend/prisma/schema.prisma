@@ -609,6 +609,7 @@ model LoanApplicationChecklistItem {
   completedBy       String?                        @map("completed_by") @db.Uuid
   completedAt       DateTime?                      @map("completed_at")
   notes             String?
+  documentSource    String?                        // 'KYC' | 'LOAN_APPLICATION'
 
   // Relations
   loanApplication   LoanApplication                @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)

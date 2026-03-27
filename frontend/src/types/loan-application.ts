@@ -26,6 +26,7 @@ export interface LoanApplicationChecklistItem {
   completedBy?: string | null;
   completedAt?: string | null;
   notes?: string | null;
+  documentSource?: 'KYC' | 'LOAN_APPLICATION';
 }
 
 export interface LoanApplicationEvent {

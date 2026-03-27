@@ -181,46 +181,56 @@ export class LoanApplicationsService {
     }
   }
 
-  private async seedDefaultChecklist(applicationId: string, requireFullKycChecklist: boolean) {
-    const items = requireFullKycChecklist
-      ? [
-          {
-            itemKey: 'bank_statement',
-            itemLabel: 'Bank statement for the latest three months (stamped at bank)',
-          },
-          {
-            itemKey: 'kra_pin_certificate',
-            itemLabel: 'Copy of KRA PIN certificate',
-          },
-          {
-            itemKey: 'id_copy',
-            itemLabel: 'Copy of ID',
-          },
-          {
-            itemKey: 'employment_contract',
-            itemLabel: 'Copy of Employment Contract',
-          },
-          {
-            itemKey: 'loan_application_form',
-            itemLabel: 'Duly-filled KENELS BUREAU Loan Application form',
-          },
-          {
-            itemKey: 'utility_bill',
-            itemLabel: 'Utility Bill (proof of address)',
-          },
-        ]
-      : [
-          {
-            itemKey: 'loan_application_form',
-            itemLabel: 'Duly-filled KENELS BUREAU Loan Application form',
-          },
-        ];
+  private async seedDefaultChecklist(applicationId: string, requireFullKycChecklist: boolean, clientKycStatus?: string) {
+    const kycItems = [
+      {
+        itemKey: 'bank_statement',
+        itemLabel: 'Bank statement for the latest three months (stamped at bank)',
+        documentSource: 'KYC',
+      },
+      {
+        itemKey: 'kra_pin_certificate',
+        itemLabel: 'Copy of KRA PIN certificate',
+        documentSource: 'KYC',
+      },
+      {
+        itemKey: 'id_copy',
+        itemLabel: 'Copy of ID',
+        documentSource: 'KYC',
+      },
+      {
+        itemKey: 'employment_contract',
+        itemLabel: 'Copy of Employment Contract',
+        documentSource: 'KYC',
+      },
+      {
+        itemKey: 'utility_bill',
+        itemLabel: 'Utility Bill (proof of address)',
+        documentSource: 'KYC',
+      },
+    ];
 
+    const loanItems = [
+      {
+        itemKey: 'loan_application_form',
+        itemLabel: 'Duly-filled KENELS BUREAU Loan Application form',
+        documentSource: 'LOAN_APPLICATION',
+      },
+    ];
+
+    const items = requireFullKycChecklist ? [...kycItems, ...loanItems] : loanItems;
+
+    // Create all items
     await this.prisma.loanApplicationChecklistItem.createMany({
       data: items.map((item) => ({
         loanApplicationId: applicationId,
         itemKey: item.itemKey,
         itemLabel: item.itemLabel,
+        documentSource: item.documentSource,
+        // Pre-complete KYC items for verified clients
+        status: (!requireFullKycChecklist && clientKycStatus === 'VERIFIED' && item.documentSource === 'KYC') ? 'COMPLETED' : 'PENDING',
+        completedAt: (!requireFullKycChecklist && clientKycStatus === 'VERIFIED' && item.documentSource === 'KYC') ? new Date() : null,
+        notes: (!requireFullKycChecklist && clientKycStatus === 'VERIFIED' && item.documentSource === 'KYC') ? 'Auto-completed: Approved during KYC process' : null,
       })),
     });
   }
@@ -276,7 +286,7 @@ export class LoanApplicationsService {
       },
     });
 
-    await this.seedDefaultChecklist(application.id, client.kycStatus !== 'VERIFIED');
+    await this.seedDefaultChecklist(application.id, client.kycStatus !== 'VERIFIED', client.kycStatus);
     await this.logEvent(application.id, userId, 'application_created', null, application.status, {
       requestedAmount: application.requestedAmount,
       requestedTermMonths: application.requestedTermMonths,
