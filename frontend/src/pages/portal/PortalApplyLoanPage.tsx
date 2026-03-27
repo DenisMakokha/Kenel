@@ -66,31 +66,18 @@ export default function PortalApplyLoanPage() {
   // M-Pesa disbursement
   const [useSamePhone, setUseSamePhone] = useState(true);
   const [mpesaNumber, setMpesaNumber] = useState('');
+
+  const kycVerified = (client as any)?.kycStatus === 'VERIFIED';
   
-  // Documents - individual fields for each required document
+  // Documents - verified KYC clients only need the loan application form
   const [requiredDocuments, setRequiredDocuments] = useState<{
-    bank_statement: File | null;
-    kra_pin: File | null;
-    id_copy: File | null;
-    employment_contract: File | null;
     loan_application_form: File | null;
-    utility_bill: File | null;
   }>({
-    bank_statement: null,
-    kra_pin: null,
-    id_copy: null,
-    employment_contract: null,
     loan_application_form: null,
-    utility_bill: null,
   });
 
   const requiredDocumentLabels: Record<string, string> = {
-    bank_statement: 'Bank statement for the latest three months (stamped at bank)',
-    kra_pin: 'Copy of KRA PIN certificate',
-    id_copy: 'Copy of ID',
-    employment_contract: 'Copy of Employment Contract',
     loan_application_form: 'Duly-filled KENELS BUREAU Loan Application form',
-    utility_bill: 'Utility Bill (proof of address)',
   };
   
   // Calculated values
@@ -337,12 +324,7 @@ export default function PortalApplyLoanPage() {
 
       // Upload all required documents - map to valid Prisma DocumentType values
       const documentTypeMap: Record<string, string> = {
-        bank_statement: 'BANK_STATEMENT',
-        kra_pin: 'KRA_PIN',
-        id_copy: 'NATIONAL_ID',
-        employment_contract: 'EMPLOYMENT_CONTRACT',
         loan_application_form: 'LOAN_APPLICATION_FORM',
-        utility_bill: 'PROOF_OF_RESIDENCE',
       };
 
       // Upload documents one by one with error handling
@@ -727,6 +709,12 @@ export default function PortalApplyLoanPage() {
               </div>
             </div>
 
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+              {kycVerified
+                ? 'Your KYC has already been approved. Please upload only the loan application form to continue.'
+                : 'Approved KYC is required before applying for a loan.'}
+            </div>
+
             {/* Individual document upload fields */}
             <div className="space-y-3">
               {(Object.keys(requiredDocuments) as Array<keyof typeof requiredDocuments>).map((docKey) => (
@@ -817,7 +805,7 @@ export default function PortalApplyLoanPage() {
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-amber-800">
-                  Please upload all {totalRequired} required documents before proceeding. 
+                  Please upload all {totalRequired} required document{totalRequired === 1 ? '' : 's'} before proceeding. 
                   Missing documents may delay your application.
                 </p>
               </div>

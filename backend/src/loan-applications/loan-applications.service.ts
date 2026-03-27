@@ -181,33 +181,40 @@ export class LoanApplicationsService {
     }
   }
 
-  private async seedDefaultChecklist(applicationId: string) {
-    const items = [
-      {
-        itemKey: 'bank_statement',
-        itemLabel: 'Bank statement for the latest three months (stamped at bank)',
-      },
-      {
-        itemKey: 'kra_pin_certificate',
-        itemLabel: 'Copy of KRA PIN certificate',
-      },
-      {
-        itemKey: 'id_copy',
-        itemLabel: 'Copy of ID',
-      },
-      {
-        itemKey: 'employment_contract',
-        itemLabel: 'Copy of Employment Contract',
-      },
-      {
-        itemKey: 'loan_application_form',
-        itemLabel: 'Duly-filled KENELS BUREAU Loan Application form',
-      },
-      {
-        itemKey: 'utility_bill',
-        itemLabel: 'Utility Bill (proof of address)',
-      },
-    ];
+  private async seedDefaultChecklist(applicationId: string, requireFullKycChecklist: boolean) {
+    const items = requireFullKycChecklist
+      ? [
+          {
+            itemKey: 'bank_statement',
+            itemLabel: 'Bank statement for the latest three months (stamped at bank)',
+          },
+          {
+            itemKey: 'kra_pin_certificate',
+            itemLabel: 'Copy of KRA PIN certificate',
+          },
+          {
+            itemKey: 'id_copy',
+            itemLabel: 'Copy of ID',
+          },
+          {
+            itemKey: 'employment_contract',
+            itemLabel: 'Copy of Employment Contract',
+          },
+          {
+            itemKey: 'loan_application_form',
+            itemLabel: 'Duly-filled KENELS BUREAU Loan Application form',
+          },
+          {
+            itemKey: 'utility_bill',
+            itemLabel: 'Utility Bill (proof of address)',
+          },
+        ]
+      : [
+          {
+            itemKey: 'loan_application_form',
+            itemLabel: 'Duly-filled KENELS BUREAU Loan Application form',
+          },
+        ];
 
     await this.prisma.loanApplicationChecklistItem.createMany({
       data: items.map((item) => ({
@@ -269,7 +276,7 @@ export class LoanApplicationsService {
       },
     });
 
-    await this.seedDefaultChecklist(application.id);
+    await this.seedDefaultChecklist(application.id, client.kycStatus !== 'VERIFIED');
     await this.logEvent(application.id, userId, 'application_created', null, application.status, {
       requestedAmount: application.requestedAmount,
       requestedTermMonths: application.requestedTermMonths,

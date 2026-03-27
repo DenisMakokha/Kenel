@@ -570,9 +570,10 @@ export default function LoanApplicationDetailPage() {
           <CardContent className="pt-4">
             {(() => {
               const docsVerified = documents.filter(d => d.reviewStatus === 'VERIFIED').length;
-              const allDocsVerified = documents.length >= 6 && docsVerified >= 6;
+              const requiredDocumentCount = checklist.length || documents.length;
+              const allDocsVerified = requiredDocumentCount > 0 && docsVerified >= requiredDocumentCount;
               const hasScore = Boolean(application.creditScore);
-              const isVerificationComplete = (allDocsVerified || docsVerified >= documents.length) && hasScore;
+              const isVerificationComplete = allDocsVerified && hasScore;
               
               const steps = [
                 { key: 'submitted', label: 'Submitted' },
@@ -630,8 +631,8 @@ export default function LoanApplicationDetailPage() {
           <Card className="border-slate-100">
             <CardContent className="pt-3 pb-3">
               <p className="text-xs text-muted-foreground">Documents</p>
-              <p className={`text-lg font-bold ${documents.length >= 6 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                {documents.length}/6
+              <p className={`text-lg font-bold ${documents.length >= (checklist.length || documents.length) ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {documents.length}/{checklist.length || documents.length || 0}
               </p>
               <p className="text-xs text-muted-foreground">{documents.filter(d => d.reviewStatus === 'VERIFIED').length} verified</p>
             </CardContent>
