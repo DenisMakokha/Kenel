@@ -20,6 +20,8 @@ export class AuditLogsService {
     if (entityId) {
       // If entity is loan_applications, resolve application number to UUID
       if (entity === 'loan_applications') {
+        console.log(`[AuditLogs] Resolving application: ${entityId}`);
+        
         const application = await this.prisma.loanApplication.findFirst({
           where: {
             OR: [
@@ -30,9 +32,13 @@ export class AuditLogsService {
           select: { id: true },
         });
         
+        console.log(`[AuditLogs] Found application:`, application);
+        
         if (application) {
           where.entityId = application.id;
+          console.log(`[AuditLogs] Using resolved UUID: ${application.id}`);
         } else {
+          console.log(`[AuditLogs] Application not found: ${entityId}`);
           // If application not found, return empty result
           return {
             data: [],
@@ -75,6 +81,8 @@ export class AuditLogsService {
       };
     }
 
+    console.log(`[AuditLogs] Executing query with where clause:`, JSON.stringify(where, null, 2));
+    
     const [logs, total] = await Promise.all([
       this.prisma.auditLog.findMany({
         where,
