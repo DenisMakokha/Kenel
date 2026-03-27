@@ -20,35 +20,29 @@ export class AuditLogsService {
     if (entityId) {
       // If entity is loan_applications, resolve application number to UUID
       if (entity === 'loan_applications') {
-        console.log(`[AuditLogs] Resolving application: ${entityId}`);
-        
-        const application = await this.prisma.loanApplication.findFirst({
-          where: {
-            OR: [
-              { id: entityId },
-              { applicationNumber: entityId },
-            ],
-          },
-          select: { id: true },
-        });
-        
-        console.log(`[AuditLogs] Found application:`, application);
-        
-        if (application) {
-          where.entityId = application.id;
-          console.log(`[AuditLogs] Using resolved UUID: ${application.id}`);
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(entityId);
+
+        if (isUuid) {
+          where.entityId = entityId;
         } else {
-          console.log(`[AuditLogs] Application not found: ${entityId}`);
-          // If application not found, return empty result
-          return {
-            data: [],
-            meta: {
-              total: 0,
-              page,
-              limit,
-              totalPages: 0,
-            },
-          };
+          const application = await this.prisma.loanApplication.findFirst({
+            where: { applicationNumber: entityId },
+            select: { id: true },
+          });
+
+          if (!application) {
+            return {
+              data: [],
+              meta: {
+                total: 0,
+                page,
+                limit,
+                totalPages: 0,
+              },
+            };
+          }
+
+          where.entityId = application.id;
         }
       } else {
         where.entityId = entityId;
@@ -81,8 +75,6 @@ export class AuditLogsService {
       };
     }
 
-    console.log(`[AuditLogs] Executing query with where clause:`, JSON.stringify(where, null, 2));
-    
     const [logs, total] = await Promise.all([
       this.prisma.auditLog.findMany({
         where,
